@@ -61,6 +61,37 @@ JOIN product_variants v ON p.product_id = v.product_id
 WHERE v.stock > 0;
 
 
+-- =====================================
+-- PRODUCT VARIANTS & IMAGES (CRUD)
+-- =====================================
+
+-- Add a new variant
+INSERT INTO product_variants (product_id, size, color, stock)
+VALUES (1, '17-inch', 'Silver', 5);
+
+-- Update a variant
+UPDATE product_variants
+SET stock = 8, color = 'Space Gray'
+WHERE variant_id = 1;
+
+-- Delete a variant
+DELETE FROM product_variants
+WHERE variant_id = 2;
+
+-- Add product image
+INSERT INTO product_images (product_id, url)
+VALUES (1, 'laptop1.jpg');
+
+-- Update product image
+UPDATE product_images
+SET url = 'laptop1_updated.jpg'
+WHERE image_id = 1;
+
+-- Delete product image
+DELETE FROM product_images
+WHERE image_id = 2;
+
+
 -- ======================
 -- CART (CRUD OPERATIONS)
 -- ======================
@@ -137,6 +168,22 @@ SET order_status = 'Delivered', delivered_at = NOW()
 WHERE order_id = 1;
 
 
+-- =================================
+-- MULTI-VENDOR ORDER EXAMPLE
+-- =================================
+
+-- Place multi-vendor order
+INSERT INTO orders (customer_id, order_status) VALUES (3, 'Pending');
+
+-- Add items from different vendors
+INSERT INTO order_items VALUES (2, 1, 1, 'Pending'); -- vendor 8
+INSERT INTO order_items VALUES (2, 3, 2, 'Pending'); -- vendor 9
+
+-- Confirm per vendor
+INSERT INTO order_confirmations VALUES (2, 8, 'Confirmed');
+INSERT INTO order_confirmations VALUES (2, 9, 'Confirmed');
+
+
 -- =======================
 -- TOTAL PRICE CALCULATION
 -- =======================
@@ -187,6 +234,20 @@ UPDATE returns
 SET status = 'Processing'
 WHERE return_id = 1;
 
+-- Check warranty validity
+SELECT o.order_id, p.title, 
+DATEDIFF(NOW(), o.delivered_at) AS days_since_delivery,
+p.warranty_period,
+CASE 
+    WHEN DATEDIFF(NOW(), o.delivered_at) > p.warranty_period*30 THEN 'Warranty Expired'
+    ELSE 'Warranty Valid'
+END AS warranty_status
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN product_variants pv ON oi.variant_id = pv.variant_id
+JOIN products p ON pv.product_id = p.product_id
+WHERE o.order_id = 1;
+
 
 -- ===========
 -- CHAT SYSTEM
@@ -196,11 +257,21 @@ WHERE return_id = 1;
 INSERT INTO chats (customer_id, vendor_id, text)
 VALUES (3, 8, 'Hello, is this available?');
 
+-- Send message regarding return/warranty
+INSERT INTO chats (customer_id, admin_id, text)
+VALUES (3, 1, 'I have a problem with my laptop warranty claim.');
+
 -- Get messages sent to a vendor
 SELECT * FROM chats WHERE vendor_id = 8;
 
 -- Get messages sent by a customer
 SELECT * FROM chats WHERE customer_id = 3;
+
+-- Retrieve all messages for a particular return
+SELECT c.*
+FROM chats c
+JOIN returns r ON c.customer_id = r.customer_id
+WHERE r.return_id = 1;
 
 -- Delete a message
 DELETE FROM chats WHERE chat_id = 1;
