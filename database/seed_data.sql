@@ -95,3 +95,11 @@ INSERT INTO chats (customer_id, vendor_id, admin_id, text, image, timestamp) VAL
 (5, NULL, 1, 'I need help with return process.', NULL, NOW()),
 (3, 8, NULL, 'Is the laptop still in stock?', NULL, NOW()),
 (4, 10, NULL, 'When will my order ship?', NULL, NOW());
+
+-- WISHLIST DATA
+INSERT INTO wishlists (customer_id) VALUES (3), (4);
+
+INSERT INTO wishlist_items VALUES
+(1, 2),
+(1, 3),
+(2, 5);

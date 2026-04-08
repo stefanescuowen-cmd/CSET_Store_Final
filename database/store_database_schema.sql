@@ -1,5 +1,4 @@
 CREATE DATABASE store_db;
-
 USE store_db;
 
 -- USERS
@@ -40,7 +39,6 @@ CREATE TABLE products (
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE
 );
 
--- PRODUCT IMAGES (FIXED)
 CREATE TABLE product_images (
     image_id INT PRIMARY KEY AUTO_INCREMENT,
     product_id INT,
@@ -48,7 +46,6 @@ CREATE TABLE product_images (
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 
--- PRODUCT VARIANTS
 CREATE TABLE product_variants (
     variant_id INT PRIMARY KEY AUTO_INCREMENT,
     product_id INT,
@@ -58,7 +55,7 @@ CREATE TABLE product_variants (
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 
--- CARTS
+-- CART
 CREATE TABLE carts (
     cart_id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT NOT NULL UNIQUE,
@@ -84,7 +81,6 @@ CREATE TABLE orders (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
--- ORDER ITEMS (MULTI-VENDOR SUPPORT)
 CREATE TABLE order_items (
     order_id INT,
     variant_id INT,
@@ -95,7 +91,6 @@ CREATE TABLE order_items (
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
--- ORDER CONFIRMATIONS (PER VENDOR)
 CREATE TABLE order_confirmations (
     order_id INT,
     vendor_id INT,
@@ -105,7 +100,7 @@ CREATE TABLE order_confirmations (
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE
 );
 
--- REVIEWS (FIXED)
+-- REVIEWS
 CREATE TABLE reviews (
     review_id INT PRIMARY KEY AUTO_INCREMENT,
     product_id INT NOT NULL,
@@ -118,7 +113,7 @@ CREATE TABLE reviews (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
--- RETURNS / WARRANTY
+-- RETURNS
 CREATE TABLE returns (
     return_id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(100),
@@ -133,7 +128,7 @@ CREATE TABLE returns (
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
 );
 
--- CHATS
+-- CHAT
 CREATE TABLE chats (
     chat_id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT NOT NULL,
@@ -145,4 +140,19 @@ CREATE TABLE chats (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
+);
+
+-- WISHLIST (REQUIRED)
+CREATE TABLE wishlists (
+    wishlist_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
+);
+
+CREATE TABLE wishlist_items (
+    wishlist_id INT,
+    variant_id INT,
+    PRIMARY KEY (wishlist_id, variant_id),
+    FOREIGN KEY (wishlist_id) REFERENCES wishlists(wishlist_id) ON DELETE CASCADE,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
