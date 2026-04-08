@@ -81,7 +81,7 @@ CREATE TABLE returns (
 CREATE TABLE product_images (
     Image_id INT PRIMARY KEY AUTO_INCREMENT,
     Product_id INT,
-    url TEXT,
+    image_url TEXT,
     FOREIGN KEY (product_id) REFERENCES products (product_id)
 );
 
@@ -89,9 +89,9 @@ CREATE TABLE product_images (
 CREATE TABLE product_variants (
     variant_id INT PRIMARY KEY AUTO_INCREMENT,
     product_id INT,
-    size VARCHAR(20),
-    color VARCHAR(20),
-    stock INT,
+    variant_size VARCHAR(20),
+    variant_color VARCHAR(20),
+    variant_stock INT,
     FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
@@ -119,7 +119,7 @@ CREATE TABLE chats (
     customer_id INT NOT NULL,
     vendor_id INT,
     admin_id INT,
-    text TEXT,
+    chat_message TEXT,
     image TEXT,
     timestamp DATETIME,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
