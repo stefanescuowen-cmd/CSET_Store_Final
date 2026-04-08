@@ -7,8 +7,52 @@
             <link rel="stylesheet" type="text/css" href="../static/style.css">
         </head>
     <body>
-    {% block body %}
+        <header>
+            <div id="HeadImg">
+                <img src="">
+            </div>
+            <div id="HeadText">
+                <h1>UntitledText</h1>
+            </div>
+            <div id="HeadLinks">
+                <ul>
+                    <!-- Basic -->
+                    <li><a href="/">Home</a></li>
 
-    {% endblock %}
+                    <!-- Admin -->
+                    <li><a href="/">Admin Stuff</a></li>
+
+                    <!-- Logged In-->
+                    <li><a href="/">Chat</a></li>
+                    <li><a href="/">Shop</a></li>
+                    <li><a href="/">Reviews</a></li>
+                    <li><a href="/">Account</a></li>
+                    <li><a href="/">Log Out</a></li>
+
+                    <!-- Logged Out -->
+                    <li><a href="/">SignUp / Login</a></li>
+                </ul>
+            </div>
+        </header>
+        <article>
+            {% block body %}
+
+            {% endblock %}
+        </article>
+        <footer>
+            <div id="FooterLinks">
+
+            </div>
+            <div id="FooterText">
+
+            </div>
+            <div id="FooterForm">
+
+            </div>
+            <div id="FooterImg">
+
+            </div>
+            <script src="../static/script.js"></script>
+        </footer>
     </body>
 </html>
