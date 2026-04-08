@@ -51,11 +51,11 @@ INSERT INTO product_variants (product_id, size, color, stock) VALUES
 -- CARTS
 INSERT INTO carts (customer_id) VALUES (3), (4), (5);
 
-INSERT INTO cart_items VALUES
-(1, 1, 1),
-(1, 2, 2),
+INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES
+(1, 1, 2),
+(1, 2, 1),
 (2, 3, 1),
-(3, 5, 1);
+(3, 5, 2);
 
 -- ORDERS
 INSERT INTO orders (customer_id, order_status, ordered_at, delivered_at) VALUES
