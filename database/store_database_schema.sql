@@ -36,13 +36,14 @@ CREATE TABLE products (
     discount_price DECIMAL(10,2),
     discount_deadline DATETIME,
     vendor_id INT NOT NULL,
-    FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE
+    FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE,
+    CHECK (discount_price IS NULL OR discount_price < price)
 );
 
 CREATE TABLE product_images (
     image_id INT PRIMARY KEY AUTO_INCREMENT,
     product_id INT NOT NULL,
-    url TEXT NOT NULL,
+    image_url VARCHAR(255) NOT NULL,
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 
@@ -85,7 +86,7 @@ CREATE TABLE order_items (
     order_id INT NOT NULL,
     variant_id INT NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
-    item_status VARCHAR(50) NOT NULL,
+    item_status ENUM('Pending','Processing','Shipped','Delivered','Cancelled') NOT NULL,
     PRIMARY KEY (order_id, variant_id),
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
@@ -109,6 +110,7 @@ CREATE TABLE reviews (
     description TEXT NOT NULL,
     image TEXT,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (product_id, customer_id),
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
@@ -159,7 +161,10 @@ CREATE TABLE chats (
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE,
     FOREIGN KEY (return_id) REFERENCES returns(return_id) ON DELETE CASCADE,
-    FOREIGN KEY (warranty_id) REFERENCES warranties(warranty_id) ON DELETE CASCADE
+    FOREIGN KEY (warranty_id) REFERENCES warranties(warranty_id) ON DELETE CASCADE,
+    CHECK (
+        vendor_id IS NOT NULL OR admin_id IS NOT NULL OR return_id IS NOT NULL OR warranty_id IS NOT NULL
+    )
 );
 
 -- WISHLIST (REQUIRED)

@@ -5,15 +5,15 @@ USE store_db;
 -- =====================================
 
 -- Check if user already exists
-SELECT * FROM users WHERE email = 'alice@mail.com';
+SELECT * FROM users WHERE email = 'alice@mail.com';SET @user_email = 'alice@mail.com';
+SET @user_id = (SELECT user_id FROM users WHERE email = @user_email);
 
 -- Register new user
 INSERT INTO users (name, email, username, password)
 VALUES ('Test User', 'test@mail.com', 'testuser', 'pass');
 
 -- Login using username
-SELECT * FROM users
-WHERE username = 'alice' AND password = 'pass';
+SELECT * FROM users WHERE user_id = @user_id AND password = 'pass';
 
 -- Login using email
 SELECT * FROM users
@@ -66,8 +66,9 @@ WHERE v.stock > 0;
 -- =====================================
 
 -- Add a new variant
+SET @product_title = 'Test Product';
+SET @product_id = (SELECT product_id FROM products WHERE title=@product_title LIMIT 1);
 INSERT INTO product_variants (product_id, size, color, stock)
-VALUES (1, '17-inch', 'Silver', 5);
 
 -- Update a variant
 UPDATE product_variants
@@ -79,10 +80,13 @@ DELETE FROM product_variants
 WHERE variant_id = 2;
 
 -- Add product image
-INSERT INTO product_images (product_id, url)
+INSERT INTO product_images (product_id, image_url)
 VALUES (1, 'laptop1.jpg');
 
--- Update product image
+UPDATE product_images
+SET image_url = 'laptop1_updated.jpg'
+WHERE image_id = 1;
+
 UPDATE product_images
 SET url = 'laptop1_updated.jpg'
 WHERE image_id = 1;
@@ -150,7 +154,15 @@ INSERT INTO orders (customer_id, order_status)
 VALUES (3, 'Pending');
 
 -- Add items to order
-INSERT INTO order_items VALUES (1, 1, 2, 'Pending');
+INSERT INTO order_items (order_id, variant_id, quantity, status)
+VALUES
+(2, 1, 1, 'Pending'),
+(2, 3, 2, 'Pending');
+
+INSERT INTO order_confirmations (order_id, vendor_id, status)
+VALUES
+(2, 8, 'Confirmed'),
+(2, 9, 'Confirmed');
 
 -- Confirm order by vendor
 UPDATE order_confirmations
@@ -226,8 +238,8 @@ DELETE FROM reviews WHERE review_id = 1;
 -- ==================
 
 -- Create return request
-INSERT INTO returns (title, description, demand, status, customer_id, order_id)
-VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1);
+INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id)
+VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1, 1);
 
 -- Update return status
 UPDATE returns
@@ -239,8 +251,8 @@ SELECT o.order_id, p.title,
 DATEDIFF(NOW(), o.delivered_at) AS days_since_delivery,
 p.warranty_period,
 CASE 
-    WHEN DATEDIFF(NOW(), o.delivered_at) > p.warranty_period*30 THEN 'Warranty Expired'
-    ELSE 'Warranty Valid'
+    WHEN DATE_ADD(o.delivered_at, INTERVAL p.warranty_period MONTH) >= NOW() THEN 'Warranty Valid'
+    ELSE 'Warranty Expired'
 END AS warranty_status
 FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
@@ -254,12 +266,12 @@ WHERE o.order_id = 1;
 -- ===========
 
 -- Send message to vendor
-INSERT INTO chats (customer_id, vendor_id, text)
-VALUES (3, 8, 'Hello, is this available?');
+INSERT INTO chats (customer_id, vendor_id, text, timestamp)
+VALUES (3, 8, 'Hello, is this available?', NOW());
 
 -- Send message regarding return/warranty
-INSERT INTO chats (customer_id, admin_id, text)
-VALUES (3, 1, 'I have a problem with my laptop warranty claim.');
+INSERT INTO chats (customer_id, admin_id, text, timestamp)
+VALUES (3, 1, 'I have a problem with my laptop warranty claim.', NOW());
 
 -- Get messages sent to a vendor
 SELECT * FROM chats WHERE vendor_id = 8;
