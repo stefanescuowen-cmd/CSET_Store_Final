@@ -159,7 +159,7 @@ SELECT * FROM products WHERE title LIKE '%phone%';
 SELECT * FROM products WHERE description LIKE '%gaming%';
 
 -- Search by vendor dynamically
-SELECT * FROM products WHERE vendor_id = (SELECT vendor_id FROM vendors WHERE user_id = 8);
+SELECT * FROM products WHERE vendor_id = (SELECT vendor_id FROM vendors WHERE vendor_id = 8);
 
 -- Filter by variant properties
 SELECT p.*
@@ -194,7 +194,8 @@ INSERT INTO cart_items (cart_id, variant_id, quantity)
 SELECT c.cart_id, pv.variant_id, 2
 FROM carts c
 JOIN product_variants pv ON pv.variant_id = 1
-WHERE c.customer_id = 3;
+WHERE c.customer_id = 3
+ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
 
 -- View cart contents
 SELECT c.customer_id, p.title, ci.quantity
@@ -253,7 +254,7 @@ JOIN products p ON pv.product_id = p.product_id;
 INSERT INTO orders (customer_id, order_status) VALUES (3, 'Pending');
 SET @new_order_id = LAST_INSERT_ID();
 
-INSERT INTO order_items (order_id, variant_id, quantity, status)
+INSERT INTO order_items (order_id, variant_id, quantity, item_status)
 VALUES (@new_order_id, 1, 2, 'Pending');
 
 -- Confirm order dynamically
@@ -319,14 +320,16 @@ UPDATE returns r
 JOIN product_variants pv ON r.variant_id = pv.variant_id
 JOIN products p ON pv.product_id = p.product_id
 SET r.status = 'Rejected'
-WHERE r.demand = 'Warranty'
+WHERE r.return_id > 0
+  AND r.demand = 'Warranty'
   AND DATE_ADD(r.date, INTERVAL p.warranty_period MONTH) < NOW();
 
 -- Auto-reject if after 7 days
 UPDATE returns r
 JOIN orders o ON r.order_id = o.order_id
 SET r.status = 'Rejected'
-WHERE r.demand IN ('Return','Refund') AND DATEDIFF(NOW(), o.delivered_at) > 7;
+WHERE r.order_id IS NOT NULL
+  AND r.demand IN ('Return','Refund') AND DATEDIFF(NOW(), o.delivered_at) > 7;
 
 -- ===========
 -- CHAT SYSTEM
