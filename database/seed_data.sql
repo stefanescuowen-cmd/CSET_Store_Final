@@ -113,7 +113,7 @@ INSERT INTO wishlist_items VALUES
 -- =====================================
 
 -- Check if user already exists
-SELECT * FROM users WHERE email = 'alice@mail.com';
+SELECT * FROM users WHERE email = 'alice@mail.com' OR username = 'alice';
 
 -- Register new user
 INSERT INTO users (name, email, username, password)
@@ -166,6 +166,12 @@ SELECT p.*
 FROM products p
 JOIN product_variants v ON p.product_id = v.product_id
 WHERE v.stock > 0;
+
+-- Filter by price range
+SELECT p.*
+FROM products p
+JOIN product_variants pv ON p.product_id = pv.product_id
+WHERE pv.stock > 0 AND COALESCE(p.discount_price, p.price) BETWEEN 50 AND 500;
 
 -- ======================
 -- CART (CRUD OPERATIONS)
@@ -287,6 +293,18 @@ VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1);
 UPDATE returns
 SET status = 'Processing'
 WHERE return_id = 1;
+
+-- Automatically reject if warranty expired
+UPDATE returns r
+JOIN products p ON p.product_id = r.product_id
+SET r.status = 'Rejected'
+WHERE r.demand = 'Warranty' AND DATE_ADD(r.date, INTERVAL p.warranty_period MONTH) < NOW();
+
+-- Automatically reject if return/refund after 7 days
+UPDATE returns r
+JOIN orders o ON r.order_id = o.order_id
+SET r.status = 'Rejected'
+WHERE r.demand IN ('Return', 'Refund') AND DATEDIFF(NOW(), o.delivered_at) > 7;
 
 -- ===========
 -- CHAT SYSTEM
