@@ -48,6 +48,15 @@ INSERT INTO product_variants (product_id, size, color, stock) VALUES
 (9, 'Standard', 'Blue', 35),
 (10, 'Standard', 'Black', 20);
 
+-- IMAGES
+INSERT INTO product_images (product_id, image_url) VALUES
+(1, 'laptop_front.jpg'),
+(1, 'laptop_back.jpg'),
+(2, 'mouse_top.jpg'),
+(2, 'mouse_side.jpg'),
+(4, 'monitor_front.jpg'),
+(4, 'monitor_side.jpg');
+
 -- CARTS
 INSERT INTO carts (customer_id) VALUES (3), (4), (5);
 
@@ -75,7 +84,9 @@ INSERT INTO order_items VALUES
 (3, 4, 1, 'Delivered'),
 (3, 5, 1, 'Delivered'),
 (5, 6, 1, 'Delivered'),
-(6, 7, 1, 'Delivered');
+(6, 7, 1, 'Delivered'),
+(7, 1, 1, 'Pending'),
+(7, 4, 2, 'Pending');
 
 -- ORDER CONFIRMATIONS
 INSERT INTO order_confirmations VALUES
@@ -90,8 +101,8 @@ INSERT INTO reviews (product_id, customer_id, rating, description, image, date) 
 (6, 7, 5, 'Excellent sound quality!', 'img3.jpg', NOW());
 
 -- RETURNS
-INSERT INTO returns (title, date, description, demand, status, images, customer_id, order_id) VALUES
-('Broken Screen', NOW(), 'Screen cracked after delivery', 'Replacement', 'In Progress', 'img4.jpg', 5, 3);
+INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id, images)
+VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1, 1, 'img_damaged.jpg');
 
 -- CHATS
 INSERT INTO chats (customer_id, vendor_id, admin_id, text, image, timestamp) VALUES
@@ -100,13 +111,19 @@ INSERT INTO chats (customer_id, vendor_id, admin_id, text, image, timestamp) VAL
 (3, 8, NULL, 'Is the laptop still in stock?', NULL, NOW()),
 (4, 10, NULL, 'When will my order ship?', NULL, NOW());
 
--- WISHLIST DATA
+-- Create wishlists for customers
 INSERT INTO wishlists (customer_id) VALUES (3), (4);
 
-INSERT INTO wishlist_items VALUES
-(1, 2),
-(1, 3),
-(2, 5);
+-- Add items to wishlists using correct wishlist IDs
+INSERT INTO wishlist_items (wishlist_id, variant_id)
+SELECT wishlist_id, 2 FROM wishlists WHERE customer_id = 3;
+
+INSERT INTO wishlist_items (wishlist_id, variant_id)
+SELECT wishlist_id, 3 FROM wishlists WHERE customer_id = 3;
+
+INSERT INTO wishlist_items (wishlist_id, variant_id)
+SELECT wishlist_id, 5 FROM wishlists WHERE customer_id = 4;
+
 
 -- =====================================
 -- AUTHENTICATION (Registration / Login)
@@ -137,31 +154,25 @@ FROM products p
 JOIN vendors v ON p.vendor_id = v.vendor_id
 JOIN users u ON v.vendor_id = u.user_id;
 
--- Search products by name
-SELECT * FROM products
-WHERE title LIKE '%phone%';
+-- Search by name or description
+SELECT * FROM products WHERE title LIKE '%phone%';
+SELECT * FROM products WHERE description LIKE '%gaming%';
 
--- Search products by description
-SELECT * FROM products
-WHERE description LIKE '%gaming%';
+-- Search by vendor dynamically
+SELECT * FROM products WHERE vendor_id = (SELECT vendor_id FROM vendors WHERE user_id = 8);
 
--- Search products by vendor
-SELECT * FROM products
-WHERE vendor_id = 8;
-
--- Filter products by color
+-- Filter by variant properties
 SELECT p.*
 FROM products p
 JOIN product_variants v ON p.product_id = v.product_id
 WHERE v.color = 'Black';
 
--- Filter products by size
 SELECT p.*
 FROM products p
 JOIN product_variants v ON p.product_id = v.product_id
 WHERE v.size = '15-inch';
 
--- Filter products by availability (in stock)
+-- Filter by stock
 SELECT p.*
 FROM products p
 JOIN product_variants v ON p.product_id = v.product_id
@@ -171,14 +182,19 @@ WHERE v.stock > 0;
 SELECT p.*
 FROM products p
 JOIN product_variants pv ON p.product_id = pv.product_id
-WHERE pv.stock > 0 AND COALESCE(p.discount_price, p.price) BETWEEN 50 AND 500;
+WHERE pv.stock > 0
+  AND COALESCE(p.discount_price, p.price) BETWEEN 50 AND 500;
 
 -- ======================
 -- CART (CRUD OPERATIONS)
 -- ======================
 
--- Add item to cart
-INSERT INTO cart_items VALUES (1, 1, 2);
+-- Add item to cart dynamically
+INSERT INTO cart_items (cart_id, variant_id, quantity)
+SELECT c.cart_id, pv.variant_id, 2
+FROM carts c
+JOIN product_variants pv ON pv.variant_id = 1
+WHERE c.customer_id = 3;
 
 -- View cart contents
 SELECT c.customer_id, p.title, ci.quantity
@@ -187,31 +203,40 @@ JOIN cart_items ci ON c.cart_id = ci.cart_id
 JOIN product_variants pv ON ci.variant_id = pv.variant_id
 JOIN products p ON pv.product_id = p.product_id;
 
--- Update item quantity in cart
-UPDATE cart_items
-SET quantity = 3
-WHERE cart_id = 1 AND variant_id = 1;
+-- Update item quantity dynamically
+UPDATE cart_items ci
+JOIN carts c ON ci.cart_id = c.cart_id
+SET ci.quantity = 3
+WHERE c.customer_id = 3 AND ci.variant_id = 1;
 
--- Remove item from cart
-DELETE FROM cart_items
-WHERE cart_id = 1 AND variant_id = 2;
+-- Remove item dynamically
+DELETE ci
+FROM cart_items ci
+JOIN carts c ON ci.cart_id = c.cart_id
+WHERE c.customer_id = 3 AND ci.variant_id = 2;
 
 -- ==========================
 -- WISHLIST (CRUD OPERATIONS)
 -- ==========================
 
 -- Create wishlist for a customer
-INSERT INTO wishlists (customer_id) VALUES (3);
+INSERT INTO wishlists (customer_id) VALUES (5);
 
--- Add item to wishlist
-INSERT INTO wishlist_items VALUES (1, 2);
+-- Add items dynamically
+INSERT INTO wishlist_items (wishlist_id, variant_id)
+SELECT wishlist_id, 6 FROM wishlists WHERE customer_id = 5;
 
--- View wishlist items
-SELECT * FROM wishlist_items WHERE wishlist_id = 1;
+-- View wishlist items for a customer
+SELECT wi.*
+FROM wishlist_items wi
+JOIN wishlists w ON wi.wishlist_id = w.wishlist_id
+WHERE w.customer_id = 3;
 
--- Remove item from wishlist
-DELETE FROM wishlist_items
-WHERE wishlist_id = 1 AND variant_id = 2;
+-- Remove wishlist item dynamically
+DELETE wi
+FROM wishlist_items wi
+JOIN wishlists w ON wi.wishlist_id = w.wishlist_id
+WHERE w.customer_id = 3 AND wi.variant_id = 2;
 
 -- ======
 -- ORDERS
@@ -224,27 +249,28 @@ JOIN order_items oi ON o.order_id = oi.order_id
 JOIN product_variants pv ON oi.variant_id = pv.variant_id
 JOIN products p ON pv.product_id = p.product_id;
 
--- Place a new order
-INSERT INTO orders (customer_id, order_status)
-VALUES (3, 'Pending');
+-- Place new order dynamically
+INSERT INTO orders (customer_id, order_status) VALUES (3, 'Pending');
+SET @new_order_id = LAST_INSERT_ID();
 
--- Add items to order
-INSERT INTO order_items VALUES (1, 1, 2, 'Pending');
+INSERT INTO order_items (order_id, variant_id, quantity, status)
+VALUES (@new_order_id, 1, 2, 'Pending');
 
--- Confirm order by vendor
-UPDATE order_confirmations
-SET status = 'Confirmed'
-WHERE order_id = 1 AND vendor_id = 8;
+-- Confirm order dynamically
+UPDATE order_confirmations oc
+JOIN orders o ON oc.order_id = o.order_id
+SET oc.status = 'Confirmed'
+WHERE o.customer_id = 3 AND oc.vendor_id = 8;
 
--- Update order status to shipped
-UPDATE orders
-SET order_status = 'Shipped'
-WHERE order_id = 1;
+-- Update order status dynamically
+UPDATE orders o
+SET o.order_status = 'Shipped'
+WHERE o.customer_id = 3 AND o.order_status = 'Pending';
 
--- Mark order as delivered
-UPDATE orders
-SET order_status = 'Delivered', delivered_at = NOW()
-WHERE order_id = 1;
+-- Mark delivered dynamically
+UPDATE orders o
+SET o.order_status = 'Delivered', delivered_at = NOW()
+WHERE o.customer_id = 3 AND o.order_status = 'Shipped';
 
 -- =======================
 -- TOTAL PRICE CALCULATION
@@ -262,23 +288,19 @@ GROUP BY o.order_id;
 -- REVIEWS (CRUD AND FILTERING)
 -- ============================
 
--- Create a review
+-- Create review
 INSERT INTO reviews (product_id, customer_id, rating, description)
 VALUES (1, 3, 5, 'Great product');
 
--- Get reviews for a product
+-- Get reviews for product or by customer
 SELECT * FROM reviews WHERE product_id = 1;
-
--- Get reviews by a customer
 SELECT * FROM reviews WHERE customer_id = 3;
 
--- Sort reviews by rating
+-- Sort reviews
 SELECT * FROM reviews ORDER BY rating DESC;
-
--- Sort reviews by date
 SELECT * FROM reviews ORDER BY date DESC;
 
--- Delete a review
+-- Delete dynamically
 DELETE FROM reviews WHERE review_id = 1;
 
 -- ==================
@@ -286,52 +308,54 @@ DELETE FROM reviews WHERE review_id = 1;
 -- ==================
 
 -- Create return request
-INSERT INTO returns (title, description, demand, status, customer_id, order_id)
-VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1);
+INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id)
+VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1, 1);
 
 -- Update return status
-UPDATE returns
-SET status = 'Processing'
-WHERE return_id = 1;
+UPDATE returns SET status = 'Processing' WHERE return_id = 1;
 
--- Automatically reject if warranty expired
+-- Auto-reject if warranty expired
 UPDATE returns r
-JOIN products p ON p.product_id = r.product_id
+JOIN product_variants pv ON r.variant_id = pv.variant_id
+JOIN products p ON pv.product_id = p.product_id
 SET r.status = 'Rejected'
-WHERE r.demand = 'Warranty' AND DATE_ADD(r.date, INTERVAL p.warranty_period MONTH) < NOW();
+WHERE r.demand = 'Warranty'
+  AND DATE_ADD(r.date, INTERVAL p.warranty_period MONTH) < NOW();
 
--- Automatically reject if return/refund after 7 days
+-- Auto-reject if after 7 days
 UPDATE returns r
 JOIN orders o ON r.order_id = o.order_id
 SET r.status = 'Rejected'
-WHERE r.demand IN ('Return', 'Refund') AND DATEDIFF(NOW(), o.delivered_at) > 7;
+WHERE r.demand IN ('Return','Refund') AND DATEDIFF(NOW(), o.delivered_at) > 7;
 
 -- ===========
 -- CHAT SYSTEM
 -- ===========
 
--- Send message to vendor
-INSERT INTO chats (customer_id, vendor_id, text)
-VALUES (3, 8, 'Hello, is this available?');
+-- Send message dynamically
+INSERT INTO chats (customer_id, vendor_id, admin_id, return_id, text, image, timestamp)
+VALUES
+(5, 9, NULL, NULL, 'My monitor arrived damaged.', NULL, NOW()),
+(5, NULL, 1, NULL, 'I need help with return process.', NULL, NOW()),
+(3, 8, NULL, 1, 'Is the laptop still in stock?', NULL, NOW()),
+(4, 10, NULL, NULL, 'When will my order ship?', NULL, NOW());
 
--- Get messages sent to a vendor
+-- Get messages dynamically
 SELECT * FROM chats WHERE vendor_id = 8;
-
--- Get messages sent by a customer
 SELECT * FROM chats WHERE customer_id = 3;
 
--- Delete a message
+-- Delete dynamically
 DELETE FROM chats WHERE chat_id = 1;
 
 -- =====================
 -- ADDITIONAL OPERATIONS
 -- =====================
 
--- Add new product
+-- Add new product dynamically
 INSERT INTO products (title, description, price, vendor_id)
 VALUES ('Test Product', 'Demo item', 99.99, 8);
 
--- Update product pricing
+-- Update product pricing dynamically
 UPDATE products
 SET price = 899.99, discount_price = 799.99
 WHERE product_id = 1;
