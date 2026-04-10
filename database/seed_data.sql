@@ -74,7 +74,9 @@ INSERT INTO orders (customer_id, order_status, ordered_at, delivered_at) VALUES
 (6, 'Cancelled', NOW(), NULL),
 (7, 'Delivered', NOW(), NOW()),
 (3, 'Delivered', NOW(), NOW()),
-(4, 'Pending', NOW(), NULL);
+(4, 'Pending', NOW(), NULL),
+(5, 'Shipped', NOW(), NULL),
+(6, 'Shipped', NOW(), NULL);
 
 -- ORDER ITEMS
 INSERT INTO order_items VALUES
