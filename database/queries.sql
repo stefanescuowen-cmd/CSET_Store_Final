@@ -26,8 +26,7 @@ WHERE email = 'alice@mail.com' AND password = 'pass';
 -- View products with vendor names
 SELECT p.title, u.name AS vendor
 FROM products p
-JOIN vendors v ON p.vendor_id = v.vendor_id
-JOIN users u ON v.vendor_id = u.user_id;
+JOIN users u ON p.vendor_id = u.user_id;
 
 -- Search by name or description
 SELECT * FROM products WHERE title LIKE '%phone%';
@@ -66,11 +65,8 @@ WHERE pv.stock > 0
 
 -- Add item to cart dynamically
 INSERT INTO cart_items (cart_id, variant_id, quantity)
-SELECT c.cart_id, pv.variant_id, 2
-FROM carts c
-JOIN product_variants pv ON pv.variant_id = 1
-WHERE c.customer_id = 3
-ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
+VALUES (1, 1, 2)
+ON DUPLICATE KEY UPDATE quantity = quantity + 2;
 
 -- View cart contents
 SELECT c.customer_id, p.title, ci.quantity
@@ -133,20 +129,18 @@ INSERT INTO order_items (order_id, variant_id, quantity, item_status)
 VALUES (@new_order_id, 1, 2, 'Pending');
 
 -- Confirm order dynamically
-UPDATE order_confirmations oc
-JOIN orders o ON oc.order_id = o.order_id
-SET oc.status = 'Confirmed'
-WHERE o.customer_id = 3 AND oc.vendor_id = 8;
+INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status)
+VALUES (1, 1, 8, 'Confirmed');
 
 -- Update order status dynamically
 UPDATE orders o
 SET o.order_status = 'Shipped'
-WHERE o.customer_id = 3 AND o.order_status = 'Pending';
+WHERE o.order_id = 1 AND o.customer_id = 3 AND o.order_status = 'Pending';
 
 -- Mark delivered dynamically
 UPDATE orders o
 SET o.order_status = 'Delivered', delivered_at = NOW()
-WHERE o.customer_id = 3 AND o.order_status = 'Shipped';
+WHERE o.order_id = 1 AND o.customer_id = 3 AND o.order_status = 'Shipped';
 
 -- =======================
 -- TOTAL PRICE CALCULATION
@@ -165,12 +159,21 @@ GROUP BY o.order_id;
 -- ============================
 
 -- Create review
-INSERT INTO reviews (product_id, customer_id, rating, description)
+INSERT INTO reviews (variant_id, customer_id, rating, description)
 VALUES (1, 3, 5, 'Great product');
 
 -- Get reviews for product or by customer
-SELECT * FROM reviews WHERE product_id = 1;
-SELECT * FROM reviews WHERE customer_id = 3;
+SELECT r.rating, r.description, r.date, u.name AS customer
+FROM reviews r
+JOIN customers c ON r.customer_id = c.customer_id
+JOIN users u ON c.customer_id = u.user_id
+WHERE r.variant_id = 1;
+
+SELECT r.rating, r.description, r.date, u.name AS customer
+FROM reviews r
+JOIN customers c ON r.customer_id = c.customer_id
+JOIN users u ON c.customer_id = u.user_id
+WHERE c.customer_id = 3;
 
 -- Sort reviews
 SELECT * FROM reviews ORDER BY rating DESC;
@@ -192,11 +195,13 @@ UPDATE returns SET status = 'Processing' WHERE return_id = 1;
 
 -- Auto-reject if warranty expired
 UPDATE returns r
+JOIN orders o ON r.order_id = o.order_id
 JOIN product_variants pv ON r.variant_id = pv.variant_id
 JOIN products p ON pv.product_id = p.product_id
 SET r.status = 'Rejected'
 WHERE r.return_id > 0
   AND r.demand = 'Warranty'
+  AND o.delivered_at IS NOT NULL
   AND DATE_ADD(r.date, INTERVAL p.warranty_period MONTH) < NOW();
 
 -- Auto-reject if after 7 days

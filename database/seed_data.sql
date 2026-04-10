@@ -68,50 +68,63 @@ INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES
 
 -- ORDERS
 INSERT INTO orders (customer_id, order_status, ordered_at, delivered_at) VALUES
-(3, 'Processing', NOW(), NULL),
+(3, 'Confirmed', NOW(), NULL),
 (4, 'Shipped', NOW(), NULL),
 (5, 'Delivered', NOW(), NOW()),
 (6, 'Cancelled', NOW(), NULL),
-(7, 'Delivered', NOW(), NOW()),
+(7, 'Handed to delivery partner', NOW(), NULL),
 (3, 'Delivered', NOW(), NOW()),
 (4, 'Pending', NOW(), NULL),
 (5, 'Shipped', NOW(), NULL),
-(6, 'Shipped', NOW(), NULL);
+(6, 'Shipped', NOW(), NULL),
+(3, 'Cancelled', NOW(), NULL);
 
 -- ORDER ITEMS
-INSERT INTO order_items VALUES
-(1, 1, 1, 'Processing'),
-(1, 3, 1, 'Processing'),
+INSERT INTO order_items (order_id, variant_id, quantity, item_status) VALUES
+(1, 1, 1, 'Confirmed'),
+(1, 3, 1, 'Confirmed'),
 (2, 2, 2, 'Shipped'),
 (3, 4, 1, 'Delivered'),
 (3, 5, 1, 'Delivered'),
-(5, 6, 1, 'Delivered'),
+(5, 6, 1, 'Handed to delivery partner'),
 (6, 7, 1, 'Delivered'),
 (7, 1, 1, 'Pending'),
-(7, 4, 2, 'Pending');
+(7, 4, 2, 'Pending'),
+(8, 2, 1, 'Shipped'),
+(8, 3, 1, 'Shipped'),
+(9, 5, 2, 'Shipped'),
+(9, 3, 1, 'Shipped'),
+(10, 1, 1, 'Cancelled');
 
 -- ORDER CONFIRMATIONS
-INSERT INTO order_confirmations VALUES
-(1, 8, 'Confirmed'),
-(1, 9, 'Confirmed'),
-(3, 10, 'Confirmed');
+INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status) VALUES
+(1, 1, 8, 'Confirmed'),
+(1, 3, 9, 'Confirmed'),
+(3, 4, 9, 'Confirmed');
 
 -- REVIEWS
-INSERT INTO reviews (product_id, customer_id, rating, description, image, date) VALUES
+INSERT INTO reviews (variant_id, customer_id, rating, description, image, date) VALUES
 (4, 5, 5, 'Amazing monitor, very clear display!', 'img1.jpg', NOW()),
 (5, 5, 4, 'Good phone but battery could be better.', 'img2.jpg', NOW()),
-(6, 7, 5, 'Excellent sound quality!', 'img3.jpg', NOW());
+(7, 3, 3, 'Tablet is okay for the price.', 'img4.jpg', NOW());
 
 -- RETURNS
 INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id, images)
-VALUES ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1, 1, 'img_damaged.jpg');
+VALUES 
+  ('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1, 1, 'img_damaged.jpg'),
+  ('Battery issue', 'Stopped working', 'Warranty', 'Processing', 5, 3, 4, 'img_warranty.jpg'),
+  ('Wrong item', 'Received wrong product', 'Refund', 'Pending', 4, 4, 2, 'img_refund.jpg');
 
 -- CHATS
-INSERT INTO chats (customer_id, vendor_id, admin_id, text, image, timestamp) VALUES
-(5, 9, NULL, 'My monitor arrived damaged.', NULL, NOW()),
-(5, NULL, 1, 'I need help with return process.', NULL, NOW()),
-(3, 8, NULL, 'Is the laptop still in stock?', NULL, NOW()),
-(4, 10, NULL, 'When will my order ship?', NULL, NOW());
+INSERT INTO chats (customer_id, vendor_id, admin_id, return_id, text, image, timestamp) VALUES
+(3, NULL, 2, 1, 'My phone screen is cracked.', NULL, NOW()),
+(4, 8, NULL, NULL, 'When will the monitor be back in stock?', NULL, NOW()),
+(5, 9, NULL, NULL, 'I need help with my order.', NULL, NOW()),
+(5, NULL, 1, 2, 'My monitor arrived damaged.', NULL, NOW()),
+(5, NULL, 1, 2, 'I need help with return process.', NULL, NOW()),
+(6, 10, NULL, NULL, 'Is the tablet still in stock?', NULL, NOW()),
+(7, 8, NULL, NULL, 'When will my order ship?', NULL, NOW()),
+(5, NULL, 1, NULL, 'My product stopped working under warranty.', NULL, NOW());
 
 -- Create wishlists for customers
 INSERT INTO wishlists (customer_id) VALUES (3), (4);
