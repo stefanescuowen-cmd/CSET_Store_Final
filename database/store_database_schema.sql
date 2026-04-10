@@ -76,7 +76,7 @@ CREATE TABLE cart_items (
 CREATE TABLE orders (
     order_id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT NOT NULL,
-    order_status ENUM('Pending','Processing','Shipped','Delivered','Cancelled') NOT NULL,
+    order_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled') NOT NULL,
     ordered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     delivered_at DATETIME,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
@@ -86,7 +86,7 @@ CREATE TABLE order_items (
     order_id INT NOT NULL,
     variant_id INT NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
-    item_status ENUM('Pending','Processing','Shipped','Delivered','Cancelled') NOT NULL,
+    item_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled') NOT NULL,
     PRIMARY KEY (order_id, variant_id),
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
@@ -95,23 +95,25 @@ CREATE TABLE order_items (
 CREATE TABLE order_confirmations (
     order_id INT,
     vendor_id INT,
+    variant_id INT,
     status VARCHAR(50) NOT NULL,
-    PRIMARY KEY (order_id, vendor_id),
+    PRIMARY KEY (order_id, variant_id, vendor_id),
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
-    FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE
+    FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
 -- REVIEWS
 CREATE TABLE reviews (
     review_id INT PRIMARY KEY AUTO_INCREMENT,
-    product_id INT NOT NULL,
+    variant_id INT NOT NULL,
     customer_id INT NOT NULL,
     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     description TEXT NOT NULL,
     image TEXT,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (product_id, customer_id),
-    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    UNIQUE (variant_id, customer_id),
+    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
@@ -121,26 +123,12 @@ CREATE TABLE returns (
     title VARCHAR(100) NOT NULL,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
     description TEXT NOT NULL,
-    demand TEXT NOT NULL,
+    demand ENUM('Return', 'Refund', 'Warranty') NOT NULL,
     status VARCHAR(50) NOT NULL,
     images TEXT,
     customer_id INT NOT NULL,
     order_id INT,
     variant_id INT,
-    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
-    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
-);
-
--- WARRANTIES
-CREATE TABLE warranties (
-    warranty_id INT PRIMARY KEY AUTO_INCREMENT,
-    customer_id INT NOT NULL,
-    order_id INT NOT NULL,
-    variant_id INT NOT NULL,
-    issue TEXT NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
@@ -153,7 +141,6 @@ CREATE TABLE chats (
     vendor_id INT,
     admin_id INT,
     return_id INT,
-    warranty_id INT,
     text TEXT NOT NULL,
     image TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -161,9 +148,9 @@ CREATE TABLE chats (
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE,
     FOREIGN KEY (return_id) REFERENCES returns(return_id) ON DELETE CASCADE,
-    FOREIGN KEY (warranty_id) REFERENCES warranties(warranty_id) ON DELETE CASCADE,
     CHECK (
-        vendor_id IS NOT NULL OR admin_id IS NOT NULL OR return_id IS NOT NULL OR warranty_id IS NOT NULL
+        (vendor_id IS NOT NULL AND admin_id IS NULL) OR
+        (vendor_id IS NULL AND admin_id IS NOT NULL)
     )
 );
 
