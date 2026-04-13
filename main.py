@@ -17,12 +17,11 @@ app.secret_key = "school_project_key"
 # DATABASE CONNECTION
 # ===================
 
-conn = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="cset155",
-    database="store_db"
-)
+conn_str = "mysql://root:cset155@localhost/store_db"
+engine = create_engine(conn_str, echo=True)
+
+conn = engine.connect()
+db = DatabaseManager(conn)
 
 # ====
 # HOME
@@ -80,21 +79,23 @@ def signup():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    
     if request.method == "POST":
-        identifier = request.form.get("identifier")
+        username_or_email = request.form.get("username_or_email")
         password = request.form.get("password")
 
-        user = login_user(conn, identifier, password)
+        user = db.verify_user(username_or_email, password)
 
-        if not user:
-            flash("Invalid login", "error")
-            return redirect(url_for("login"))
-
-        session["user_id"] = user["user_id"]
-        session["username"] = user["username"]
-
-        flash("Logged in!", "success")
-        return redirect(url_for("index"))
+        if user:
+            session["user_id"] = user.user_id
+            session["name"] = user.name
+            session["username"] = user.username
+            session["is_admin"] = db.is_admin(user.user_id)
+            flash("Login successful!", "success")
+            return redirect(url_for('index'))
+        else:
+            flash("Invalid credentials. Please try again.", "error")
+            return redirect(url_for('login'))
 
     return render_template("login.html")
   
