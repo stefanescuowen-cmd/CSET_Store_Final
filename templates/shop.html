@@ -1,4 +1,42 @@
 {% extends "base.html" %}
+
 {% block body %}
-<h2></h2>
+
+<h1>Shop</h1>
+
+<form method="GET" action="/shop">
+    <input type="text" name="search" placeholder="Search products...">
+    <button type="submit">Search</button>
+</form>
+
+<div class="product-grid">
+
+{% for product in products %}
+
+    <div class="product-card">
+
+        <h3>{{ product.title }}</h3>
+        <p>{{ product.description }}</p>
+
+        {% if product.discount_price %}
+            <p>
+                <del>${{ product.price }}</del>
+                <strong>${{ product.discount_price }}</strong>
+            </p>
+        {% else %}
+            <p>${{ product.price }}</p>
+        {% endif %}
+
+        <p>Stock: {{ product.stock }}</p>
+
+        <a href="/product/{{ product.product_id }}">
+            View Product
+        </a>
+
+    </div>
+
+{% endfor %}
+
+</div>
+
 {% endblock %}
