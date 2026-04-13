@@ -1,4 +1,5 @@
 from sqlalchemy import text
+import os
 
 class DatabaseManager:
     def __init__(self, connection):
@@ -43,5 +44,54 @@ class DatabaseManager:
             return True
         except Exception as e:
             print(f"Error during registration: {e}")
+            self.conn.rollback()
+            return False
+    
+    def verify_user(self, username_or_email, password):
+        """Checks credentials and returns the user row if valid."""
+        query = text("""
+            SELECT user_id, name, username 
+            FROM users 
+            WHERE (username = :val OR email = :val) AND password = :pw
+        """)
+        result = self.conn.execute(query, {"val": username_or_email, "pw": password}).fetchone()
+        return result # Returns a row or None
+    
+    def is_admin(self, user_id):
+        """Checks if the given user ID belongs to an admin."""
+        query = text("SELECT * FROM admins WHERE admin_id = :id")
+        result = self.conn.execute(query, {"id": user_id}).fetchone()
+        return result is not None
+    
+    def reset_database(self, schema_file, seed_file):
+        """Drops all tables and recreates them using provided SQL files."""
+        try:
+            # 1. Disable foreign key checks so we can drop tables in any order
+            self.conn.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+            
+            # 2. Get all table names and drop them
+            tables = self.conn.execute(text("SHOW TABLES;"))
+            for (table_name,) in tables:
+                self.conn.execute(text(f"DROP TABLE IF EXISTS {table_name};"))
+            
+            self.conn.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+
+            # 3. Helper to run SQL files
+            def run_sql_file(filename):
+                if os.path.exists(filename):
+                    with open(filename, 'r') as f:
+                        # Split by semicolon to run statements one by one
+                        commands = f.read().split(';')
+                        for command in commands:
+                            if command.strip():
+                                self.conn.execute(text(command))
+
+            run_sql_file(schema_file)
+            run_sql_file(seed_file)
+            
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Reset Error: {e}")
             self.conn.rollback()
             return False

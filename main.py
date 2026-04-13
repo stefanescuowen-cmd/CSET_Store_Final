@@ -1,7 +1,7 @@
 # This is the main file for our application where we will setup the local host and Flask application.
 
 # Imports #
-from flask import Flask, redirect, render_template, request, url_for, flash
+from flask import Flask, redirect, render_template, request, url_for, flash, session
 from sqlalchemy import create_engine, text
 from database import DatabaseManager
 
@@ -46,6 +46,47 @@ def signup():
             return redirect(url_for('signup'))
 
     return render_template("signup.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    
+    if request.method == "POST":
+        username_or_email = request.form.get("username_or_email")
+        password = request.form.get("password")
+
+        user = db.verify_user(username_or_email, password)
+
+        if user:
+            session["user_id"] = user.user_id
+            session["name"] = user.name
+            session["username"] = user.username
+            session["is_admin"] = db.is_admin(user.user_id)
+            flash("Login successful!", "success")
+            return redirect(url_for('index'))
+        else:
+            flash("Invalid credentials. Please try again.", "error")
+            return redirect(url_for('login'))
+
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for('index'))
+
+@app.route("/danger", methods=["POST"])
+def danger():
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    if db.reset_database("database/store_database_schema.sql", "database/seed_data.sql"):
+        flash("Database reset successfully.", "success")
+    else:
+        flash("Failed to reset database.", "error")
+
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     app.run(debug=True)

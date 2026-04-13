@@ -1,4 +1,19 @@
 {% extends "base.html" %}
 {% block body %}
-<h1></h1>
+<h1>Welcome to Perfect Purchase!!!</h1>
+<div class="home-container">
+    <p>Discover the best products, read reviews, and connect with vendors all in one place. Start your perfect purchase journey today!</p>
+    <a href="/shop" class="cta-button">Shop Now</a>
+</div>
+
+{% if session.get('is_admin') %}
+<div class="danger-zone">
+    <h2>Danger Zone</h2>
+    <p>Warning: This section will delete all data. Proceed with caution.</p>
+    <form method="post" action="/danger">
+        <input type="submit" value="Delete All Data" class="danger-button">
+    </form>
+</div>
+{% endif %}
+
 {% endblock %}
