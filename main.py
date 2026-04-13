@@ -1,12 +1,12 @@
 # Imports
 from flask import Flask, redirect, render_template, request, url_for, flash, session
 from sqlalchemy import create_engine, text
-from database import DatabaseManager
 
 # IMPORT MODELS
-from models.user import get_user_by_email_or_username, create_user, login_user
+from models.user import verify_user, user_exists
 from models.products import get_all_products, get_product_by_id
 from models.cart import get_cart_items, add_to_cart
+from database import register_new_user, is_admin, reset_database
 
 import mysql.connector
 
@@ -21,7 +21,6 @@ conn_str = "mysql://root:cset155@localhost/store_db"
 engine = create_engine(conn_str, echo=True)
 
 conn = engine.connect()
-db = DatabaseManager(conn)
 
 # ====
 # HOME
@@ -45,17 +44,17 @@ def signup():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        user = get_user_by_email_or_username(conn, email, username)
+        user = verify_user(conn, email, password)
 
         if user:
             flash("User already exists.", "error")
             return redirect(url_for("signup"))
 
-        create_user(conn, name, email, username, password)
+        register_new_user(conn, name, email, username, password)
 
         # Get user_id again
-        user = get_user_by_email_or_username(conn, email, username)
-        user_id = user["user_id"]
+        user = verify_user(conn, email, password)
+        user_id = user.user_id
 
         cursor = conn.cursor()
 
@@ -84,13 +83,13 @@ def login():
         username_or_email = request.form.get("username_or_email")
         password = request.form.get("password")
 
-        user = db.verify_user(username_or_email, password)
+        user = verify_user(conn, username_or_email, password)
 
         if user:
             session["user_id"] = user.user_id
             session["name"] = user.name
             session["username"] = user.username
-            session["is_admin"] = db.is_admin(user.user_id)
+            session["is_admin"] = is_admin(conn, user.user_id)
             flash("Login successful!", "success")
             return redirect(url_for('index'))
         else:
@@ -189,7 +188,7 @@ def danger():
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
-    if db.reset_database("database/store_database_schema.sql", "database/seed_data.sql"):
+    if reset_database(conn, "database/store_database_schema.sql", "database/seed_data.sql"):
         flash("Database reset successfully.", "success")
     else:
         flash("Failed to reset database.", "error")
