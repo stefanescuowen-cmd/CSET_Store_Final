@@ -1,4 +1,4 @@
-#this is the main python file - owem
+# This is the main file for our application where we will setup the local host and Flask application.
 
 # Imports #
 from flask import Flask, render_template, request
