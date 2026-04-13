@@ -1,25 +1,19 @@
-def get_user_by_email_or_username(connection, email, username):
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM users WHERE email=%s OR username=%s",
-        (email, username)
-    )
-    return cursor.fetchone()
+from sqlalchemy import text
+
+def verify_user(connection, username_or_email, password):
+    """Checks credentials and returns the user row if valid."""
+    query = text("""
+        SELECT user_id, name, username 
+        FROM users 
+        WHERE (username = :val OR email = :val) AND password = :pw
+    """)
+    result = connection.execute(query, {"val": username_or_email, "pw": password}).fetchone()
+    return result # Returns a row or None
 
 
-def create_user(connection, name, email, username, password):
-    cursor = connection.cursor()
-    cursor.execute(
-        "INSERT INTO users (name, email, username, password) VALUES (%s,%s,%s,%s)",
-        (name, email, username, password)
-    )
-    connection.commit()
 
-
-def login_user(connection, username, password):
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM users WHERE username=%s AND password=%s",
-        (username, password)
-    )
-    return cursor.fetchone()
+def user_exists(connection, email, username):
+    """Checks if a user already exists in the system."""
+    query = text("SELECT * FROM users WHERE email = :email OR username = :username")
+    result = connection.execute(query, {"email": email, "username": username}).fetchone()
+    return result is not None
