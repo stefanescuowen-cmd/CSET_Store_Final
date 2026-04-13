@@ -22,18 +22,21 @@
                     <li><a href="/">Home</a></li>
 
                     <!-- Admin -->
-                    <li><a href="/">Admin Stuff</a></li>
+                    <li><a href="/admin">Admin Stuff</a></li>
 
                     <!-- Logged In-->
-                    <li><a href="/">Chat</a></li>
-                    <li><a href="/">Shop</a></li>
-                    <li><a href="/">Reviews</a></li>
-                    <li><a href="/">Account</a></li>
-                    <li><a href="/">Log Out</a></li>
+                    <li><a href="/chat">Chat</a></li>
+                    <li><a href="/shop">Shop</a></li>
+                    <li><a href="/reviews">Reviews</a></li>
 
+                    {% if session.get('user_id') %}
+                    <li><a href="/account">Account</a></li>
+                    <li><a href="/logout">Log Out</a></li>
+                    {% else %}
                     <!-- Logged Out -->
-                    <li><a href="/">Sign-Up</a></li>
-                    <li><a href="/">Login</a></li>
+                    <li><a href="/signup">Sign-Up</a></li>
+                    <li><a href="/login">Login</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </header>

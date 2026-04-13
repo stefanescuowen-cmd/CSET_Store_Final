@@ -1,4 +1,7 @@
+# Imports
 from flask import Flask, redirect, render_template, request, url_for, flash, session
+from sqlalchemy import create_engine, text
+from database import DatabaseManager
 
 # IMPORT MODELS
 from models.user import get_user_by_email_or_username, create_user, login_user
@@ -71,7 +74,6 @@ def signup():
 
     return render_template("signup.html")
 
-
 # =====
 # LOGIN
 # =====
@@ -95,6 +97,18 @@ def login():
         return redirect(url_for("index"))
 
     return render_template("login.html")
+  
+  
+# ========
+# LOG OUT
+# ========
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for('index'))
+  
 
 
 # =========
@@ -161,6 +175,25 @@ def add_cart():
 
     flash("Added to cart!", "success")
     return redirect(url_for("shop"))
+  
+
+  
+# ========
+# RESET DB
+# ========
+
+@app.route("/danger", methods=["POST"])
+def danger():
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    if db.reset_database("database/store_database_schema.sql", "database/seed_data.sql"):
+        flash("Database reset successfully.", "success")
+    else:
+        flash("Failed to reset database.", "error")
+
+    return redirect(url_for('index'))
 
 
 # =========================
