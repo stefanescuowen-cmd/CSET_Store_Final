@@ -1,1 +1,0 @@
-# This is where we will convert the roles table into a python file to be used in our application.
