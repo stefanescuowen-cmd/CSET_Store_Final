@@ -148,8 +148,11 @@ def get_product_by_id(connection, product_id):
 
 def search_products(connection, term):
     query = text("""
-        SELECT * FROM products 
-        WHERE title LIKE :term OR description LIKE :term
+        SELECT p.*, MIN(pv.variant_id) as variant_id 
+        FROM products p
+        LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+        WHERE p.title LIKE :term OR p.description LIKE :term
+        GROUP BY p.product_id
     """)
     result = connection.execute(query, {"term": f"%{term}%"})
     return result.mappings().all()
