@@ -256,7 +256,7 @@ def customer_dashboard():
 # VENDOR DASHBOARD
 # ================
 
-@app.route("/vendor/dashboard")
+@app.route("/vendor")
 def vendor_dashboard():
     if session.get("role") != "vendor":
         return "Unauthorized", 403
@@ -275,7 +275,7 @@ def vendor_dashboard():
 # SHOP PAGE
 # =========
 
-@app.route("/shop")
+@app.route("/shop/dashboard")
 def shop():
     search_term = request.args.get("search")
     
