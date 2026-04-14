@@ -249,9 +249,9 @@ def add_to_wishlist(connection, customer_id, variant_id):
     connection.commit()
 
 
-# ==========================
-# USER MANAGEMENT & DB RESET
-# ==========================
+# ===============
+# USER MANAGEMENT
+# ===============
 
 def register_new_user(connection, name, email, username, password, role):
     try:
@@ -289,6 +289,9 @@ def is_admin(connection, user_id):
     result = connection.execute(query, {"id": user_id}).fetchone()
     return result is not None
 
+# ==============
+# DATABASE RESET
+# ==============
 
 def reset_database(connection, schema_file, seed_file):
     try:
