@@ -18,24 +18,44 @@
             </div>
             <div id="HeadLinks">
                 <ul>
-                    <!-- Basic -->
+                    <!-- Always visible -->
                     <li><a href="/">Home</a></li>
 
-                    <!-- Admin -->
-                    <li><a href="/admin">Admin Stuff</a></li>
+                    {% if session.get("user_id") %}
 
-                    <!-- Logged In-->
-                    <li><a href="/chat">Chat</a></li>
-                    <li><a href="/shop">Shop</a></li>
-                    <li><a href="/reviews">Reviews</a></li>
+                        <!-- CUSTOMER NAV -->
+                        {% if session.get("role") == "customer" %}
+                            <li><a href="/shop">Shop</a></li>
+                            <li><a href="/cart">🛒 Cart</a></li>
+                            <li><a href="/wishlist">❤️ Wishlist</a></li>
+                            <li><a href="/orders">📦 Orders</a></li>
+                            <li><a href="/returns">↩ Returns</a></li>
+                        {% endif %}
 
-                    {% if session.get('user_id') %}
-                    <li><a href="/account">Account</a></li>
-                    <li><a href="/logout">Log Out</a></li>
+                        <!-- VENDOR NAV -->
+                        {% if session.get("role") == "vendor" %}
+                            <li><a href="/vendor">Vendor Dashboard</a></li>
+                            <li><a href="/vendor/orders">Orders</a></li>
+                        {% endif %}
+
+                        <!-- ADMIN NAV -->
+                        {% if session.get("role") == "admin" %}
+                            <li><a href="/admin">Admin Dashboard</a></li>
+                            <li><a href="/admin/orders">All Orders</a></li>
+                            <li><a href="/admin/returns">All Returns</a></li>
+                        {% endif %}
+
+                        <!-- SHARED -->
+                        <li><a href="/chat">Chat</a></li>
+                        <li><a href="/reviews">Reviews</a></li>
+                        <li><a href="/account">Account</a></li>
+                        <li><a href="/logout">Log Out</a></li>
+
                     {% else %}
-                    <!-- Logged Out -->
-                    <li><a href="/signup">Sign-Up</a></li>
-                    <li><a href="/login">Login</a></li>
+                        <!-- NOT LOGGED IN -->
+                        <li><a href="/shop">Shop</a></li>
+                        <li><a href="/signup">Sign-Up</a></li>
+                        <li><a href="/login">Login</a></li>
                     {% endif %}
                 </ul>
             </div>

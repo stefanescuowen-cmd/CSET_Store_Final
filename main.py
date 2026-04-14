@@ -19,6 +19,20 @@ engine = create_engine(conn_str, echo=True)
 
 conn = engine.connect()
 
+# ==================
+# ADD ROLE DETECTION
+# ==================
+
+def get_user_role(conn, user_id):
+    if conn.execute(text("SELECT 1 FROM admins WHERE admin_id = :id"), {"id": user_id}).first():
+        return "admin"
+    if conn.execute(text("SELECT 1 FROM vendors WHERE vendor_id = :id"), {"id": user_id}).first():
+        return "vendor"
+    if conn.execute(text("SELECT 1 FROM customers WHERE customer_id = :id"), {"id": user_id}).first():
+        return "customer"
+    return None
+
+
 # ====
 # HOME
 # ====
@@ -47,22 +61,11 @@ def signup():
             flash("User already exists.", "error")
             return redirect(url_for("signup"))
 
-        db.register_new_user(conn, name, email, username, password)
+        success = db.register_new_user(conn, name, email, username, password, role)
 
-        # Get user_id again
-        user = db.verify_user(conn, email, password)
-        user_id = user.user_id
-
-        cursor = conn.cursor()
-
-        if role == "admin":
-            cursor.execute("INSERT INTO admins VALUES (%s)", (user_id,))
-        elif role == "vendor":
-            cursor.execute("INSERT INTO vendors VALUES (%s)", (user_id,))
-        else:
-            cursor.execute("INSERT INTO customers VALUES (%s)", (user_id,))
-
-        conn.commit()
+        if not success:
+            flash("Registration failed.", "error")
+            return redirect(url_for("signup"))
 
         flash("Registration successful!", "success")
         return redirect(url_for("login"))
@@ -86,7 +89,7 @@ def login():
             session["user_id"] = user.user_id
             session["name"] = user.name
             session["username"] = user.username
-            session["is_admin"] = db.is_admin(conn, user.user_id)
+            session["role"] = get_user_role(conn, user.user_id)
             flash("Login successful!", "success")
             return redirect(url_for('index'))
         else:
@@ -142,8 +145,8 @@ def product(product_id):
 
 @app.route("/cart")
 def cart():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
 
     items = db.get_cart_items(conn, session["user_id"])
     return render_template("cart.html", items=items)
@@ -155,32 +158,19 @@ def cart():
 
 @app.route("/add-to-cart", methods=["POST"])
 def add_cart():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
 
     variant_id = request.form.get("variant_id")
     quantity = int(request.form.get("quantity", 1))
     customer_id = session["user_id"]
 
-    # Get cart using SQLAlchemy
-    cart_query = text("""
-        SELECT cart_id FROM carts WHERE customer_id = :customer_id
-    """)
-    cart = conn.execute(cart_query, {"customer_id": customer_id}).mappings().first()
+    cart = conn.execute(
+        text("SELECT cart_id FROM carts WHERE customer_id = :cid"),
+        {"cid": customer_id}
+    ).mappings().first()
 
-    # Create cart if it doesn't exist
-    if not cart:
-        conn.execute(
-            text("INSERT INTO carts (customer_id) VALUES (:customer_id)"),
-            {"customer_id": customer_id}
-        )
-        conn.commit()
-
-        cart = conn.execute(cart_query, {"customer_id": customer_id}).mappings().first()
-
-    cart_id = cart["cart_id"]
-
-    db.add_to_cart(conn, cart_id, variant_id, quantity)
+    db.add_to_cart(conn, cart["cart_id"], variant_id, quantity)
 
     flash("Added to cart!", "success")
     return redirect(url_for("shop"))
@@ -192,13 +182,12 @@ def add_cart():
 
 @app.route("/add-to-wishlist", methods=["POST"])
 def add_wishlist():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
 
     variant_id = request.form.get("variant_id")
-    customer_id = session["user_id"]
 
-    db.add_to_wishlist(conn, customer_id, variant_id)
+    db.add_to_wishlist(conn, session["user_id"], variant_id)
 
     flash("Added to wishlist!", "success")
     return redirect(url_for("shop"))
