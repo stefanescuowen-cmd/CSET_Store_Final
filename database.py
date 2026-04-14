@@ -128,9 +128,9 @@ def get_all_products(connection):
             p.title,
             p.description,
             p.price,
-            p.discount_price,
-            MIN(pi.image_url) AS image,
-            SUM(v.stock) AS stock
+            min(v.variant_id) AS variant_id,
+            sum(v.stock) AS stock,
+            min(pi.image_url) AS image
         FROM products p
         LEFT JOIN product_images pi ON p.product_id = pi.product_id
         LEFT JOIN product_variants v ON p.product_id = v.product_id

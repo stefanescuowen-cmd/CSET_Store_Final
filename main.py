@@ -148,7 +148,10 @@ def cart():
     if session.get("role") != "customer":
         return "Unauthorized", 403
 
-    items = db.get_cart_items(conn, session["user_id"])
+    customer_id = session["user_id"]
+
+    items = db.get_cart_items(conn, customer_id)
+
     return render_template("cart.html", items=items)
 
 
@@ -161,15 +164,30 @@ def add_cart():
     if session.get("role") != "customer":
         return "Unauthorized", 403
 
-    variant_id = request.form.get("variant_id")
-    quantity = int(request.form.get("quantity", 1))
     customer_id = session["user_id"]
+    variant_id = int(request.form.get("variant_id"))
+    quantity = int(request.form.get("quantity", 1))
 
+    # 1. Get cart
     cart = conn.execute(
         text("SELECT cart_id FROM carts WHERE customer_id = :cid"),
         {"cid": customer_id}
     ).mappings().first()
 
+    # 2. Create cart if missing
+    if not cart:
+        conn.execute(
+            text("INSERT INTO carts (customer_id) VALUES (:cid)"),
+            {"cid": customer_id}
+        )
+        conn.commit()
+
+        cart = conn.execute(
+            text("SELECT cart_id FROM carts WHERE customer_id = :cid"),
+            {"cid": customer_id}
+        ).mappings().first()
+
+    # 3. Add item
     db.add_to_cart(conn, cart["cart_id"], variant_id, quantity)
 
     flash("Added to cart!", "success")
