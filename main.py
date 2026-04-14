@@ -222,6 +222,47 @@ def reject_return(return_id):
     return redirect(url_for('admin_dashboard'))
   
 
+# ==================
+# CUSTOMER DASHBOARD
+# ==================
+
+@app.route("/customer/dashboard")
+def customer_dashboard():
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
+
+    customer_id = session["user_id"]
+
+    cart_items = db.get_cart_items(conn, customer_id)
+    orders = db.get_orders(conn, customer_id)
+    wishlist = db.get_wishlist(conn, customer_id)
+
+    return render_template(
+        "customer.html",
+        cart_items=cart_items,
+        orders=orders,
+        wishlist=wishlist
+    )
+
+
+# ================
+# VENDOR DASHBOARD
+# ================
+
+@app.route("/vendor/dashboard")
+def vendor_dashboard():
+    if session.get("role") != "vendor":
+        return "Unauthorized", 403
+
+    vendor_id = session["user_id"]
+
+    products = db.get_vendor_products(conn, vendor_id)
+
+    return render_template(
+        "vendor.html",
+        products=products
+    )
+
 
 # =========
 # SHOP PAGE

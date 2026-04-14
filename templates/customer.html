@@ -1,0 +1,16 @@
+<h1>Customer Dashboard</h1>
+
+<h2>Cart</h2>
+{% for item in cart_items %}
+    <p>{{ item.title }} x {{ item.quantity }}</p>
+{% endfor %}
+
+<h2>Orders</h2>
+{% for order in orders %}
+    <p>Order #{{ order.order_id }} - {{ order.order_status }}</p>
+{% endfor %}
+
+<h2>Wishlist</h2>
+{% for item in wishlist %}
+    <p>Variant ID: {{ item.variant_id }}</p>
+{% endfor %}
