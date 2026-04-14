@@ -105,6 +105,118 @@ def logout():
     session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for('index'))
+
+
+
+# =========
+# ADMIN DASHBOARD
+# =========
+@app.route("/admin")
+def admin_dashboard():
+    if "user_id" not in session or not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+    
+    # Get search query if it exists
+    search_query = request.args.get("search")
+    
+    # 1. Fetch products
+    if search_query:
+        products = db.search_products(conn, search_query)
+    else:
+        products = db.get_all_products(conn)
+
+    # 2. Fetch pending returns
+    returns = db.get_all_pending_returns(conn)
+
+
+    return render_template("admin.html", products=products, returns=returns, search_query=search_query)
+
+
+
+# ========================
+# ADMIN PRODUCT MANAGEMENT
+# ========================
+@app.route("/admin/product/new", methods=["GET", "POST"])
+def new_product():
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    if request.method == "POST":
+        title = request.form.get("title")
+        description = request.form.get("description")
+        price = float(request.form.get("price"))
+        stock = int(request.form.get("stock"))
+
+        db.add_new_product(conn, title, description, price, stock)
+
+        flash("Product added successfully!", "success")
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template("new_product.html")
+
+@app.route("/admin/product/<int:product_id>/delete", methods=["POST"])
+def delete_product(product_id):
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    db.delete_product(conn, product_id)
+
+    flash("Product deleted successfully!", "success")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/admin/product/<int:product_id>/edit", methods=["GET", "POST"])
+def edit_product(product_id):
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    title = request.form.get("title")
+    description = request.form.get("description")
+    price = float(request.form.get("price"))
+    stock = int(request.form.get("stock"))
+    discount_price = float(request.form.get("discount-price")) if request.form.get("discount-price") else None
+
+    db.update_product(conn, product_id, title, description, price, discount_price, stock)
+
+    flash(f"Product '{title}' successfully!", "success")
+    return redirect(url_for('admin_dashboard'))
+
+
+# ========================
+# ADMIN RETURN MANAGEMENT
+# ========================
+
+@app.route("/admin/returns/<int:return_id>/approve", methods=["POST"])
+def approve_return(return_id):
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    # Update status to 'Confirmed'
+    query = text("UPDATE returns SET status = 'Confirmed' WHERE return_id = :id")
+    conn.execute(query, {"id": return_id})
+    conn.commit()
+
+    flash(f"Return #{return_id} has been confirmed.", "success")
+    return redirect(url_for('admin_dashboard')) # Make sure this matches your admin route name
+
+
+@app.route("/admin/returns/<int:return_id>/reject", methods=["POST"])
+def reject_return(return_id):
+    if not session.get("is_admin"):
+        flash("Access denied.", "error")
+        return redirect(url_for('index'))
+
+    # Update status to 'Rejected'
+    query = text("UPDATE returns SET status = 'Rejected' WHERE return_id = :id")
+    conn.execute(query, {"id": return_id})
+    conn.commit()
+
+    flash(f"Return #{return_id} has been rejected.", "error")
+    return redirect(url_for('admin_dashboard'))
   
 
 

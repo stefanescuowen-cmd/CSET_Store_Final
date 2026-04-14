@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>Admin Panel</h1>
+
+<h2>Product Management</h2>
+
+<form method="GET" action="/shop">
+    <input type="text" name="search" placeholder="Search products..." value="{{ search_query if search_query }}">
+    <button type="submit">Search</button>
+
+    {% if search_query %}
+        <a href="/shop"><button type="button">Clear</button></a>
+    {% endif %}
+</form>
+
+<div class="product-grid">
+{% for product in products %}
+    <div class="product-card" id="card-{{ product.product_id }}">
+        
+        <div id="display-{{ product.product_id }}">
+            <h3>{{ product.title }}</h3>
+            <p>{{ product.description }}</p>
+            <p>Price: ${{ product.price }}</p>
+            <p>Stock: {{ product.stock }}</p>
+            
+            <button type="button" onclick="toggleEdit('{{ product.product_id }}')">Edit</button>
+            
+            <form action="/admin/product/{{ product.product_id }}/delete" method="POST" style="display:inline;">
+                <button type="submit" onclick="return confirm('Delete this item?')">Delete</button>
+            </form>
+        </div>
+
+        <form id="edit-form-{{ product.product_id }}" 
+              action="/admin/product/{{ product.product_id }}/edit" 
+              method="POST" 
+              style="display: none;">
+            
+            <input type="text" name="title" value="{{ product.title }}" required><br>
+            <textarea name="description">{{ product.description }}</textarea><br>
+            <input type="number" step="0.01" name="price" value="{{ product.price }}" required><br>
+            <input type="number" step="0.01" name="discount-price" value="{{ product.discount_price }}"><br>
+            <input type="number" name="stock" value="{{ product.stock }}" required><br>
+            
+            <button type="submit">Save Changes</button>
+            <button type="button" onclick="toggleEdit('{{ product.product_id }}')">Cancel</button>
+        </form>
+
+    </div>
+{% endfor %}
+</div>
+
+<a href="/admin/product/new">
+    <button type="button">Add New Product</button>
+</a>
+
+<h2>Returns Management</h2>
+
+
+{% if returns|length == 0 %}
+    <p>No pending returns.</p>
+{% else %}
+<div class="return-grid">
+    {% for return in returns %}
+
+        <div class="return-card">
+            <p>Order ID: {{ return.order_id }}</p>
+            <p>Product: {{ return.title }}</p>
+            <p>Reason: {{ return.description }}</p>
+            <p>Return Request: {{ return.demand }}</p>
+            <p>Status: {{ return.status }}</p>
+            <!-- Add buttons to approve/reject returns -->
+            <form action="/admin/returns/{{ return.return_id }}/approve" method="POST">
+                <button type="submit">Approve</button>
+            </form>
+            <form action="/admin/returns/{{ return.return_id }}/reject" method="POST">
+                <button type="submit">Reject</button>
+            </form>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+function toggleEdit(id) {
+    var displayDiv = document.getElementById('display-' + id);
+    var editForm = document.getElementById('edit-form-' + id);
+
+    if (displayDiv.style.display === "none") {
+        displayDiv.style.display = "block";
+        editForm.style.display = "none";
+    } else {
+        displayDiv.style.display = "none";
+        editForm.style.display = "block";
+    }
+}
+</script>
+
+{% endblock %}
+
