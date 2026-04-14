@@ -157,6 +157,40 @@ def search_products(connection, term):
     result = connection.execute(query, {"term": f"%{term}%"})
     return result.mappings().all()
 
+def update_product(connection, product_id, title, description, price, discount_price, stock):
+    query = text("""
+        UPDATE products 
+        SET title = :title, 
+            description = :description,
+            price = :price, 
+            discount_price = :discount_price
+        WHERE product_id = :product_id
+    """)
+    connection.execute(query, {
+        "title": title,
+        "description": description,
+        "price": price,
+        "discount_price": discount_price,
+        "product_id": product_id
+    })
+
+    stock_query = text("""
+        UPDATE product_variants
+        SET stock = :stock
+        WHERE product_id = :product_id
+    """)
+    connection.execute(stock_query, {
+        "stock": stock,
+        "product_id": product_id
+    })
+
+    connection.commit()
+
+def delete_product(connection, product_id):
+    query = text("DELETE FROM products WHERE product_id = :product_id")
+    connection.execute(query, {"product_id": product_id})
+    connection.commit()
+
 
 # =======
 # RETURNS
@@ -181,6 +215,16 @@ def create_return(connection, title, description, demand, customer_id, order_id,
 def get_returns(connection, customer_id):
     query = text("SELECT * FROM returns WHERE customer_id = :customer_id")
     result = connection.execute(query, {"customer_id": customer_id})
+    return result.mappings().all()
+
+def get_all_returns(connection):
+    query = text("SELECT * FROM returns")
+    result = connection.execute(query)
+    return result.mappings().all()
+
+def get_all_pending_returns(connection):
+    query = text("SELECT * FROM returns WHERE status = 'Pending'")
+    result = connection.execute(query)
     return result.mappings().all()
 
 
