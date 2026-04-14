@@ -194,6 +194,31 @@ def add_cart():
     return redirect(url_for("shop"))
 
 
+# ================
+# REMOVE FROM CART
+# ================
+
+@app.route("/remove-from-cart", methods=["POST"])
+def remove_from_cart_route():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    variant_id = request.form.get("variant_id")
+    customer_id = session["user_id"]
+
+    # get cart_id
+    cart = conn.execute(
+        text("SELECT cart_id FROM carts WHERE customer_id = :cid"),
+        {"cid": customer_id}
+    ).mappings().first()
+
+    if cart:
+        db.remove_from_cart(conn, cart["cart_id"], variant_id)
+
+    flash("Item removed from cart.", "success")
+    return redirect(url_for("cart"))
+
+
 # ===============
 # ADD TO WISHLIST
 # ===============
