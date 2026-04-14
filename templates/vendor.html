@@ -1,6 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+
 <h1>Vendor Dashboard</h1>
 
 <h2>Your Products</h2>
 {% for product in products %}
     <p>{{ product.title }} - ${{ product.price }}</p>
 {% endfor %}
+
+{% endblock %}
