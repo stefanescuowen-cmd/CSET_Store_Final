@@ -6,7 +6,7 @@
     <a href="/shop" class="cta-button">Shop Now</a>
 </div>
 
-{% if session.get('is_admin') %}
+{% if is_admin %}
 <div class="danger-zone">
     <h2>Danger Zone</h2>
     <p>Warning: This section will delete all data. Proceed with caution.</p>
