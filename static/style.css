@@ -157,6 +157,24 @@ input[type="submit"]:active {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}   
+
+.product-card {
+    background-color: var(--header-bg-dark);
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-color);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.3s;
+    max-width: 300px;
+}
+
 /* Psudo */
 #HeadLinks li a:link{color: var(--accent-color); background-color: var(--header-bg-base);}
 #HeadLinks li a:hover{color: var(--accent-hover); background-color: var(--header-bg-light); transition: 0.25s;}
