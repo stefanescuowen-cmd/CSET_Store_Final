@@ -46,7 +46,8 @@ def get_user_role(connection, user_id):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    is_admin = session.get("role") == "admin"
+    return render_template("index.html", is_admin=is_admin)
 
 
 # =========================
@@ -306,13 +307,19 @@ def product(product_id):
 @app.route("/cart")
 def cart():
     if session.get("role") != "customer":
-        return "Unauthorized", 403
+        flash("Please log in as a customer to view your cart.", "error")
+        return redirect(url_for("login"))
 
     customer_id = session["user_id"]
 
     items = db.get_cart_items(conn, customer_id)
 
-    return render_template("cart.html", items=items)
+    grand_total = 0
+    for item in items:
+        price = item['discount_price'] if item['discount_price'] is not None else item['price']
+        grand_total += price * item['quantity']
+
+    return render_template("cart.html", items=items, grand_total=grand_total)
 
 
 # ===========
@@ -322,11 +329,27 @@ def cart():
 @app.route("/add-to-cart", methods=["POST"])
 def add_cart():
     if session.get("role") != "customer":
-        return "Unauthorized", 403
+        flash("Unauthorized", "error")
+        return redirect(url_for("login"))
 
     customer_id = session["user_id"]
     variant_id = int(request.form.get("variant_id"))
-    quantity = int(request.form.get("quantity", 1))
+    requested_qty = int(request.form.get("quantity", 1))
+
+    #Check stock
+    available_stock = db.get_variant_stock(conn, variant_id)
+
+    # Check how many are already in the cart
+    existing_item = conn.execute(
+        text("SELECT quantity FROM cart_items ci JOIN carts c ON ci.cart_id = c.cart_id WHERE c.customer_id = :cid AND ci.variant_id = :vid"),
+        {"cid": customer_id, "vid": variant_id}
+    ).fetchone()
+    
+    current_in_cart = existing_item[0] if existing_item else 0
+
+    if current_in_cart + requested_qty > available_stock:
+        flash(f"Cannot add more. Only {available_stock} available in total (you have {current_in_cart} in cart).", "error")
+        return redirect(url_for("shop"))
 
     # 1. Get cart
     cart = conn.execute(
@@ -348,10 +371,45 @@ def add_cart():
         ).mappings().first()
 
     # 3. Add item
-    db.add_to_cart(conn, cart["cart_id"], variant_id, quantity)
+    db.add_to_cart(conn, cart["cart_id"], variant_id, requested_qty)
 
     flash("Added to cart!", "success")
     return redirect(url_for("shop"))
+
+
+
+# ============================
+# UPDATE CART QUANTITY
+# ============================
+@app.route("/update-cart-quantity", methods=["POST"])
+def update_cart_quantity():
+    if session.get("role") != "customer":
+        flash("Unauthorized", "error")
+        return redirect(url_for("login"))
+
+    variant_id = request.form.get("variant_id")
+    new_quantity = int(request.form.get("quantity"))
+
+    customer_id = session["user_id"]
+
+    # get cart_id
+    cart = conn.execute(
+        text("SELECT cart_id FROM carts WHERE customer_id = :cid"),
+        {"cid": customer_id}
+    ).mappings().first()
+
+    if cart:
+        db.update_cart_quantity(conn, cart["cart_id"], variant_id, new_quantity)
+
+
+    available_stock = db.get_variant_stock(conn, variant_id)
+    if new_quantity > available_stock:
+        flash(f"Only {available_stock} items available in stock.", "error")
+    else:
+        flash("Cart updated successfully!", "success")
+    
+    return redirect(url_for("cart"))
+
 
 
 # ================

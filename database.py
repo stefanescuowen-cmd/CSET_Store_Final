@@ -14,9 +14,14 @@ def get_all_users(connection):
 # CART
 # ====
 
+def get_variant_stock(connection, variant_id):
+    query = text("SELECT stock FROM product_variants WHERE variant_id = :variant_id")
+    result = connection.execute(query, {"variant_id": variant_id}).fetchone()
+    return result[0] if result else 0
+
 def get_cart_items(connection, customer_id):
     query = text("""
-        SELECT p.title, ci.quantity, pv.variant_id
+        SELECT p.title, p.price, p.discount_price, ci.quantity, pv.variant_id, pv.stock
         FROM carts c
         JOIN cart_items ci ON c.cart_id = ci.cart_id
         JOIN product_variants pv ON ci.variant_id = pv.variant_id
@@ -32,6 +37,32 @@ def add_to_cart(connection, cart_id, variant_id, quantity):
         INSERT INTO cart_items (cart_id, variant_id, quantity)
         VALUES (:cart_id, :variant_id, :quantity)
         ON DUPLICATE KEY UPDATE quantity = quantity + :quantity
+    """)
+    connection.execute(query, {
+        "cart_id": cart_id,
+        "variant_id": variant_id,
+        "quantity": quantity
+    })
+    connection.commit()
+
+def get_cart_item(connection, customer_id, variant_id):
+    query = text("""
+        SELECT ci.quantity 
+        FROM carts c
+        JOIN cart_items ci ON c.cart_id = ci.cart_id
+        WHERE c.customer_id = :customer_id AND ci.variant_id = :variant_id
+    """)
+    result = connection.execute(query, {
+        "customer_id": customer_id,
+        "variant_id": variant_id
+    }).fetchone()
+    return result['quantity'] if result else None
+
+def update_cart_quantity(connection, cart_id, variant_id, quantity):
+    query = text("""
+        UPDATE cart_items 
+        SET quantity = :quantity 
+        WHERE cart_id = :cart_id AND variant_id = :variant_id
     """)
     connection.execute(query, {
         "cart_id": cart_id,
