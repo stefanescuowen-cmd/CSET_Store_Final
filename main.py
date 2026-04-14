@@ -23,14 +23,21 @@ conn = engine.connect()
 # ADD ROLE DETECTION
 # ==================
 
-def get_user_role(conn, user_id):
-    if conn.execute(text("SELECT 1 FROM admins WHERE admin_id = :id"), {"id": user_id}).first():
-        return "admin"
-    if conn.execute(text("SELECT 1 FROM vendors WHERE vendor_id = :id"), {"id": user_id}).first():
-        return "vendor"
-    if conn.execute(text("SELECT 1 FROM customers WHERE customer_id = :id"), {"id": user_id}).first():
-        return "customer"
-    return None
+def get_user_role(connection, user_id):
+    result = connection.execute(
+        text("""
+        SELECT 
+            CASE
+                WHEN EXISTS (SELECT 1 FROM admins WHERE admin_id = :id) THEN 'admin'
+                WHEN EXISTS (SELECT 1 FROM vendors WHERE vendor_id = :id) THEN 'vendor'
+                WHEN EXISTS (SELECT 1 FROM customers WHERE customer_id = :id) THEN 'customer'
+                ELSE NULL
+            END AS role
+        """),
+        {"id": user_id}
+    ).mappings().first()
+
+    return result["role"]
 
 
 # ====
@@ -226,9 +233,9 @@ def reject_return(return_id):
 # CUSTOMER DASHBOARD
 # ==================
 
-@app.route("/customer/dashboard")
+@app.route("/customer")
 def customer_dashboard():
-    if session.get("role") != "customer":
+    if session.get("role") != "customer" or not session.get("user_id"):
         return "Unauthorized", 403
 
     customer_id = session["user_id"]
