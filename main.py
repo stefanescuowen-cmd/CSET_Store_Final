@@ -116,7 +116,7 @@ def logout():
 # =========
 @app.route("/admin")
 def admin_dashboard():
-    if "user_id" not in session or not session.get("is_admin"):
+    if "user_id" not in session or not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
     
@@ -142,7 +142,7 @@ def admin_dashboard():
 # ========================
 @app.route("/admin/product/new", methods=["GET", "POST"])
 def new_product():
-    if not session.get("is_admin"):
+    if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -161,7 +161,7 @@ def new_product():
 
 @app.route("/admin/product/<int:product_id>/delete", methods=["POST"])
 def delete_product(product_id):
-    if not session.get("is_admin"):
+    if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -172,7 +172,7 @@ def delete_product(product_id):
 
 @app.route("/admin/product/<int:product_id>/edit", methods=["GET", "POST"])
 def edit_product(product_id):
-    if not session.get("is_admin"):
+    if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -194,7 +194,7 @@ def edit_product(product_id):
 
 @app.route("/admin/returns/<int:return_id>/approve", methods=["POST"])
 def approve_return(return_id):
-    if not session.get("is_admin"):
+    if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -209,7 +209,7 @@ def approve_return(return_id):
 
 @app.route("/admin/returns/<int:return_id>/reject", methods=["POST"])
 def reject_return(return_id):
-    if not session.get("is_admin"):
+    if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -367,7 +367,7 @@ def wishlist():
 
 @app.route("/danger", methods=["POST"])
 def danger():
-    if not session.get("is_admin"):
+    if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
