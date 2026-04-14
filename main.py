@@ -114,8 +114,16 @@ def logout():
 
 @app.route("/shop")
 def shop():
-    products = db.get_all_products(conn)
-    return render_template("shop.html", products=products)
+    search_term = request.args.get("search")
+    
+    if search_term:
+        # Use the search function from database.py
+        products = db.search_products(conn, search_term)
+    else:
+        # Default view
+        products = db.get_all_products(conn)
+        
+    return render_template("shop.html", products=products, search_term=search_term)
 
 
 # ============
