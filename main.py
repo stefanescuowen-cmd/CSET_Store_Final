@@ -276,7 +276,7 @@ def vendor_dashboard():
 # SHOP PAGE
 # =========
 
-@app.route("/shop/dashboard")
+@app.route("/shop")
 def shop():
     search_term = request.args.get("search")
     

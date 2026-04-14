@@ -38,6 +38,7 @@ INSERT INTO products (title, description, warranty_period, price, discount_price
 -- VARIANTS
 INSERT INTO product_variants (product_id, size, color, stock) VALUES
 (1, '15-inch', 'Black', 10),
+(1, '17-inch', 'Silver', 5),
 (2, 'Standard', 'White', 50),
 (3, 'Full', 'RGB', 30),
 (4, '27-inch', 'Black', 20),

@@ -155,17 +155,18 @@ def get_orders(connection, customer_id):
 def get_all_products(connection):
     query = text("""
         SELECT 
+            v.variant_id,
+            v.size,
+            v.color,
+            v.stock,
             p.product_id,
             p.title,
             p.description,
             p.price,
-            min(v.variant_id) AS variant_id,
-            sum(v.stock) AS stock,
-            min(pi.image_url) AS image
-        FROM products p
-        LEFT JOIN product_images pi ON p.product_id = pi.product_id
-        LEFT JOIN product_variants v ON p.product_id = v.product_id
-        GROUP BY p.product_id
+            p.discount_price,
+            (SELECT image_url FROM product_images WHERE product_id = p.product_id LIMIT 1) AS image
+        FROM product_variants v
+        JOIN products p ON v.product_id = p.product_id
     """)
     result = connection.execute(query)
     return result.mappings().all()
@@ -179,11 +180,20 @@ def get_product_by_id(connection, product_id):
 
 def search_products(connection, term):
     query = text("""
-        SELECT p.*, MIN(pv.variant_id) as variant_id 
-        FROM products p
-        LEFT JOIN product_variants pv ON p.product_id = pv.product_id
-        WHERE p.title LIKE :term OR p.description LIKE :term
-        GROUP BY p.product_id
+        SELECT 
+            v.variant_id,
+            v.size,
+            v.color,
+            v.stock,
+            p.product_id,
+            p.title,
+            p.description,
+            p.price,
+            p.discount_price,
+            (SELECT image_url FROM product_images WHERE product_id = p.product_id LIMIT 1) AS image
+        FROM product_variants v
+        JOIN products p ON v.product_id = p.product_id
+        WHERE p.title LIKE :term OR p.description LIKE :term OR v.color LIKE :term
     """)
     result = connection.execute(query, {"term": f"%{term}%"})
     return result.mappings().all()
