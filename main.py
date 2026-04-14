@@ -3,10 +3,7 @@ from flask import Flask, redirect, render_template, request, url_for, flash, ses
 from sqlalchemy import create_engine, text
 
 # IMPORT MODELS
-from models.user import verify_user, user_exists
-from models.products import get_all_products, get_product_by_id
-from models.cart import get_cart_items, add_to_cart
-from database import register_new_user, is_admin, reset_database
+import database as db
 
 import mysql.connector
 
@@ -44,16 +41,16 @@ def signup():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        user = verify_user(conn, email, password)
+        user = db.verify_user(conn, email, password)
 
         if user:
             flash("User already exists.", "error")
             return redirect(url_for("signup"))
 
-        register_new_user(conn, name, email, username, password)
+        db.register_new_user(conn, name, email, username, password)
 
         # Get user_id again
-        user = verify_user(conn, email, password)
+        user = db.verify_user(conn, email, password)
         user_id = user.user_id
 
         cursor = conn.cursor()
@@ -83,13 +80,13 @@ def login():
         username_or_email = request.form.get("username_or_email")
         password = request.form.get("password")
 
-        user = verify_user(conn, username_or_email, password)
+        user = db.verify_user(conn, username_or_email, password)
 
         if user:
             session["user_id"] = user.user_id
             session["name"] = user.name
             session["username"] = user.username
-            session["is_admin"] = is_admin(conn, user.user_id)
+            session["is_admin"] = db.is_admin(conn, user.user_id)
             flash("Login successful!", "success")
             return redirect(url_for('index'))
         else:
@@ -117,7 +114,7 @@ def logout():
 
 @app.route("/shop")
 def shop():
-    products = get_all_products(conn)
+    products = db.get_all_products(conn)
     return render_template("shop.html", products=products)
 
 
@@ -127,7 +124,7 @@ def shop():
 
 @app.route("/product/<int:product_id>")
 def product(product_id):
-    product = get_product_by_id(conn, product_id)
+    product = db.get_product_by_id(conn, product_id)
     return render_template("product.html", product=product)
 
 
@@ -140,7 +137,7 @@ def cart():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    items = get_cart_items(conn, session["user_id"])
+    items = db.get_cart_items(conn, session["user_id"])
     return render_template("cart.html", items=items)
 
 
@@ -171,7 +168,7 @@ def add_cart():
 
     cart_id = cart[0]
 
-    add_to_cart(conn, cart_id, variant_id, quantity)
+    db.add_to_cart(conn, cart_id, variant_id, quantity)
 
     flash("Added to cart!", "success")
     return redirect(url_for("shop"))
@@ -188,7 +185,7 @@ def danger():
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
-    if reset_database(conn, "database/store_database_schema.sql", "database/seed_data.sql"):
+    if  db.reset_database(conn, "database/store_database_schema.sql", "database/seed_data.sql"):
         flash("Database reset successfully.", "success")
     else:
         flash("Failed to reset database.", "error")
