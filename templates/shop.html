@@ -5,11 +5,16 @@
 <h1>Shop</h1>
 
 <form method="GET" action="/shop">
-    <input type="text" name="search" placeholder="Search products..." value="{{ search_query if search_query }}">
+    <input type="text" name="search"
+           placeholder="Search products..."
+           value="{{ search_query if search_query }}">
+
     <button type="submit">Search</button>
 
     {% if search_query %}
-        <a href="/shop"><button type="button">Clear</button></a>
+        <a href="/shop">
+            <button type="button">Clear</button>
+        </a>
     {% endif %}
 </form>
 
@@ -33,14 +38,35 @@
 
         <p>Stock: {{ product.stock }}</p>
 
-        <form action="/add-to-cart" method="POST">
-            <input type="hidden" name="variant_id" value="{{ product.variant_id }}">
-            <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}">
-            <button type="submit">Add to Cart</button>
+        {% if product.stock and product.stock > 0 %}
+
+            <form action="/add-to-cart" method="POST">
+
+                <input type="hidden" name="variant_id"
+                       value="{{ product.variant_id }}">
+
+                <input type="number"
+                       name="quantity"
+                       value="1"
+                       min="1"
+                       max="{{ product.stock if product.stock else 1 }}">
+
+                <button type="submit">Add to Cart</button>
+            </form>
+
+        {% else %}
+            <p><strong>Out of Stock</strong></p>
+        {% endif %}
+
+        <form action="/add-to-wishlist" method="POST">
+            <input type="hidden" name="variant_id"
+                   value="{{ product.variant_id }}">
+            <button type="submit">Add to Wishlist</button>
         </form>
 
         <br>
 
+        <!-- VIEW PRODUCT -->
         <a href="/product/{{ product.product_id }}">
             <button type="button">View Details</button>
         </a>
