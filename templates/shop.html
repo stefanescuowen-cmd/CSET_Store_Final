@@ -19,62 +19,53 @@
 </form>
 
 <div class="product-grid">
+{% for item in products %}
+    <div class="product-card" style="border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+        <h3>{{ item.title }}</h3>
+        
+        <p><strong>Option:</strong> {{ item.color }} | {{ item.size }}</p>
+        
+        <p>{{ item.description }}</p>
 
-{% for product in products %}
-
-    <div class="product-card">
-
-        <h3>{{ product.title }}</h3>
-        <p>{{ product.description }}</p>
-
-        {% if product.discount_price %}
+        {% if item.discount_price %}
             <p>
-                <del>${{ product.price }}</del>
-                <strong>${{ product.discount_price }}</strong>
+                <del>${{ item.price }}</del> 
+                <strong style="color: red;">${{ item.discount_price }}</strong>
             </p>
         {% else %}
-            <p>${{ product.price }}</p>
+            <p>${{ item.price }}</p>
         {% endif %}
 
-        <p>Stock: {{ product.stock }}</p>
+        <p>Stock Available: {{ item.stock }}</p>
 
-        {% if product.stock and product.stock > 0 %}
-
+        {% if item.stock > 0 %}
             <form action="/add-to-cart" method="POST">
-
-                <input type="hidden" name="variant_id"
-                       value="{{ product.variant_id }}">
-
-                <input type="number"
-                       name="quantity"
-                       value="1"
-                       min="1"
-                       max="{{ product.stock if product.stock else 1 }}">
-
+                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                <input type="number" name="quantity" value="1" min="1" max="{{ item.stock }}">
                 <button type="submit">Add to Cart</button>
             </form>
-
         {% else %}
-            <p><strong>Out of Stock</strong></p>
+            <p style="color: red;"><strong>Out of Stock</strong></p>
         {% endif %}
 
+        <hr>
         <form action="/add-to-wishlist" method="POST">
-            <input type="hidden" name="variant_id"
-                   value="{{ product.variant_id }}">
-            <button type="submit">Add to Wishlist</button>
+            <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+            <button type="submit" style="background: none; border: 1px solid #ccc; cursor: pointer;">
+                Add to Wishlist
+            </button>
         </form>
 
         <br>
-
-        <!-- VIEW PRODUCT -->
-        <a href="/product/{{ product.product_id }}">
-            <button type="button">View Details</button>
+        <a href="/product/{{ item.product_id }}">
+            <button type="button">View Product Details</button>
         </a>
-
     </div>
-
 {% endfor %}
-
 </div>
+
+{% if products|length == 0 %}
+    <p>No products found.</p>
+{% endif %}
 
 {% endblock %}
