@@ -152,29 +152,63 @@ def add_cart():
 
     variant_id = request.form.get("variant_id")
     quantity = int(request.form.get("quantity", 1))
+    customer_id = session["user_id"]
 
-    # Get or create cart FIRST
-    cursor = conn.cursor()
+    # Get cart using SQLAlchemy
+    cart_query = text("""
+        SELECT cart_id FROM carts WHERE customer_id = :customer_id
+    """)
+    cart = conn.execute(cart_query, {"customer_id": customer_id}).mappings().first()
 
-    cursor.execute("SELECT cart_id FROM carts WHERE customer_id = %s", (session["user_id"],))
-    cart = cursor.fetchone()
-
+    # Create cart if it doesn't exist
     if not cart:
-        cursor.execute("INSERT INTO carts (customer_id) VALUES (%s)", (session["user_id"],))
+        conn.execute(
+            text("INSERT INTO carts (customer_id) VALUES (:customer_id)"),
+            {"customer_id": customer_id}
+        )
         conn.commit()
 
-        cursor.execute("SELECT cart_id FROM carts WHERE customer_id = %s", (session["user_id"],))
-        cart = cursor.fetchone()
+        cart = conn.execute(cart_query, {"customer_id": customer_id}).mappings().first()
 
-    cart_id = cart[0]
+    cart_id = cart["cart_id"]
 
     db.add_to_cart(conn, cart_id, variant_id, quantity)
 
     flash("Added to cart!", "success")
     return redirect(url_for("shop"))
-  
 
-  
+
+# ===============
+# ADD TO WISHLIST
+# ===============
+
+@app.route("/add-to-wishlist", methods=["POST"])
+def add_wishlist():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    variant_id = request.form.get("variant_id")
+    customer_id = session["user_id"]
+
+    db.add_to_wishlist(conn, customer_id, variant_id)
+
+    flash("Added to wishlist!", "success")
+    return redirect(url_for("shop"))
+
+
+# =============
+# VIEW WISHLIST
+# =============
+
+@app.route("/wishlist")
+def wishlist():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    items = db.get_wishlist(conn, session["user_id"])
+    return render_template("wishlist.html", items=items)
+
+
 # ========
 # RESET DB
 # ========
@@ -193,9 +227,9 @@ def danger():
     return redirect(url_for('index'))
 
 
-# =========================
+# =======
 # RUN APP
-# =========================
+# =======
 
 if __name__ == "__main__":
     app.run(debug=True)

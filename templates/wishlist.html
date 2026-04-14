@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>Your Wishlist</h1>
+
+{% if items %}
+    <ul>
+        {% for item in items %}
+            <li>Variant ID: {{ item.variant_id }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No items yet.</p>
+{% endif %}
+
+{% endblock %}
