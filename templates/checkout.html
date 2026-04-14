@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>Checkout</h1>
+
+<h2>Your Items</h2>
+
+{% for item in items %}
+    <p>
+        {{ item.title }} - Qty: {{ item.quantity }}
+    </p>
+{% endfor %}
+
+<h2>Total: ${{ total }}</h2>
+
+<form method="POST" action="/place-order">
+    <button type="submit">Confirm Order</button>
+</form>
+
+{% endblock %}
