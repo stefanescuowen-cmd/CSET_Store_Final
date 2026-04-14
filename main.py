@@ -378,7 +378,6 @@ def remove_from_cart_route():
     flash("Item removed from cart.", "success")
     return redirect(url_for("cart"))
 
-
 # ===============
 # ADD TO WISHLIST
 # ===============
@@ -395,7 +394,6 @@ def add_wishlist():
     flash("Added to wishlist!", "success")
     return redirect(url_for("shop"))
 
-
 # =============
 # VIEW WISHLIST
 # =============
@@ -408,6 +406,81 @@ def wishlist():
     items = db.get_wishlist(conn, session["user_id"])
     return render_template("wishlist.html", items=items)
 
+
+# ==============
+# CHECKOUT ROUTE
+# ==============
+
+@app.route("/checkout", methods=["GET"])
+def checkout():
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
+
+    customer_id = session["user_id"]
+
+    # get cart items (reuses your existing function)
+    cart_items = db.get_cart_items(conn, customer_id)
+
+    if not cart_items:
+        flash("Your cart is empty.", "error")
+        return redirect(url_for("cart"))
+
+    total = 0
+
+    # calculate total safely
+    for item in cart_items:
+        price = item.get("discount_price") or item.get("price")
+        total += price * item["quantity"]
+
+    return render_template(
+        "checkout.html",
+        items=cart_items,
+        total=total
+    )
+
+
+# ===========
+# PLACE ORDER
+# ===========
+
+@app.route("/place-order", methods=["POST"])
+def place_order():
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
+
+    customer_id = session["user_id"]
+
+    cart_items = db.get_cart_items(conn, customer_id)
+
+    if not cart_items:
+        flash("Cart is empty.", "error")
+        return redirect(url_for("cart"))
+
+    # 1. Create order
+    order_id = db.create_order(conn, customer_id)
+
+    # 2. Insert items into order_items
+    for item in cart_items:
+        db.add_order_item(
+            conn,
+            order_id,
+            item["variant_id"],
+            item["quantity"]
+        )
+
+    # 3. (Optional but recommended) clear cart here
+    conn.execute(
+        text("""
+            DELETE ci FROM cart_items ci
+            JOIN carts c ON ci.cart_id = c.cart_id
+            WHERE c.customer_id = :cid
+        """),
+        {"cid": customer_id}
+    )
+    conn.commit()
+
+    flash("Order placed successfully!", "success")
+    return redirect(url_for("customer_dashboard"))
 
 # ========
 # RESET DB
