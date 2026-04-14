@@ -5,8 +5,6 @@ from sqlalchemy import create_engine, text
 # IMPORT MODELS
 import database as db
 
-import mysql.connector
-
 app = Flask(__name__)
 app.secret_key = "school_project_key"
 
