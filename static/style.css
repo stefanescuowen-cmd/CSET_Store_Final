@@ -13,12 +13,21 @@
     --accent-active: #39a984;
 }
 
+/* Animation */
+@keyframes DANGER
+{
+    0%{color: maroon; -webkit-text-stroke: maroon 0px;}
+    50%{color: red; -webkit-text-stroke: red 0.5px;}
+    100%{color: maroon; -webkit-text-stroke: maroon 0px;}
+}
+
 /* All Selector */
 * {font-family: Arial, Helvetica, sans-serif; outline: 0px solid;}
 
 /* Basic */
 body{margin: 0px; background-color: var(--bg-color-base);  color: var(--text-color); height: 100dvh;}
-header{align-items: center; background-color: var(--header-bg-base); height: 125px; display: flex; justify-content: left; flex-wrap: wrap; width: 100%;}
+
+header{z-index: 100; top: 0; position: fixed; box-shadow: 10px -100px 100px 100px black; outline: solid 2px var(--accent-color); align-items: center; background-color: var(--header-bg-base); height: 125px; display: flex; justify-content: left; flex-wrap: wrap; width: 100%;}
 header #HeadLight{width: 400px; margin-left: 10px; background-color: var(--header-bg-light); border-radius: 20px;}
 header #HeadImg{float: left; width: 100px; height: 100px; align-content: center;}
 header #HeadImg img{width: 75%; align-self: center; display: flex; justify-self: center;}
@@ -30,11 +39,15 @@ header #HeadLinks ul{background-color: var(--header-bg-dark); list-style: none; 
 header #HeadLinks li{display: inline-block; margin: 10px;}
 header #HeadLinks li a{outline: 2px solid; color: var(--accent-color); padding: 5px; border-radius: 10px; background-color: var(--header-bg-base); text-decoration: none; transition: 0.5s;}
 
+article{background-color: var(--bg-color-dark); margin: 150px 20px 20px 20px; border-radius: 20px; padding: 20px;}
+article h1{margin-top: 0;}
+
 main{display: flex; justify-content: center; padding: 50px 20px;}
 
 
 
 /* Elements */
+hr {border: 5px solid var(--bg-color-light); border-radius: 10px; margin: 20px 0px;}
 
 /* Form Container */
 .form-container {
@@ -193,6 +206,9 @@ input[type="submit"]:active {
 
 /* Classes */
 .basicButton{background-color: var(--bg-color-light);}
+.dangerZone{background-color: rgb(75, 0, 0); padding: 20px; border-radius: 20px;}
+.dangerZone h2{color: rgb(255, 125, 125);}
+.dangerZone p a{animation: DANGER 1s linear infinite;}
 
 /* ID */
 
@@ -207,5 +223,7 @@ input[type="submit"]:active {
     header{height: 250px;}
     header #HeadLight{margin: 0; top: -25%; position: relative; transform: translate(-50%, calc(50% + 10px)); left: 50%;}
     header #HeadLinks{margin: 0; width: calc(100% - 20px); display: block; position: relative; left: 50%; transform: translate(-50%);}
+
+    article{margin-top: 275px;}
 }
 
