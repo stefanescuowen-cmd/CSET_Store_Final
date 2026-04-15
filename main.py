@@ -490,13 +490,13 @@ def checkout():
         price = item.get("discount_price") or item.get("price")
         total += price * item["quantity"]
 
-    addresses = db.get_addresses(conn, customer_id)
+    # addresses = db.get_addresses(conn, customer_id)
 
     return render_template(
         "checkout.html",
         items=cart_items,
         total=total,
-        addresses=addresses
+        # addresses=addresses
     )
 
 
@@ -639,12 +639,12 @@ def account():
     ).mappings().first()
 
     # Get addresses (for extra credit + checkout support)
-    addresses = db.get_addresses(conn, user_id)
+    # addresses = db.get_addresses(conn, user_id)
 
     return render_template(
         "account.html",
         user=user,
-        addresses=addresses
+        # addresses=addresses
     )
 
 

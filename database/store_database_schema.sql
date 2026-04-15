@@ -170,17 +170,17 @@ CREATE TABLE wishlist_items (
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
-CREATE TABLE addresses (
-    address_id INT PRIMARY KEY AUTO_INCREMENT,
-    customer_id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    address_line1 VARCHAR(255) NOT NULL,
-    address_line2 VARCHAR(255),
-    city VARCHAR(100) NOT NULL,
-    state VARCHAR(100) NOT NULL,
-    zip_code VARCHAR(20) NOT NULL,
-    type ENUM('Home','Office') DEFAULT 'Home',
-    is_default BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
-);
+-- CREATE TABLE addresses (
+--     address_id INT PRIMARY KEY AUTO_INCREMENT,
+--     customer_id INT NOT NULL,
+--     name VARCHAR(100) NOT NULL,
+--     phone VARCHAR(20) NOT NULL,
+--     address_line1 VARCHAR(255) NOT NULL,
+--     address_line2 VARCHAR(255),
+--     city VARCHAR(100) NOT NULL,
+--     state VARCHAR(100) NOT NULL,
+--     zip_code VARCHAR(20) NOT NULL,
+--     type ENUM('Home','Office') DEFAULT 'Home',
+--     is_default BOOLEAN DEFAULT FALSE,
+--     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
+-- );
