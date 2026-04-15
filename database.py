@@ -152,24 +152,68 @@ def get_orders(connection, customer_id):
 # PRODUCTS
 # ========
 
+def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants):    
+    query = text("""
+        INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
+        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_end)
+    """)
+    result = connection.execute(query, {
+        "vendor_id": vendor_id,
+        "title": title,
+        "description": description,
+        "price": price,
+        "discount_price": discount_price,
+        "discount_end": discount_end
+    })
+    product_id = result.lastrowid
+
+    for variant in variants:
+        variant_query = text("""
+            INSERT INTO product_variants (product_id, size, color, stock)
+            VALUES (:product_id, :size, :color, :stock)
+        """)
+        connection.execute(variant_query, {
+            "product_id": product_id,
+            "size": variant['size'],
+            "color": variant['color'],
+            "stock": variant['stock']
+        })
+    
+    connection.commit()
+    return product_id
+
 def get_all_products(connection):
     query = text("""
         SELECT 
-            v.variant_id,
-            v.size,
-            v.color,
-            v.stock,
-            p.product_id,
-            p.title,
-            p.description,
-            p.price,
-            p.discount_price,
-            (SELECT image_url FROM product_images WHERE product_id = p.product_id LIMIT 1) AS image
-        FROM product_variants v
-        JOIN products p ON v.product_id = p.product_id
+            p.product_id, p.title, p.description, p.price, p.discount_price,
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
+        FROM products p
+        JOIN product_variants v ON p.product_id = v.product_id
+        GROUP BY p.product_id
     """)
-    result = connection.execute(query)
-    return result.mappings().all()
+    result = connection.execute(query).mappings().all()
+
+    products = []
+    for row in result:
+        item = dict(row)
+        item['variants'] = []
+        ids = str(item['v_ids']).split(',')
+        sizes = str(item['v_sizes']).split(',')
+        colors = str(item['v_colors']).split(',')
+        stocks = str(item['v_stocks']).split(',')
+
+        for i in range(len(ids)):
+            item['variants'].append({
+                "id": ids[i],
+                "size": sizes[i],
+                "color": colors[i],
+                "stock": stocks[i]
+            })
+        products.append(item)
+    return products
 
 
 def get_product_by_id(connection, product_id):
@@ -181,22 +225,38 @@ def get_product_by_id(connection, product_id):
 def search_products(connection, term):
     query = text("""
         SELECT 
-            v.variant_id,
-            v.size,
-            v.color,
-            v.stock,
-            p.product_id,
-            p.title,
-            p.description,
-            p.price,
-            p.discount_price,
-            (SELECT image_url FROM product_images WHERE product_id = p.product_id LIMIT 1) AS image
-        FROM product_variants v
-        JOIN products p ON v.product_id = p.product_id
-        WHERE p.title LIKE :term OR p.description LIKE :term OR v.color LIKE :term
+            p.product_id, p.title, p.description, p.price, p.discount_price,
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
+        FROM products p
+        JOIN product_variants v ON p.product_id = v.product_id
+        WHERE p.title LIKE :term OR p.description LIKE :term
+        GROUP BY p.product_id
     """)
-    result = connection.execute(query, {"term": f"%{term}%"})
-    return result.mappings().all()
+    result = connection.execute(query, {"term": f"%{term}%"}).mappings().all()
+
+    products = []
+    for row in result:
+        item = dict(row)
+        item['variants'] = []
+        ids = str(item['v_ids']).split(',')
+        sizes = str(item['v_sizes']).split(',')
+        colors = str(item['v_colors']).split(',')
+        stocks = str(item['v_stocks']).split(',')
+
+        for i in range(len(ids)):
+            item['variants'].append({
+                "id": ids[i],
+                "size": sizes[i],
+                "color": colors[i],
+                "stock": stocks[i]
+            })
+        products.append(item)
+    return products
+
+
 
 def update_product(connection, product_id, title, description, price, discount_price, stock):
     query = text("""
