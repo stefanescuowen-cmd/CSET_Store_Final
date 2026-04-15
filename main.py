@@ -511,10 +511,10 @@ def place_order():
         flash("Cart is empty.", "error")
         return redirect(url_for("cart"))
 
-    # 1. Create order
+    # 1. Create order (USE YOUR FUNCTION)
     order_id = db.create_order(conn, customer_id)
 
-    # 2. Insert items into order_items
+    # 2. Add items (USE YOUR FUNCTION)
     for item in cart_items:
         db.add_order_item(
             conn,
@@ -523,15 +523,15 @@ def place_order():
             item["quantity"]
         )
 
-    # 3. (Optional but recommended) clear cart here
-    conn.execute(
-        text("""
-            DELETE ci FROM cart_items ci
-            JOIN carts c ON ci.cart_id = c.cart_id
-            WHERE c.customer_id = :cid
-        """),
-        {"cid": customer_id}
-    )
+    # 3. Clear cart
+    cart_id = conn.execute(text("""
+        SELECT cart_id FROM carts WHERE customer_id = :cid
+    """), {"cid": customer_id}).scalar()
+
+    conn.execute(text("""
+        DELETE FROM cart_items WHERE cart_id = :cid
+    """), {"cid": cart_id})
+
     conn.commit()
 
     flash("Order placed successfully!", "success")
