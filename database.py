@@ -397,6 +397,36 @@ def user_exists(connection, email, username):
     return result is not None
 
 
+# =======
+# ADDRESS
+# =======
+
+def get_addresses(connection, customer_id):
+    query = text("SELECT * FROM addresses WHERE customer_id = :cid")
+    result = connection.execute(query, {"cid": customer_id})
+    return result.mappings().all()
+
+
+def add_address(connection, customer_id, data):
+    query = text("""
+        INSERT INTO addresses 
+        (customer_id, name, phone, address_line1, address_line2, city, state, zip_code, type)
+        VALUES (:cid, :name, :phone, :a1, :a2, :city, :state, :zip, :type)
+    """)
+    connection.execute(query, {
+        "cid": customer_id,
+        "name": data["name"],
+        "phone": data["phone"],
+        "a1": data["address_line1"],
+        "a2": data.get("address_line2"),
+        "city": data["city"],
+        "state": data["state"],
+        "zip": data["zip_code"],
+        "type": data["type"]
+    })
+    connection.commit()
+
+
 # ==============
 # DATABASE RESET
 # ==============

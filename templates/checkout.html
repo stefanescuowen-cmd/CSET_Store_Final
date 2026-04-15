@@ -4,17 +4,35 @@
 
 <h1>Checkout</h1>
 
-<h2>Your Items</h2>
-
-{% for item in items %}
-    <p>
-        {{ item.title }} - Qty: {{ item.quantity }}
-    </p>
-{% endfor %}
-
 <h2>Total: ${{ total }}</h2>
 
 <form method="POST" action="/place-order">
+
+    <!-- ADDRESS -->
+    <h3>Select Address</h3>
+
+    {% if addresses %}
+        {% for addr in addresses %}
+            <label>
+                <input type="radio" name="address_id" value="{{ addr.address_id }}" required>
+                {{ addr.address_line1 }}, {{ addr.city }}, {{ addr.state }}
+            </label><br>
+        {% endfor %}
+    {% else %}
+        <p>No address found. Please add one.</p>
+    {% endif %}
+
+    <hr>
+
+    <!-- PAYMENT -->
+    <h3>Payment Method</h3>
+
+    <label><input type="radio" name="payment_method" value="card" required> Card</label><br>
+    <label><input type="radio" name="payment_method" value="paypal"> PayPal</label><br>
+    <label><input type="radio" name="payment_method" value="cod"> Cash on Delivery</label>
+
+    <br><br>
+
     <button type="submit">Confirm Order</button>
 </form>
 
