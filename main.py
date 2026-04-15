@@ -265,12 +265,9 @@ def vendor_dashboard():
     vendor_id = session["user_id"]
 
     products = db.get_vendor_products(conn, vendor_id)
+    orders = db.get_vendor_orders(conn, vendor_id)
 
-    return render_template(
-        "vendor.html",
-        products=products
-    )
-
+    return render_template("vendor.html", products=products, orders=orders)
 
 # =========
 # SHOP PAGE
@@ -493,7 +490,7 @@ def checkout():
     return render_template(
         "checkout.html",
         items=cart_items,
-        total=total
+        total=total,
     )
 
 
@@ -514,10 +511,10 @@ def place_order():
         flash("Cart is empty.", "error")
         return redirect(url_for("cart"))
 
-    # 1. Create order
+    # 1. Create order (USE YOUR FUNCTION)
     order_id = db.create_order(conn, customer_id)
 
-    # 2. Insert items into order_items
+    # 2. Add items (USE YOUR FUNCTION)
     for item in cart_items:
         db.add_order_item(
             conn,
@@ -526,15 +523,15 @@ def place_order():
             item["quantity"]
         )
 
-    # 3. (Optional but recommended) clear cart here
-    conn.execute(
-        text("""
-            DELETE ci FROM cart_items ci
-            JOIN carts c ON ci.cart_id = c.cart_id
-            WHERE c.customer_id = :cid
-        """),
-        {"cid": customer_id}
-    )
+    # 3. Clear cart
+    cart_id = conn.execute(text("""
+        SELECT cart_id FROM carts WHERE customer_id = :cid
+    """), {"cid": customer_id}).scalar()
+
+    conn.execute(text("""
+        DELETE FROM cart_items WHERE cart_id = :cid
+    """), {"cid": cart_id})
+
     conn.commit()
 
     flash("Order placed successfully!", "success")
@@ -577,6 +574,31 @@ def add_product():
         return redirect(url_for('vendor_dashboard'))
     
     return render_template("add-product.html")
+  
+  
+# =============
+# ACCOUNT ROUTE
+# =============
+
+@app.route("/account")
+def account():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    role = session.get("role")
+
+    user = conn.execute(
+        text("SELECT user_id, name, email, username FROM users WHERE user_id = :id"),
+        {"id": user_id}
+).mappings().first()
+
+    return render_template(
+        "account.html",
+        user=user,
+        role=role
+    )
+
 
 # ========
 # RESET DB

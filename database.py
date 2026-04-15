@@ -368,6 +368,18 @@ def get_vendor_products(connection, vendor_id):
     return result.mappings().all()
 
 
+def get_vendor_orders(connection, vendor_id):
+    query = text("""
+        SELECT o.order_id, p.title, oi.quantity, oi.item_status
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE p.vendor_id = :vendor_id
+    """)
+    return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
+
+
 # ========
 # WISHLIST
 # ========

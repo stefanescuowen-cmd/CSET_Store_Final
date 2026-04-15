@@ -155,7 +155,7 @@ CREATE TABLE chats (
     )
 );
 
--- WISHLIST (REQUIRED)
+-- WISHLIST
 CREATE TABLE wishlists (
     wishlist_id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT NOT NULL,
