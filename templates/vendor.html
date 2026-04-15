@@ -3,9 +3,41 @@
 
 <h1>Vendor Dashboard</h1>
 
+<hr>
+
+<!-- YOUR PRODUCTS SECTION -->
+
 <h2>Your Products</h2>
-{% for product in products %}
-    <p>{{ product.title }} - ${{ product.price }}</p>
-{% endfor %}
+
+{% if products %}
+    {% for product in products %}
+        <p>
+            <strong>{{ product.title }}</strong>
+            - ${{ product.price }}
+        </p>
+    {% endfor %}
+{% else %}
+    <p>No products yet.</p>
+{% endif %}
+
+<hr>
+
+
+<!-- INCOMING ORDERS -->
+
+<h2>Incoming Orders</h2>
+
+{% if orders %}
+    {% for order in orders %}
+        <p>
+            Order #{{ order.order_id }} -
+            {{ order.title }} -
+            Qty: {{ order.quantity }} -
+            Status: {{ order.item_status }}
+        </p>
+    {% endfor %}
+{% else %}
+    <p>No incoming orders.</p>
+{% endif %}
 
 {% endblock %}

@@ -308,6 +308,18 @@ def get_vendor_products(connection, vendor_id):
     return result.mappings().all()
 
 
+def get_vendor_orders(connection, vendor_id):
+    query = text("""
+        SELECT o.order_id, p.title, oi.quantity, oi.item_status
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE p.vendor_id = :vendor_id
+    """)
+    return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
+
+
 # ========
 # WISHLIST
 # ========
@@ -395,36 +407,6 @@ def user_exists(connection, email, username):
     query = text("SELECT * FROM users WHERE email = :email OR username = :username")
     result = connection.execute(query, {"email": email, "username": username}).fetchone()
     return result is not None
-
-
-# =======
-# ADDRESS
-# =======
-
-# def get_addresses(connection, customer_id):
-#     query = text("SELECT * FROM addresses WHERE customer_id = :cid")
-#     result = connection.execute(query, {"cid": customer_id})
-#     return result.mappings().all()
-
-
-# def add_address(connection, customer_id, data):
-#     query = text("""
-#         INSERT INTO addresses 
-#         (customer_id, name, phone, address_line1, address_line2, city, state, zip_code, type)
-#         VALUES (:cid, :name, :phone, :a1, :a2, :city, :state, :zip, :type)
-#     """)
-#     connection.execute(query, {
-#         "cid": customer_id,
-#         "name": data["name"],
-#         "phone": data["phone"],
-#         "a1": data["address_line1"],
-#         "a2": data.get("address_line2"),
-#         "city": data["city"],
-#         "state": data["state"],
-#         "zip": data["zip_code"],
-#         "type": data["type"]
-#     })
-#     connection.commit()
 
 
 # ==============

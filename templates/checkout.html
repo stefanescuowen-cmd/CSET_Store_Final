@@ -8,33 +8,6 @@
 
 <form method="POST" action="/place-order">
 
-    <!-- ADDRESS -->
-    <h3>Select Address</h3>
-
-    {% if addresses %}
-        {% for addr in addresses %}
-            <label>
-
-                <input type="radio"
-                    name="address_id"
-                    value="{{ addr.address_id }}"
-                    required
-                    {% if addr.is_default %}checked{% endif %}>
-
-                {{ addr.address_line1 }}, {{ addr.city }}, {{ addr.state }}
-
-                {% if addr.is_default %}
-                    <strong>(Default)</strong>
-                {% endif %}
-
-            </label><br>
-        {% endfor %}
-    {% else %}
-        <p>No address found. Please add one.</p>
-    {% endif %}
-
-    <hr>
-
     <!-- PAYMENT -->
     <h3>Payment Method</h3>
 
