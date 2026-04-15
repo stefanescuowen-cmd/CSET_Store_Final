@@ -466,7 +466,7 @@ def wishlist():
 # CHECKOUT ROUTE
 # ==============
 
-@app.route("/checkout", methods=["GET"])
+@app.route("/checkout", methods=["POST", "GET"])
 def checkout():
     if session.get("role") != "customer":
         return "Unauthorized", 403
@@ -492,6 +492,8 @@ def checkout():
         items=cart_items,
         total=total,
     )
+
+
 
 
 # ===========
@@ -538,6 +540,44 @@ def place_order():
     return redirect(url_for("customer_dashboard"))
 
 
+# ============================
+# ADD PRODUCT
+# ============================
+@app.route("/add-product", methods=["POST", "GET"])
+def add_product():
+    if not get_user_role(conn, session["user_id"]) == "admin" and not get_user_role(conn, session["user_id"]) == "vendor":
+        flash("Must be a vendor or admin to access.", "error")
+        return redirect(url_for('index'))
+    
+    if request.method == "POST":
+        title = request.form.get("title")
+        description = request.form.get("description")
+        price = float(request.form.get("price"))
+        discount_price = request.form.get("discount_price") if request.form.get("discount_price") else None
+        discount_end = request.form.get("discount_end") if request.form.get("discount_end") else None
+
+        colors = request.form.getlist("variant_color[]")
+        sizes = request.form.getlist("variant_size[]")
+        stocks = request.form.getlist("variant_stock[]")
+
+        variants = []
+        for i in range(len(colors)):
+            variants.append({
+                "color": colors[i],
+                "size": sizes[i],
+                "stock": int(stocks[i])
+            })
+
+        db.add_new_product(conn, session["user_id"], title, description, price, discount_price, discount_end, variants)
+
+        print(variants)
+
+        flash("Product added successfully!", "success")
+        return redirect(url_for('vendor_dashboard'))
+    
+    return render_template("add-product.html")
+  
+  
 # =============
 # ACCOUNT ROUTE
 # =============
