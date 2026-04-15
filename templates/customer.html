@@ -1,21 +1,47 @@
 {% extends "base.html" %}
+
 {% block body %}
 
 <h1>Customer Dashboard</h1>
 
-<h2>Cart</h2>
-{% for item in cart_items %}
-    <p>{{ item.title }} x {{ item.quantity }}</p>
-{% endfor %}
+<h2>Welcome, {{ session.name }}</h2>
 
-<h2>Orders</h2>
-{% for order in orders %}
-    <p>Order #{{ order.order_id }} - {{ order.order_status }}</p>
-{% endfor %}
+<hr>
 
-<h2>Wishlist</h2>
-{% for item in wishlist %}
-    <p>Variant ID: {{ item.variant_id }}</p>
-{% endfor %}
+<h3>Cart Summary</h3>
+{% if cart_items %}
+    {% for item in cart_items %}
+        <p>{{ item.title }} x{{ item.quantity }}</p>
+    {% endfor %}
+{% else %}
+    <p>No items in cart</p>
+{% endif %}
+
+<hr>
+
+<h3>Orders</h3>
+{% if orders %}
+    {% for order in orders %}
+        <p>
+            Order #{{ order.order_id }} -
+            {{ order.title }} -
+            Qty: {{ order.quantity }} -
+            Status: {{ order.order_status }}
+        </p>
+    {% endfor %}
+{% else %}
+    <p>No orders yet</p>
+{% endif %}
+
+<hr>
+
+<h3>Wishlist</h3>
+{% if wishlist %}
+    {% for item in wishlist %}
+        <p>Variant ID: {{ item.variant_id }}</p>
+    {% endfor %}
+{% else %}
+    <p>Wishlist empty</p>
+{% endif %}
 
 {% endblock %}
