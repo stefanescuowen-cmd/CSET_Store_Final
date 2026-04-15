@@ -466,7 +466,7 @@ def wishlist():
 # CHECKOUT ROUTE
 # ==============
 
-@app.route("/checkout", methods=["GET"])
+@app.route("/checkout", methods=["POST", "GET"])
 def checkout():
     if session.get("role") != "customer":
         return "Unauthorized", 403
@@ -492,6 +492,8 @@ def checkout():
         items=cart_items,
         total=total,
     )
+
+
 
 
 # ===========
