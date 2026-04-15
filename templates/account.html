@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>My Account</h1>
+
+
+<!-- USER INFO -->
+
+<h2>Profile</h2>
+
+<p><strong>Name:</strong> {{ user.name }}</p>
+<p><strong>Email:</strong> {{ user.email }}</p>
+<p><strong>Username:</strong> {{ user.username }}</p>
+
+<hr>
+
+
+<!-- ADDRESSES -->
+
+<h2>Saved Addresses</h2>
+
+{% for addr in addresses %}
+    <div>
+        <strong>{{ addr.name }}</strong><br>
+        {{ addr.address_line1 }} {{ addr.address_line2 }}<br>
+        {{ addr.city }}, {{ addr.state }} {{ addr.zip_code }}<br>
+        {{ addr.phone }} ({{ addr.type }})
+
+        <br>
+
+        {% if addr.is_default %}
+            <span style="color: green;"><strong>Default Address</strong></span>
+        {% else %}
+
+            <form method="POST" action="/set-default-address/{{ addr.address_id }}" style="display:inline;">
+                <button type="submit">Set as Default</button>
+            </form>
+        {% endif %}
+
+        <!-- DELETE BUTTON -->
+        <form method="POST" action="/delete-address/{{ addr.address_id }}" style="display:inline;">
+            <button type="submit">Delete</button>
+        </form>
+
+    </div>
+    <hr>
+{% endfor %}
+
+
+<!-- ADD ADDRESS -->
+
+<h3>Add New Address</h3>
+
+<!-- <form method="POST" action="/add-address">
+
+    <input name="name" placeholder="Full Name" required><br>
+    <input name="phone" placeholder="Phone Number" required><br>
+    <input name="address_line1" placeholder="Address Line 1" required><br>
+    <input name="address_line2" placeholder="Address Line 2"><br>
+    <input name="city" placeholder="City" required><br>
+    <input name="state" placeholder="State" required><br>
+    <input name="zip_code" placeholder="Zip Code" required><br>
+
+    <select name="type">
+        <option value="Home">Home</option>
+        <option value="Office">Office</option>
+    </select>
+
+    <br><br>
+
+    <button type="submit">Save Address</button>
+</form> -->
+
+<hr>
+
+
+<!-- QUICK ACTIONS -->
+
+<h2>Quick Actions</h2>
+
+<ul>
+    <li><a href="/customer/dashboard">Dashboard</a></li>
+    <li><a href="/cart">View Cart</a></li>
+    <li><a href="/wishlist">Wishlist</a></li>
+    <li><a href="/checkout">Checkout</a></li>
+</ul>
+
+{% endblock %}
