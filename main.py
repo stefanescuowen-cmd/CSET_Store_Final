@@ -569,6 +569,84 @@ def add_address():
     flash("Address added!", "success")
     return redirect(url_for("checkout"))
 
+# ==============
+# DELETE ADDRESS
+# ==============
+
+@app.route("/delete-address/<int:address_id>", methods=["POST"])
+def delete_address(address_id):
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
+
+    conn.execute(
+        text("DELETE FROM addresses WHERE address_id = :id AND customer_id = :cid"),
+        {"id": address_id, "cid": session["user_id"]}
+    )
+    conn.commit()
+
+    flash("Address deleted.", "success")
+    return redirect(url_for("account"))
+
+
+# ===================
+# SET DEFAULT ADDRESS
+# ===================
+
+@app.route("/set-default-address/<int:address_id>", methods=["POST"])
+def set_default_address(address_id):
+    if session.get("role") != "customer":
+        return "Unauthorized", 403
+
+    customer_id = session["user_id"]
+
+    # Step 1: reset all addresses
+    conn.execute(
+        text("UPDATE addresses SET is_default = FALSE WHERE customer_id = :cid"),
+        {"cid": customer_id}
+    )
+
+    # Step 2: set selected one as default
+    conn.execute(
+        text("""
+            UPDATE addresses 
+            SET is_default = TRUE 
+            WHERE address_id = :id AND customer_id = :cid
+        """),
+        {"id": address_id, "cid": customer_id}
+    )
+
+    conn.commit()
+
+    flash("Default address updated!", "success")
+    return redirect(url_for("account"))
+
+
+# =============
+# ACCOUNT ROUTE
+# =============
+
+@app.route("/account")
+def account():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    # Get user info
+    user = conn.execute(
+        text("SELECT name, email, username FROM users WHERE user_id = :id"),
+        {"id": user_id}
+    ).mappings().first()
+
+    # Get addresses (for extra credit + checkout support)
+    addresses = db.get_addresses(conn, user_id)
+
+    return render_template(
+        "account.html",
+        user=user,
+        addresses=addresses
+    )
+
 
 # ========
 # RESET DB
