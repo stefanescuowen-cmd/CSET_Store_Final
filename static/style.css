@@ -95,6 +95,9 @@ label {
 input[type="text"],
 input[type="email"],
 input[type="password"],
+input[type="number"],
+input[type="datetime-local"],
+textarea,
 select {
     background-color: var(--bg-color);
     border: 2px solid var(--header-bg-light);

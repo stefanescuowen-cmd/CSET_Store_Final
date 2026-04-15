@@ -6,12 +6,14 @@
 
 <form method="GET" action="/shop">
     <input type="text" name="search"
-           placeholder="Search products..."
-           value="{{ search_query if search_query }}">
+        {% if search_query %} value="{{ search_term }}" 
+        {% else %} placeholder="Search products..." 
+        {% endif %}
+        value="{{ search_term if search_term }}">
 
     <button type="submit">Search</button>
 
-    {% if search_query %}
+    {% if search_term %}
         <a href="/shop">
             <button type="button">Clear</button>
         </a>
@@ -19,50 +21,60 @@
 </form>
 
 <div class="product-grid">
-{% for item in products %}
-    <div class="product-card" style="border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
-        <h3>{{ item.title }}</h3>
-        
-        <p><strong>Option:</strong> {{ item.color }} | {{ item.size }}</p>
-        
-        <p>{{ item.description }}</p>
-
-        {% if item.discount_price %}
+{% for product in products %}
+    <div class="product-card" style="border: 1px solid #ddd; padding: 15px; margin: 10px;">
+        <h3>{{ product.title }}</h3>
+        <p>{{ product.description }}</p>
+        {% if product.discount_price %}
             <p>
-                <del>${{ item.price }}</del> 
-                <strong style="color: red;">${{ item.discount_price }}</strong>
+                <del>${{ product.price }}</del> 
+                <strong style="color: red;">${{ product.discount_price }}</strong>
             </p>
         {% else %}
-            <p>${{ item.price }}</p>
+            <p>${{ product.price }}</p>
         {% endif %}
 
-        <p>Stock Available: {{ item.stock }}</p>
+        <label>Choose Option:</label>
+        <select data-product-id="{{ product.product_id }}" onchange="updateVariant(this)">
+            {% for v in product.variants %}
+                <option value="{{ v.id }}" data-stock="{{ v.stock }}">
+                    {{ v.color }} - {{ v.size }}
+                </option>
+            {% endfor %}
+        </select>
 
-        {% if item.stock > 0 %}
-            <form action="/add-to-cart" method="POST">
-                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
-                <input type="number" name="quantity" value="1" min="1" max="{{ item.stock }}">
-                <button type="submit">Add to Cart</button>
-            </form>
-        {% else %}
-            <p style="color: red;"><strong>Out of Stock</strong></p>
-        {% endif %}
+        <p>Stock: <span id="stock-{{ product.product_id }}">{{ product.variants[0].stock }}</span></p>
 
-        <hr>
-        <form action="/add-to-wishlist" method="POST">
-            <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
-            <button type="submit" style="background: none; color: #ccc; border: 1px solid #ccc; cursor: pointer;">
-                Add to Wishlist
-            </button>
+        <form action="/add-to-cart" method="POST">
+            <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
+            
+            <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock }}">
+            <button type="submit">Add to Cart</button>
         </form>
-
-        <br>
-        <a href="/product/{{ item.product_id }}">
-            <button type="button">View Product Details</button>
-        </a>
     </div>
 {% endfor %}
 </div>
+
+<script>
+function updateVariant(selectElement) {
+    const productId = selectElement.getAttribute('data-product-id');
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const variantId = selectElement.value;
+    const stock = selectedOption.getAttribute('data-stock');
+
+    document.getElementById('vid-' + productId).value = variantId;
+    document.getElementById('stock-' + productId).innerText = stock;
+
+    const qtyInput = document.getElementById('qty-' + productId)
+    qtyInput.max = stock;
+
+    if (parseInt(qtyInput.value) > parseInt(stock)) {
+        qtyInput.value = stock;
+    }
+
+}
+</script>
 
 {% if products|length == 0 %}
     <p>No products found.</p>
