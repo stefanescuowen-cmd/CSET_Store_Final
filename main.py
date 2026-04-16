@@ -143,7 +143,13 @@ def admin_dashboard():
 
     orders = db.get_all_orders(conn)
 
-    return render_template("admin.html", products=products, returns=returns, search_query=search_query)
+    return render_template(
+    "admin.html",
+    products=products,
+    returns=returns,
+    orders=orders,
+    search_query=search_query
+)
 
 
 # ========================
@@ -313,7 +319,10 @@ def customer_dashboard():
 
 @app.route("/vendor")
 def vendor_dashboard():
-    if session.get("role") != "vendor":
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if get_user_role(conn, session["user_id"]) != "vendor":
         return "Unauthorized", 403
 
     vendor_id = session["user_id"]
@@ -321,7 +330,46 @@ def vendor_dashboard():
     products = db.get_vendor_products(conn, vendor_id)
     orders = db.get_vendor_orders(conn, vendor_id)
 
-    return render_template("vendor.html", products=products, orders=orders)
+    return render_template(
+        "vendor.html",
+        products=products,
+        orders=orders
+    )
+
+
+# ====================
+# VENDOR APPROVE ORDER
+# ====================
+
+@app.route("/vendor/orders")
+def vendor_orders():
+    if session.get("role") != "vendor":
+        return "Unauthorized", 403
+
+    vendor_id = session["user_id"]
+    orders = db.get_vendor_orders(conn, vendor_id)
+
+    return render_template("vendor_orders.html", orders=orders)
+
+
+# ====================
+# VENDOR CONFIRM ORDER
+# ====================
+
+@app.route("/vendor/orders/confirm", methods=["POST"])
+def vendor_confirm_order_item():
+    if session.get("role") != "vendor":
+        return "Unauthorized", 403
+
+    order_id = request.form.get("order_id")
+    variant_id = request.form.get("variant_id")
+    vendor_id = session["user_id"]
+
+    db.confirm_vendor_item(conn, order_id, vendor_id, variant_id)
+
+    flash("Item confirmed for fulfillment", "success")
+    return redirect(url_for("vendor_orders"))
+
 
 # =========
 # SHOP PAGE
@@ -606,8 +654,8 @@ def place_order():
     """), {"cid": customer_id}).scalar()
 
     conn.execute(text("""
-        DELETE FROM cart_items WHERE cart_id = :cid
-    """), {"cid": cart_id})
+    DELETE FROM cart_items WHERE cart_id = :cart_id
+    """), {"cart_id": cart_id})
 
     conn.commit()
 
