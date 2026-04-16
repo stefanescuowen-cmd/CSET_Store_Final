@@ -10,6 +10,16 @@
         <label for="title">Title:</label><br>
         <input type="text" id="title" name="title" required><br><br>
 
+        <h3>Images</h3>
+        <div id="images-container">
+            <div class="image-group">
+                <label for="image">Image URL:</label>
+                <input type="text" id="image" name="image" required><br>
+            </div>
+        </div>
+
+        <button type="button" onclick="addImage()">Add Image</button><br><br>
+
         <label for="description">Description:</label><br>
         <textarea id="description" name="description" required></textarea><br><br>
 
@@ -43,30 +53,5 @@
         <button type="submit">Add Product</button>
     </form>
 </div>
-
-<script>
-function addVariant() {
-    const container = document.getElementById('variants-container');
-    const variantGroup = document.createElement('div');
-    variantGroup.className = 'variant-group';
-    variantGroup.innerHTML = `
-        <label>Color:</label>
-        <input type="text" name="variant_color[]" required>
-
-        <label>Size:</label>
-        <input type="text" name="variant_size[]" required>
-
-        <label>Stock:</label>
-        <input type="number" name="variant_stock[]" min="0" required>
-
-        <button type="button" onclick="removeVariant(this)">Remove</button>
-    `;
-    container.appendChild(variantGroup);
-}
-
-function removeVariant(btn) {
-    btn.parentElement.remove();
-}
-</script>
 
 {% endblock %}

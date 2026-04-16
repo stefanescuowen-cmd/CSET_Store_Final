@@ -54,6 +54,48 @@ function setMainImage(productId, imageUrl) {
     }
 }
 
+// Add product
+function addVariant() {
+    const container = document.getElementById('variants-container');
+    const variantGroup = document.createElement('div');
+    variantGroup.className = 'variant-group';
+    variantGroup.innerHTML = `
+        <label>Color:</label>
+        <input type="text" name="variant_color[]" required>
+
+        <label>Size:</label>
+        <input type="text" name="variant_size[]" required>
+
+        <label>Stock:</label>
+        <input type="number" name="variant_stock[]" min="0" required>
+
+        <button type="button" onclick="removeVariant(this)">Remove</button>
+    `;
+    container.appendChild(variantGroup);
+}
+
+function removeVariant(btn) {
+    btn.parentElement.remove();
+}
+
+function addImage() {
+    const container = document.getElementById('images-container');
+    const imageGroup = document.createElement('div');
+    imageGroup.className = 'image-group';
+    imageGroup.innerHTML = `
+        <br>
+        <label for="image">Image URL:</label>
+        <input type="text" id="image" name="image" required>
+        <button type="button" onclick="removeImage(this)">Remove</button>
+    `;
+
+    container.appendChild(imageGroup);
+}
+
+function removeImage(btn) {
+    btn.parentElement.remove();
+}
+
 // Checkout
 
 function showPayment(method) {
