@@ -47,6 +47,13 @@ function updateVariant(selectElement) {
     }
 }
 
+function setMainImage(productId, imageUrl) {
+    const mainImg = document.getElementById('main-img-' + productId);
+    if (mainImg) {
+        mainImg.src = imageUrl;
+    }
+}
+
 // Checkout
 
 function showPayment(method) {

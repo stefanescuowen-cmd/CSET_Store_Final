@@ -22,13 +22,36 @@
 
 <div class="product-grid">
 {% for product in products %}
-    <div class="product-card" style="border: 1px solid #ddd; padding: 15px; margin: 10px;">
+    <div class="product-card">
         <h3>{{ product.title }}</h3>
+
+        {% set images = image_map.get(product.product_id, []) %}
+
+        <div class="main-image">
+            {% if images %}
+                <img 
+                    id="main-img-{{ product.product_id }}"
+                    src="{{ images[0] }}">
+            {% else %}
+                <div>
+                    No image
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="img-thumbs">
+            {% for img in images %}
+                <img 
+                    src="{{ img }}"
+                    onclick="setMainImage('{{ product.product_id }}', '{{ img }}')">
+            {% endfor %}
+        </div>
+
         <p>{{ product.description }}</p>
         {% if product.discount_price %}
             <p>
                 <del>${{ product.price }}</del> 
-                <strong style="color: red;">${{ product.discount_price }}</strong>
+                <strong style="color: green;">${{ product.discount_price }}</strong>
             </p>
         {% else %}
             <p>${{ product.price }}</p>

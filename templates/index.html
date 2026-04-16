@@ -7,7 +7,7 @@
         <a href="/shop" class="basicButton">Shop Now</a>
     </div>
 </div>
-{% if session.get('is_admin') %}
+{% if session.get("role") == "admin" %}
 <hr>
 <div class="dangerZone">
     <h2>Danger Zone</h2>

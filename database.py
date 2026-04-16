@@ -287,6 +287,11 @@ def get_all_products(connection):
         products.append(item)
     return products
 
+def get_product_images(connection):
+    query = text("SELECT * FROM product_images")
+    result = connection.execute(query)
+    return result.mappings().all()
+
 
 def get_product_by_id(connection, product_id):
     query = text("SELECT * FROM products WHERE product_id = :product_id")
