@@ -9,6 +9,25 @@ def get_all_users(connection):
     result = connection.execute(text("SELECT * FROM users"))
     return result.mappings().all()
 
+def get_all_orders(connection):
+    query = text("""
+        SELECT 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            p.title,
+            oi.quantity,
+            oi.item_status
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        ORDER BY o.ordered_at DESC
+    """)
+    result = connection.execute(query)
+    return result.mappings().all()
+
 
 # ====
 # CART

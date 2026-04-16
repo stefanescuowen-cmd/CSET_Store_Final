@@ -141,14 +141,15 @@ def admin_dashboard():
     # 2. Fetch pending returns
     returns = db.get_all_pending_returns(conn)
 
+    orders = db.get_all_orders(conn)
 
     return render_template("admin.html", products=products, returns=returns, search_query=search_query)
-
 
 
 # ========================
 # ADMIN PRODUCT MANAGEMENT
 # ========================
+
 @app.route("/admin/product/new", methods=["GET", "POST"])
 def new_product():
     if not get_user_role(conn, session["user_id"]) == "admin":
@@ -229,6 +230,58 @@ def reject_return(return_id):
 
     flash(f"Return #{return_id} has been rejected.", "error")
     return redirect(url_for('admin_dashboard'))
+
+# ======
+# ORDERS
+# ======
+
+@app.route("/orders")
+def orders_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    customer_id = session["user_id"]
+    orders = db.get_orders(conn, customer_id)
+
+    return render_template("orders.html", orders=orders)
+
+
+# ===================
+# ADMIN APPROVE ORDER
+# ===================
+
+@app.route("/admin/orders/<int:order_id>/approve", methods=["POST"])
+def approve_order(order_id):
+    if get_user_role(conn, session["user_id"]) != "admin":
+        return "Unauthorized", 403
+
+    conn.execute(text("""
+        UPDATE orders
+        SET order_status = 'Confirmed'
+        WHERE order_id = :id
+    """), {"id": order_id})
+
+    conn.commit()
+    return redirect(url_for("admin_dashboard"))
+
+
+# ==================
+# ADMIN REJECT ORDER
+# ==================
+
+@app.route("/admin/orders/<int:order_id>/reject", methods=["POST"])
+def reject_order(order_id):
+    if get_user_role(conn, session["user_id"]) != "admin":
+        return "Unauthorized", 403
+
+    conn.execute(text("""
+        UPDATE orders
+        SET order_status = 'Cancelled'
+        WHERE order_id = :id
+    """), {"id": order_id})
+
+    conn.commit()
+    return redirect(url_for("admin_dashboard"))
   
 
 # ==================
