@@ -1,85 +1,65 @@
 /* What Caleb Did Definitly */
 :root {
     /* Colors */
-    --bg-color: #1b1b3a;
+    --bg-color-base: #1b1b3a;
+    --bg-color-light: #3b3b5a;
+    --bg-color-dark: #151536;
     --text-color: #FCF7F8;
     --header-bg-base: #0B5351;
     --header-bg-light: #1B6361;
     --header-bg-dark: #004341;
     --accent-color: #59c9a5;
     --accent-hover: #49d9b5;
+    --accent-active: #39a984;
+}
+
+/* Animation */
+@keyframes DANGER2
+{
+    0%{color: white; -webkit-text-stroke: white 0.1px;}
+    50%{color: red; -webkit-text-stroke: red 0.5px;}
+    100%{color: white; -webkit-text-stroke: white 0.1px;}
+}
+@keyframes DANGER
+{
+    0%{color: maroon; -webkit-text-stroke: maroon 0.1px;}
+    50%{color: red; -webkit-text-stroke: red 0.5px;}
+    100%{color: maroon; -webkit-text-stroke: maroon 0.1px;}
 }
 
 /* All Selector */
 * {font-family: Arial, Helvetica, sans-serif; outline: 0px solid;}
 
 /* Basic */
-body{margin: 0px;}
-header{align-items: center; background-color: var(--header-bg-base); height: 125px; display: flex; justify-content: left; flex-wrap: wrap; width: 100%;}
+html{scrollbar-width: none;}
+
+body{margin: 0px; background-color: var(--bg-color-base);  color: var(--text-color); height: calc(100dvh - 150px);}
+
+header{z-index: 100; top: 0; position: fixed; box-shadow: 10px -100px 100px 100px black; outline: solid 2px var(--accent-color); align-items: center; background-color: var(--header-bg-base); height: 125px; display: flex; justify-content: left; flex-wrap: wrap; width: 100%;}
 header #HeadLight{width: 400px; margin-left: 10px; background-color: var(--header-bg-light); border-radius: 20px;}
 header #HeadImg{float: left; width: 100px; height: 100px; align-content: center;}
 header #HeadImg img{width: 75%; align-self: center; display: flex; justify-self: center;}
 header #HeadText{width: 300px; height: 100px; align-content: center;}
 header #HeadText h1{color: var(--text-color); text-align: center; align-content: center; height: 100%; margin: 0; font-weight: 300;}
 header #HeadText h1 a{font-size: 42px; margin-right: -1px; font-weight: 600;}
-header #HeadLinks{margin-left: calc(10% + 100px); width: calc(100% - 520px - 10%); float: right;}
+header #HeadLinks{position: absolute; right: calc(0% + 10px); width: calc(800px); float: right;}
 header #HeadLinks ul{background-color: var(--header-bg-dark); list-style: none; padding: 0px; margin: 0px; align-content: center; align-content: center; height: 100px; text-align: center; border-radius: 20px;}
 header #HeadLinks li{display: inline-block; margin: 10px;}
-header #HeadLinks li a{color: var(--accent-color); padding: 5px; border-radius: 10px; background-color: var(--header-bg-base); text-decoration: none; transition: 0.5s;}
+header #HeadLinks li a{outline: 2px solid; color: var(--accent-color); padding: 5px; border-radius: 10px; background-color: var(--header-bg-base); text-decoration: none; transition: 0.5s;}
 
-/* General Page Setup */
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    min-height: 100vh;
-}
+article{background-color: var(--bg-color-dark); margin: 150px 20px 20px 20px; border-radius: 20px; padding: 20px;}
+article h1{margin-top: 0;}
 
-main {
-    display: flex;
-    justify-content: center;
-    padding: 50px 20px;
-}
+main{display: flex; justify-content: center; padding: 50px 20px;}
 
 
 
 /* Elements */
+hr{border: 5px solid var(--bg-color-light); border-radius: 10px; margin: 20px 0px;}
+h2{margin-top: 0; color: var(--accent-color); font-weight: 600; font-size: 28px;}
+h1, h2{text-align: center;}
+button{background-color: var(--accent-color); color: var(--header-bg-dark); border: none; border-radius: 8px; padding: 5px; font-size: 18px; font-weight: 700; cursor: pointer; transition: transform 0.2s, background-color 0.3s; margin: 10px;}
 
-/* Form Container */
-.form-container {
-    background-color: var(--header-bg-dark);
-    padding: 40px;
-    border-radius: 20px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    margin: auto;
-}
-
-h2 {
-    margin-top: 0;
-    color: var(--accent-color);
-    font-weight: 600;
-    font-size: 28px;
-}
-
-h1, h2 {
-    text-align: center;
-}
-
-button {
-    background-color: var(--accent-color);
-    color: var(--header-bg-dark);
-    border: none;
-    border-radius: 8px;
-    padding: 5px;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.2s, background-color 0.3s;
-    margin: 10px;
-}
-
-/* Form Elements */
 form {
     display: flex;
     flex-direction: column;
@@ -92,13 +72,7 @@ label {
     color: var(--accent-color);
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="datetime-local"],
-textarea,
-select {
+input[type="text"], input[type="email"], input[type="password"], select {
     background-color: var(--bg-color);
     border: 2px solid var(--header-bg-light);
     border-radius: 8px;
@@ -107,11 +81,6 @@ select {
     color: var(--text-color);
     font-size: 16px;
     transition: border-color 0.3s ease;
-}
-
-input:focus, select:focus {
-    border-color: var(--accent-color);
-    outline: none;
 }
 
 /* Submit Button */
@@ -126,15 +95,6 @@ input[type="submit"] {
     cursor: pointer;
     transition: transform 0.2s, background-color 0.3s;
     margin-top: 10px;
-}
-
-input[type="submit"]:hover {
-    background-color: var(--accent-hover);
-    transform: translateY(-2px);
-}
-
-input[type="submit"]:active {
-    transform: translateY(0);
 }
 
 /* Class */
@@ -202,9 +162,52 @@ input[type="submit"]:active {
     min-width: 200px;
 }
 
-/* Psudo */
-#HeadLinks li a:link{color: var(--accent-color); background-color: var(--header-bg-base);}
-#HeadLinks li a:hover{color: var(--accent-hover); background-color: var(--header-bg-light); transition: 0.25s;}
+/* Classes */
+.formContainerOut{padding: 20px; background-color: var(--bg-color-light); border-radius: 20px;}
+.formContainerIn{width: 100%;}
+.TextAlignCenter{text-align: center;}
+.TextAlignLeft{text-align: left;}
+.TextAlignRight{text-align: right;}
+.basicButton{background-color: var(--bg-color-light); padding: 10px; border-radius: 20px; outline: 2px solid; color: var(--text-color); text-decoration: none;}
+.dangerZone{background-color: rgb(75, 0, 0); max-width: 500px; position: relative; left: 50%; transform: translate(-50%); padding: 20px; border-radius: 10px;}
+.dangerZone h2{color: rgb(255, 125, 125);}
+.dangerZone p a{animation: DANGER 1s linear infinite;}
+.dangerZone p {text-align: center;}
+.dangerZone input{left: 50%; transform: translate(-50%); position: relative; max-width: 500px; background-color: rgb(125, 0, 0); color: white; outline: 2px solid;}
 
 /* ID */
 
+/* Psudo */
+input:focus, select:focus{border-color: var(--accent-color); outline: none;}
+input[type="submit"]:hover {background-color: var(--accent-hover); transform: translateY(-2px);}
+input[type="submit"]:active{transform: translateY(0); background-color: var(--accent-active);}
+#HeadLinks li a:link{color: var(--accent-color); background-color: var(--header-bg-base);}
+#HeadLinks li a:hover{color: var(--accent-hover); background-color: var(--header-bg-light); transition: 0.25s;}
+#HeadLinks li a:active{color: var(--accent-active); background-color: var(--header-bg-dark); transition: 0.1s;}
+.dangerZone input:hover{animation: DANGER2 linear 1s infinite; background-color: rgb(150, 0, 0); transform: translate(-50%, 0);}
+.dangerZone input:active {transform: translate(-50%,0);}
+
+
+/* Optimization */
+@media screen and (max-width: 1250px)
+{
+    body{height: calc(100dvh - 275px);}
+    header{height: 250px;}
+    header #HeadLight{margin: 0; top: -25%; position: relative; transform: translate(-50%, calc(50% + 10px)); left: 50%;}
+    header #HeadLinks{margin: 0; width: calc(100% - 20px); display: block; position: relative; left: 50%; transform: translate(-50%);}
+
+    article{margin-top: 275px;}
+}
+
+/* old css
+.form-container {
+    background-color: var(--header-bg-dark);
+    padding: 40px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    margin: auto;
+}
+
+*/
