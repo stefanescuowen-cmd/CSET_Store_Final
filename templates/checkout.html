@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>Checkout</h1>
+
+<h2>Total: ${{ total }}</h2>
+
+<form method="POST" action="/place-order">
+
+    <!-- PAYMENT -->
+    <h3>Payment Method</h3>
+
+    <label>
+        <input type="radio" name="payment_method" value="card" onclick="showPayment('card')" required>
+        Card
+    </label><br>
+
+    <label>
+        <input type="radio" name="payment_method" value="paypal" onclick="showPayment('paypal')">
+        PayPal
+    </label><br>
+
+    <label>
+        <input type="radio" name="payment_method" value="cod" onclick="showPayment('cod')">
+        Cash on Delivery
+    </label>
+
+    <br><br>
+
+
+    <!-- CARD FORM -->
+
+    <div id="card-form" style="display:none;">
+        <h3>Card Details</h3>
+
+        <input type="text" name="card_name" placeholder="Name on Card"><br><br>
+        <input type="text" name="card_number" placeholder="Card Number"><br><br>
+        <input type="text" name="expiry" placeholder="MM/YY"><br><br>
+        <input type="text" name="cvv" placeholder="CVV"><br><br>
+    </div>
+
+    <!-- PAYPAL FORM -->
+
+    <div id="paypal-form" style="display:none;">
+        <h3>PayPal Email</h3>
+        <input type="email" name="paypal_email" placeholder="Enter PayPal Email">
+        <p>You'll be redirected after placing order.</p>
+    </div>
+
+
+    <!-- COD INFO -->
+
+    <div id="cod-form" style="display:none;">
+        <h3>Cash on Delivery</h3>
+        <p>You will pay when your order arrives.</p>
+    </div>
+
+    <br>
+
+    <button type="submit">Confirm Order</button>
+</form>
+
+{% endblock %}

@@ -6,12 +6,14 @@
 
 <form method="GET" action="/shop">
     <input type="text" name="search"
-           placeholder="Search products..."
-           value="{{ search_query if search_query }}">
+        {% if search_query %} value="{{ search_query }}" 
+        {% else %} placeholder="Search products..." 
+        {% endif %}
+        value="{{ search_query if search_query }}">
 
     <button type="submit">Search</button>
 
-    {% if search_query %}
+    {% if search_term %}
         <a href="/shop">
             <button type="button">Clear</button>
         </a>
@@ -19,62 +21,75 @@
 </form>
 
 <div class="product-grid">
-
 {% for product in products %}
-
-    <div class="product-card">
-
+    <div class="product-card" style="border: 1px solid #ddd; padding: 15px; margin: 10px;">
         <h3>{{ product.title }}</h3>
         <p>{{ product.description }}</p>
-
         {% if product.discount_price %}
             <p>
-                <del>${{ product.price }}</del>
-                <strong>${{ product.discount_price }}</strong>
+                <del>${{ product.price }}</del> 
+                <strong style="color: red;">${{ product.discount_price }}</strong>
             </p>
         {% else %}
             <p>${{ product.price }}</p>
         {% endif %}
 
-        <p>Stock: {{ product.stock }}</p>
+        <label>Choose Option:</label>
+        <select data-product-id="{{ product.product_id }}" onchange="updateVariant(this)">
+            {% for v in product.variants %}
+                <option value="{{ v.id }}" data-stock="{{ v.stock }}">
+                    {{ v.color }} - {{ v.size }}
+                </option>
+            {% endfor %}
+        </select>
 
-        {% if product.stock and product.stock > 0 %}
+        <p>Stock: <span id="stock-{{ product.product_id }}">{{ product.variants[0].stock }}</span></p>
 
-            <form action="/add-to-cart" method="POST">
+        {% if session.get("user_id") %}
 
-                <input type="hidden" name="variant_id"
-                       value="{{ product.variant_id }}">
+    <!-- LOGGED IN: NORMAL FUNCTIONALITY -->
 
-                <input type="number"
-                       name="quantity"
-                       value="1"
-                       min="1"
-                       max="{{ product.stock if product.stock else 1 }}">
+    <form action="/add-to-cart" method="POST">
+        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
+        
+        <input id="qty-{{ product.product_id }}" type="number"
+               name="quantity"
+               value="1"
+               min="1"
+               max="{{ product.variants[0].stock }}">
+               
+        <button type="submit">Add to Cart</button>
+    </form>
 
-                <button type="submit">Add to Cart</button>
-            </form>
+    <form action="/add-to-wishlist" method="POST">
+        <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
+        <button type="submit">Add to Wishlist</button>
+    </form>
 
-        {% else %}
-            <p><strong>Out of Stock</strong></p>
-        {% endif %}
+{% else %}
 
-        <form action="/add-to-wishlist" method="POST">
-            <input type="hidden" name="variant_id"
-                   value="{{ product.variant_id }}">
-            <button type="submit">Add to Wishlist</button>
-        </form>
+    <div style=padding:10px; border-radius:8px;">
+        <p style="margin-bottom:10px; color:white;">
+            You need an account to purchase or save items.
+        </p>
 
-        <br>
-
-        <!-- VIEW PRODUCT -->
-        <a href="/product/{{ product.product_id }}">
-            <button type="button">View Details</button>
+        <a href="/login">
+            <button type="button">Login</button>
         </a>
 
+        <a href="/signup">
+            <button type="button">Sign Up</button>
+        </a>
     </div>
 
-{% endfor %}
+{% endif %}
 
+    </div>
+{% endfor %}
 </div>
+
+{% if products|length == 0 %}
+    <p>No products found.</p>
+{% endif %}
 
 {% endblock %}

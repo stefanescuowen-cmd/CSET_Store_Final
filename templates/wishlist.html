@@ -1,15 +1,39 @@
 {% extends "base.html" %}
-
 {% block body %}
 
 <h1>Your Wishlist</h1>
 
 {% if items %}
-    <ul>
+    <div class="product-grid">
         {% for item in items %}
-            <li>Variant ID: {{ item.variant_id }}</li>
+            <div class="product-card" style="border: 1px solid #ddd; padding: 15px; margin: 10px;">
+                
+                <h3>{{ item.title }}</h3>
+
+                <p>
+                    {{ item.color }} - {{ item.size }}
+                </p>
+
+                <p>${{ item.price }}</p>
+
+                <!-- ADD TO CART -->
+                <form method="POST" action="/add-to-cart">
+                    <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                    <input type="number" name="quantity" value="1" min="1">
+                    <button type="submit">Add to Cart</button>
+                </form>
+
+                <br>
+
+                <!-- REMOVE FROM WISHLIST -->
+                <form method="POST" action="/remove-from-wishlist">
+                    <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                    <button type="submit">Remove</button>
+                </form>
+
+            </div>
         {% endfor %}
-    </ul>
+    </div>
 {% else %}
     <p>No items yet.</p>
 {% endif %}

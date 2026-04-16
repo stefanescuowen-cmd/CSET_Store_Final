@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>My Orders</h1>
+
+{% if orders %}
+    {% for order in orders %}
+        <div class="product-card">
+
+            <p>
+                <strong>Order #{{ order.order_id }}</strong><br>
+                Product: {{ order.title }}<br>
+                Quantity: {{ order.quantity }}<br>
+                Status: {{ order.order_status }}
+            </p>
+
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No orders yet.</p>
+{% endif %}
+
+{% endblock %}

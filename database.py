@@ -10,13 +10,76 @@ def get_all_users(connection):
     return result.mappings().all()
 
 
+def get_all_orders(connection):
+    query = text("""
+        SELECT 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            p.title,
+            oi.quantity,
+            oi.item_status
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        ORDER BY o.ordered_at DESC
+    """)
+    result = connection.execute(query)
+    return result.mappings().all()
+
+
+
+# ======
+# VENDOR
+# ======
+
+def get_vendor_orders(connection, vendor_id):
+    query = text("""
+        SELECT 
+            o.order_id,
+            oi.variant_id,
+            oi.quantity,
+            oi.item_status,
+            p.title
+        FROM order_items oi
+        JOIN orders o ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE p.vendor_id = :vendor_id
+        ORDER BY o.order_id DESC
+    """)
+    result = connection.execute(query, {"vendor_id": vendor_id})
+    return result.mappings().all()
+
+
+def confirm_vendor_item(connection, order_id, vendor_id, variant_id):
+    query = text("""
+        INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
+        VALUES (:order_id, :vendor_id, :variant_id, 'Confirmed')
+        ON DUPLICATE KEY UPDATE status = 'Confirmed'
+    """)
+    connection.execute(query, {
+        "order_id": order_id,
+        "vendor_id": vendor_id,
+        "variant_id": variant_id
+    })
+    connection.commit()
+
+
 # ====
 # CART
 # ====
 
+def get_variant_stock(connection, variant_id):
+    query = text("SELECT stock FROM product_variants WHERE variant_id = :variant_id")
+    result = connection.execute(query, {"variant_id": variant_id}).fetchone()
+    return result[0] if result else 0
+
 def get_cart_items(connection, customer_id):
     query = text("""
-        SELECT p.title, ci.quantity, pv.variant_id
+        SELECT p.title, p.price, p.discount_price, ci.quantity, pv.variant_id, pv.stock
         FROM carts c
         JOIN cart_items ci ON c.cart_id = ci.cart_id
         JOIN product_variants pv ON ci.variant_id = pv.variant_id
@@ -32,6 +95,32 @@ def add_to_cart(connection, cart_id, variant_id, quantity):
         INSERT INTO cart_items (cart_id, variant_id, quantity)
         VALUES (:cart_id, :variant_id, :quantity)
         ON DUPLICATE KEY UPDATE quantity = quantity + :quantity
+    """)
+    connection.execute(query, {
+        "cart_id": cart_id,
+        "variant_id": variant_id,
+        "quantity": quantity
+    })
+    connection.commit()
+
+def get_cart_item(connection, customer_id, variant_id):
+    query = text("""
+        SELECT ci.quantity 
+        FROM carts c
+        JOIN cart_items ci ON c.cart_id = ci.cart_id
+        WHERE c.customer_id = :customer_id AND ci.variant_id = :variant_id
+    """)
+    result = connection.execute(query, {
+        "customer_id": customer_id,
+        "variant_id": variant_id
+    }).fetchone()
+    return result['quantity'] if result else None
+
+def update_cart_quantity(connection, cart_id, variant_id, quantity):
+    query = text("""
+        UPDATE cart_items 
+        SET quantity = :quantity 
+        WHERE cart_id = :cart_id AND variant_id = :variant_id
     """)
     connection.execute(query, {
         "cart_id": cart_id,
@@ -121,23 +210,68 @@ def get_orders(connection, customer_id):
 # PRODUCTS
 # ========
 
+def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants):    
+    query = text("""
+        INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
+        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_end)
+    """)
+    result = connection.execute(query, {
+        "vendor_id": vendor_id,
+        "title": title,
+        "description": description,
+        "price": price,
+        "discount_price": discount_price,
+        "discount_end": discount_end
+    })
+    product_id = result.lastrowid
+
+    for variant in variants:
+        variant_query = text("""
+            INSERT INTO product_variants (product_id, size, color, stock)
+            VALUES (:product_id, :size, :color, :stock)
+        """)
+        connection.execute(variant_query, {
+            "product_id": product_id,
+            "size": variant['size'],
+            "color": variant['color'],
+            "stock": variant['stock']
+        })
+    
+    connection.commit()
+    return product_id
+
 def get_all_products(connection):
     query = text("""
         SELECT 
-            p.product_id,
-            p.title,
-            p.description,
-            p.price,
-            min(v.variant_id) AS variant_id,
-            sum(v.stock) AS stock,
-            min(pi.image_url) AS image
+            p.product_id, p.title, p.description, p.price, p.discount_price,
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
         FROM products p
-        LEFT JOIN product_images pi ON p.product_id = pi.product_id
-        LEFT JOIN product_variants v ON p.product_id = v.product_id
+        JOIN product_variants v ON p.product_id = v.product_id
         GROUP BY p.product_id
     """)
-    result = connection.execute(query)
-    return result.mappings().all()
+    result = connection.execute(query).mappings().all()
+
+    products = []
+    for row in result:
+        item = dict(row)
+        item['variants'] = []
+        ids = str(item['v_ids']).split(',')
+        sizes = str(item['v_sizes']).split(',')
+        colors = str(item['v_colors']).split(',')
+        stocks = str(item['v_stocks']).split(',')
+
+        for i in range(len(ids)):
+            item['variants'].append({
+                "id": ids[i],
+                "size": sizes[i],
+                "color": colors[i],
+                "stock": stocks[i]
+            })
+        products.append(item)
+    return products
 
 
 def get_product_by_id(connection, product_id):
@@ -148,14 +282,39 @@ def get_product_by_id(connection, product_id):
 
 def search_products(connection, term):
     query = text("""
-        SELECT p.*, MIN(pv.variant_id) as variant_id 
+        SELECT 
+            p.product_id, p.title, p.description, p.price, p.discount_price,
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
         FROM products p
-        LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+        JOIN product_variants v ON p.product_id = v.product_id
         WHERE p.title LIKE :term OR p.description LIKE :term
         GROUP BY p.product_id
     """)
-    result = connection.execute(query, {"term": f"%{term}%"})
-    return result.mappings().all()
+    result = connection.execute(query, {"term": f"%{term}%"}).mappings().all()
+
+    products = []
+    for row in result:
+        item = dict(row)
+        item['variants'] = []
+        ids = str(item['v_ids']).split(',')
+        sizes = str(item['v_sizes']).split(',')
+        colors = str(item['v_colors']).split(',')
+        stocks = str(item['v_stocks']).split(',')
+
+        for i in range(len(ids)):
+            item['variants'].append({
+                "id": ids[i],
+                "size": sizes[i],
+                "color": colors[i],
+                "stock": stocks[i]
+            })
+        products.append(item)
+    return products
+
+
 
 def update_product(connection, product_id, title, description, price, discount_price, stock):
     query = text("""
@@ -267,15 +426,34 @@ def get_vendor_products(connection, vendor_id):
     return result.mappings().all()
 
 
+def get_vendor_orders(connection, vendor_id):
+    query = text("""
+        SELECT o.order_id, p.title, oi.quantity, oi.item_status
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE p.vendor_id = :vendor_id
+    """)
+    return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
+
+
 # ========
 # WISHLIST
 # ========
 
 def get_wishlist(connection, customer_id):
     query = text("""
-        SELECT wi.variant_id
-        FROM wishlist_items wi
-        JOIN wishlists w ON wi.wishlist_id = w.wishlist_id
+        SELECT 
+            p.title,
+            p.price,
+            pv.variant_id,
+            pv.color,
+            pv.size
+        FROM wishlists w
+        JOIN wishlist_items wi ON w.wishlist_id = wi.wishlist_id
+        JOIN product_variants pv ON wi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
         WHERE w.customer_id = :customer_id
     """)
     result = connection.execute(query, {"customer_id": customer_id})
@@ -283,15 +461,41 @@ def get_wishlist(connection, customer_id):
 
 
 def add_to_wishlist(connection, customer_id, variant_id):
+    # 1. get or create wishlist
+    wishlist = connection.execute(text("""
+        SELECT wishlist_id FROM wishlists WHERE customer_id = :cid
+    """), {"cid": customer_id}).mappings().first()
+
+    if not wishlist:
+        result = connection.execute(text("""
+            INSERT INTO wishlists (customer_id)
+            VALUES (:cid)
+        """), {"cid": customer_id})
+        connection.commit()
+        wishlist_id = result.lastrowid
+    else:
+        wishlist_id = wishlist["wishlist_id"]
+
+    # 2. insert item (ignore duplicates)
+    connection.execute(text("""
+        INSERT IGNORE INTO wishlist_items (wishlist_id, variant_id)
+        VALUES (:wid, :vid)
+    """), {
+        "wid": wishlist_id,
+        "vid": variant_id
+    })
+
+    connection.commit()
+
+def remove_from_wishlist(connection, customer_id, variant_id):
     query = text("""
-        INSERT INTO wishlist_items (wishlist_id, variant_id)
-        SELECT wishlist_id, :variant_id 
-        FROM wishlists 
-        WHERE customer_id = :customer_id
+        DELETE wi FROM wishlist_items wi
+        JOIN wishlists w ON wi.wishlist_id = w.wishlist_id
+        WHERE w.customer_id = :cid AND wi.variant_id = :vid
     """)
     connection.execute(query, {
-        "variant_id": variant_id,
-        "customer_id": customer_id
+        "cid": customer_id,
+        "vid": variant_id
     })
     connection.commit()
 

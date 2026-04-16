@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>Customer Dashboard</h1>
+
+<h2>Welcome, {{ session.name }}</h2>
+
+<hr>
+
+<h3>Cart Summary</h3>
+{% if cart_items %}
+    {% for item in cart_items %}
+        <p>{{ item.title }} x{{ item.quantity }}</p>
+    {% endfor %}
+{% else %}
+    <p>No items in cart</p>
+{% endif %}
+
+<hr>
+
+<h3>Orders</h3>
+{% if orders %}
+    {% for order in orders %}
+        <p>
+            Order #{{ order.order_id }} -
+            {{ order.title }} -
+            Qty: {{ order.quantity }} -
+            Status: {{ order.order_status }}
+        </p>
+    {% endfor %}
+{% else %}
+    <p>No orders yet</p>
+{% endif %}
+
+<hr>
+
+<h3>Wishlist</h3>
+
+{% if wishlist %}
+    <div class="product-grid">
+        {% for item in wishlist %}
+            <div class="product-card" style="border: 1px solid #ddd; padding: 15px; margin: 10px;">
+
+                <h4>{{ item.title }}</h4>
+
+                <p>{{ item.color }} - {{ item.size }}</p>
+
+                <p><strong>${{ item.price }}</strong></p>
+
+                <!-- ADD TO CART -->
+                <form method="POST" action="/add-to-cart">
+                    <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                    <input type="number" name="quantity" value="1" min="1">
+                    <button type="submit">Add to Cart</button>
+                </form>
+
+                <br>
+
+                <!-- REMOVE FROM WISHLIST -->
+                <form method="POST" action="/remove-from-wishlist">
+                    <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                    <button type="submit">Remove</button>
+                </form>
+
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>Wishlist empty</p>
+{% endif %}
+
+{% endblock %}

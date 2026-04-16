@@ -82,20 +82,28 @@
 </div>
 {% endif %}
 
-<script>
-function toggleEdit(id) {
-    var displayDiv = document.getElementById('display-' + id);
-    var editForm = document.getElementById('edit-form-' + id);
+<h2>Orders Management</h2>
 
-    if (displayDiv.style.display === "none") {
-        displayDiv.style.display = "block";
-        editForm.style.display = "none";
-    } else {
-        displayDiv.style.display = "none";
-        editForm.style.display = "block";
-    }
-}
-</script>
+{% for order in orders %}
+    <div class="return-card">
+
+        <p>
+            Order #{{ order.order_id }}<br>
+            Customer ID: {{ order.customer_id }}<br>
+            Product: {{ order.title }}<br>
+            Qty: {{ order.quantity }}<br>
+            Status: {{ order.order_status }}
+        </p>
+
+        <form method="POST" action="/admin/orders/{{ order.order_id }}/approve">
+            <button type="submit">Approve</button>
+        </form>
+
+        <form method="POST" action="/admin/orders/{{ order.order_id }}/reject">
+            <button type="submit">Reject</button>
+        </form>
+
+    </div>
+{% endfor %}
 
 {% endblock %}
-
