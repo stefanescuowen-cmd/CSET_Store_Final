@@ -10,6 +10,64 @@ def get_all_users(connection):
     return result.mappings().all()
 
 
+def get_all_orders(connection):
+    query = text("""
+        SELECT 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            p.title,
+            oi.quantity,
+            oi.item_status
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        ORDER BY o.ordered_at DESC
+    """)
+    result = connection.execute(query)
+    return result.mappings().all()
+
+
+
+# ======
+# VENDOR
+# ======
+
+def get_vendor_orders(connection, vendor_id):
+    query = text("""
+        SELECT 
+            o.order_id,
+            oi.variant_id,
+            oi.quantity,
+            oi.item_status,
+            p.title
+        FROM order_items oi
+        JOIN orders o ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE p.vendor_id = :vendor_id
+        ORDER BY o.order_id DESC
+    """)
+    result = connection.execute(query, {"vendor_id": vendor_id})
+    return result.mappings().all()
+
+
+def confirm_vendor_item(connection, order_id, vendor_id, variant_id):
+    query = text("""
+        INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
+        VALUES (:order_id, :vendor_id, :variant_id, 'Confirmed')
+        ON DUPLICATE KEY UPDATE status = 'Confirmed'
+    """)
+    connection.execute(query, {
+        "order_id": order_id,
+        "vendor_id": vendor_id,
+        "variant_id": variant_id
+    })
+    connection.commit()
+
+
 # ====
 # CART
 # ====
