@@ -419,18 +419,18 @@ def add_review(connection, variant_id, customer_id, rating, description):
     connection.commit()
 
 
-# def get_reviews_for_product(connection, variant_id):
-#     query = text("""
-#         SELECT 
-#             r.rating,
-#             r.description,
-#             u.name,
-#             r.variant_id
-#         FROM reviews r
-#         JOIN users u ON r.customer_id = u.user_id
-#         WHERE r.variant_id = :variant_id
-#     """)
-#     return connection.execute(query, {"variant_id": variant_id}).mappings().all()
+def get_reviews_for_product(connection, variant_id):
+    query = text("""
+        SELECT 
+            r.rating,
+            r.description,
+            u.name,
+            r.variant_id
+        FROM reviews r
+        JOIN users u ON r.customer_id = u.user_id
+        WHERE r.variant_id = :variant_id
+    """)
+    return connection.execute(query, {"variant_id": variant_id}).mappings().all()
 
 # ======
 # VENDOR

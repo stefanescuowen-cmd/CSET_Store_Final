@@ -729,32 +729,32 @@ def account():
 # REVIEWS
 # =======
 
-# @app.route("/reviews")
-# def reviews_page():
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
+@app.route("/reviews")
+def reviews_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-#     reviews = db.get_all_reviews(conn)
+    reviews = db.get_all_reviews(conn)
 
-#     return render_template("reviews.html", reviews=reviews)
+    return render_template("reviews.html", reviews=reviews)
 
 
 # ==========
 # ADD REVIEW
 # ==========
 
-# @app.route("/add-review", methods=["POST"])
-# def add_review_route():
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
+@app.route("/add-review", methods=["POST"])
+def add_review_route():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-#     product_id = request.form.get("product_id")
-#     rating = request.form.get("rating")
-#     comment = request.form.get("comment")
+    product_id = request.form.get("product_id")
+    rating = request.form.get("rating")
+    comment = request.form.get("comment")
 
-#     db.add_review(conn, session["user_id"], product_id, rating, comment)
+    db.add_review(conn, session["user_id"], product_id, rating, comment)
 
-#     return redirect(url_for("shop"))
+    return redirect(url_for("shop"))
 
 
 # ========
