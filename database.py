@@ -386,9 +386,16 @@ def get_vendor_orders(connection, vendor_id):
 
 def get_wishlist(connection, customer_id):
     query = text("""
-        SELECT wi.variant_id
-        FROM wishlist_items wi
-        JOIN wishlists w ON wi.wishlist_id = w.wishlist_id
+        SELECT 
+            p.title,
+            p.price,
+            pv.variant_id,
+            pv.color,
+            pv.size
+        FROM wishlists w
+        JOIN wishlist_items wi ON w.wishlist_id = wi.wishlist_id
+        JOIN product_variants pv ON wi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
         WHERE w.customer_id = :customer_id
     """)
     result = connection.execute(query, {"customer_id": customer_id})
@@ -396,15 +403,41 @@ def get_wishlist(connection, customer_id):
 
 
 def add_to_wishlist(connection, customer_id, variant_id):
+    # 1. get or create wishlist
+    wishlist = connection.execute(text("""
+        SELECT wishlist_id FROM wishlists WHERE customer_id = :cid
+    """), {"cid": customer_id}).mappings().first()
+
+    if not wishlist:
+        result = connection.execute(text("""
+            INSERT INTO wishlists (customer_id)
+            VALUES (:cid)
+        """), {"cid": customer_id})
+        connection.commit()
+        wishlist_id = result.lastrowid
+    else:
+        wishlist_id = wishlist["wishlist_id"]
+
+    # 2. insert item (ignore duplicates)
+    connection.execute(text("""
+        INSERT IGNORE INTO wishlist_items (wishlist_id, variant_id)
+        VALUES (:wid, :vid)
+    """), {
+        "wid": wishlist_id,
+        "vid": variant_id
+    })
+
+    connection.commit()
+
+def remove_from_wishlist(connection, customer_id, variant_id):
     query = text("""
-        INSERT INTO wishlist_items (wishlist_id, variant_id)
-        SELECT wishlist_id, :variant_id 
-        FROM wishlists 
-        WHERE customer_id = :customer_id
+        DELETE wi FROM wishlist_items wi
+        JOIN wishlists w ON wi.wishlist_id = w.wishlist_id
+        WHERE w.customer_id = :cid AND wi.variant_id = :vid
     """)
     connection.execute(query, {
-        "variant_id": variant_id,
-        "customer_id": customer_id
+        "cid": customer_id,
+        "vid": variant_id
     })
     connection.commit()
 
