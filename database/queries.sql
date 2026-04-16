@@ -159,7 +159,7 @@ GROUP BY o.order_id;
 -- ============================
 
 -- Create review
-INSERT INTO reviews (variant_id, customer_id, rating, description)
+INSERT INTO reviews (product_id, customer_id, rating, description)
 VALUES (1, 3, 5, 'Great product');
 
 -- Get reviews for product or by customer
