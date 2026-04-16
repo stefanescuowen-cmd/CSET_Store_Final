@@ -1,6 +1,25 @@
-{% extends "base.html" %}
-{% block body %}
-<h1>Reviews</h1>
-<p>Here you can view and manage your reviews.</p>
+<!-- {% extends "base.html" %}
 
-{% endblock %}
+{% block body %}
+
+<h1>Reviews</h1>
+
+{% if reviews %}
+
+    {% for r in reviews %}
+        <div class="product-card">
+            <h3>{{ r.title }}</h3>
+
+            <p><strong>{{ r.name }}</strong></p>
+
+            <p>Rating: {{ r.rating }}/5</p>
+
+            <p>{{ r.description }}</p>
+        </div>
+    {% endfor %}
+
+{% else %}
+    <p>No reviews yet.</p>
+{% endif %}
+
+{% endblock %} -->

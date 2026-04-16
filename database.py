@@ -29,6 +29,21 @@ def get_all_orders(connection):
     result = connection.execute(query)
     return result.mappings().all()
 
+def get_all_reviews(connection):
+    query = text("""
+        SELECT 
+            r.review_id,
+            r.rating,
+            r.description,
+            r.date,
+            u.name,
+            p.title
+        FROM reviews r
+        JOIN users u ON r.customer_id = u.user_id
+        JOIN products p ON r.product_id = p.product_id
+        ORDER BY r.review_id DESC
+    """)
+    return connection.execute(query).mappings().all()
 
 
 # ======
@@ -140,7 +155,6 @@ def remove_from_cart(connection, cart_id, variant_id):
         "variant_id": variant_id
     })
     connection.commit()
-
 
 # ====
 # CHAT
@@ -405,16 +419,18 @@ def add_review(connection, variant_id, customer_id, rating, description):
     connection.commit()
 
 
-def get_reviews_for_product(connection, variant_id):
-    query = text("""
-        SELECT r.rating, r.description, r.date, u.name
-        FROM reviews r
-        JOIN users u ON r.customer_id = u.user_id
-        WHERE r.variant_id = :variant_id
-    """)
-    result = connection.execute(query, {"variant_id": variant_id})
-    return result.mappings().all()
-
+# def get_reviews_for_product(connection, variant_id):
+#     query = text("""
+#         SELECT 
+#             r.rating,
+#             r.description,
+#             u.name,
+#             r.variant_id
+#         FROM reviews r
+#         JOIN users u ON r.customer_id = u.user_id
+#         WHERE r.variant_id = :variant_id
+#     """)
+#     return connection.execute(query, {"variant_id": variant_id}).mappings().all()
 
 # ======
 # VENDOR
