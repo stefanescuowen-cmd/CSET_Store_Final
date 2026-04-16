@@ -383,8 +383,16 @@ def shop():
     else:
         # Default view
         products = db.get_all_products(conn)
+
+    images = db.get_product_images(conn)
+
+    image_map = {}
+    for img in images:
+        pid = img["product_id"]
+        image_map.setdefault(pid, []).append(img["image_url"])
+
         
-    return render_template("shop.html", products=products, search_term=search_term)
+    return render_template("shop.html", products=products, search_term=search_term, image_map=image_map)
 
 
 # ============
