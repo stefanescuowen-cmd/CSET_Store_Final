@@ -3,11 +3,11 @@
 <h1>Welcome to Perfect Purchase!!!</h1>
 <div>
     <p>Discover the best products, read reviews, and connect with vendors all in one place. Start your perfect purchase journey today!</p>
-    <a href="/shop" class="basicButton">Shop Now</a>
+    <div class="TextAlignCenter">
+        <a href="/shop" class="basicButton">Shop Now</a>
+    </div>
 </div>
 {% if session.get('is_admin') %}
-{% endif %}
-
 <hr>
 <div class="dangerZone">
     <h2>Danger Zone</h2>
@@ -16,4 +16,5 @@
         <input type="submit" value="Delete All Data" class="danger-button">
     </form>
 </div>
+{% endif %}
 {% endblock %}
