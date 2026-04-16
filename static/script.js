@@ -22,15 +22,35 @@ function updateVariant(selectElement) {
     const variantId = selectElement.value;
     const stock = selectedOption.getAttribute('data-stock');
 
-    document.getElementById('vid-' + productId).value = variantId;
-    document.getElementById('stock-' + productId).innerText = stock;
-    document.getElementById('wvid-' + productId).value = variantId;
+    const stockEl = document.getElementById('stock-' + productId);
+    if (stockEl) {
+        stockEl.innerText = stock;
+    }
 
-    const qtyInput = document.getElementById('qty-' + productId)
-    qtyInput.max = stock;
+    const vidEl = document.getElementById('vid-' + productId);
+    if (vidEl) {
+        vidEl.value = variantId;
+    }
 
-    if (parseInt(qtyInput.value) > parseInt(stock)) {
-        qtyInput.value = stock;
+    const wvidEl = document.getElementById('wvid-' + productId);
+    if (wvidEl) {
+        wvidEl.value = variantId;
+    }
+
+    const qtyInput = document.getElementById('qty-' + productId);
+    if (qtyInput) {
+        qtyInput.max = stock;
+
+        if (parseInt(qtyInput.value) > parseInt(stock)) {
+            qtyInput.value = stock;
+        }
+    }
+}
+
+function setMainImage(productId, imageUrl) {
+    const mainImg = document.getElementById('main-img-' + productId);
+    if (mainImg) {
+        mainImg.src = imageUrl;
     }
 }
 
