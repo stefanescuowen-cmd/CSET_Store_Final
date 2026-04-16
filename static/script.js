@@ -13,6 +13,27 @@ function toggleEdit(id) {
     }
 }
 
+// Product
+
+function updateVariant(selectElement) {
+    const productId = selectElement.getAttribute('data-product-id');
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const variantId = selectElement.value;
+    const stock = selectedOption.getAttribute('data-stock');
+
+    document.getElementById('vid-' + productId).value = variantId;
+    document.getElementById('stock-' + productId).innerText = stock;
+    document.getElementById('wvid-' + productId).value = variantId;
+
+    const qtyInput = document.getElementById('qty-' + productId)
+    qtyInput.max = stock;
+
+    if (parseInt(qtyInput.value) > parseInt(stock)) {
+        qtyInput.value = stock;
+    }
+}
+
 // Checkout
 
 function showPayment(method) {

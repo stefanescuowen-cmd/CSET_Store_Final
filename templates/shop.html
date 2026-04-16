@@ -6,10 +6,10 @@
 
 <form method="GET" action="/shop">
     <input type="text" name="search"
-        {% if search_query %} value="{{ search_term }}" 
+        {% if search_query %} value="{{ search_query }}" 
         {% else %} placeholder="Search products..." 
         {% endif %}
-        value="{{ search_term if search_term }}">
+        value="{{ search_query if search_query }}">
 
     <button type="submit">Search</button>
 
@@ -45,36 +45,48 @@
 
         <p>Stock: <span id="stock-{{ product.product_id }}">{{ product.variants[0].stock }}</span></p>
 
-        <form action="/add-to-cart" method="POST">
-            <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
-            
-            <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock }}">
-            <button type="submit">Add to Cart</button>
-        </form>
+        {% if session.get("user_id") %}
+
+    <!-- LOGGED IN: NORMAL FUNCTIONALITY -->
+
+    <form action="/add-to-cart" method="POST">
+        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
+        
+        <input id="qty-{{ product.product_id }}" type="number"
+               name="quantity"
+               value="1"
+               min="1"
+               max="{{ product.variants[0].stock }}">
+               
+        <button type="submit">Add to Cart</button>
+    </form>
+
+    <form action="/add-to-wishlist" method="POST">
+        <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
+        <button type="submit">Add to Wishlist</button>
+    </form>
+
+{% else %}
+
+    <div style=padding:10px; border-radius:8px;">
+        <p style="margin-bottom:10px; color:white;">
+            You need an account to purchase or save items.
+        </p>
+
+        <a href="/login">
+            <button type="button">Login</button>
+        </a>
+
+        <a href="/signup">
+            <button type="button">Sign Up</button>
+        </a>
+    </div>
+
+{% endif %}
+
     </div>
 {% endfor %}
 </div>
-
-<script>
-function updateVariant(selectElement) {
-    const productId = selectElement.getAttribute('data-product-id');
-
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    const variantId = selectElement.value;
-    const stock = selectedOption.getAttribute('data-stock');
-
-    document.getElementById('vid-' + productId).value = variantId;
-    document.getElementById('stock-' + productId).innerText = stock;
-
-    const qtyInput = document.getElementById('qty-' + productId)
-    qtyInput.max = stock;
-
-    if (parseInt(qtyInput.value) > parseInt(stock)) {
-        qtyInput.value = stock;
-    }
-
-}
-</script>
 
 {% if products|length == 0 %}
     <p>No products found.</p>

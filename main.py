@@ -119,9 +119,10 @@ def logout():
 
 
 
-# =========
+# ===============
 # ADMIN DASHBOARD
-# =========
+# ===============
+
 @app.route("/admin")
 def admin_dashboard():
     if "user_id" not in session or not get_user_role(conn, session["user_id"]) == "admin":
@@ -378,6 +379,7 @@ def add_cart():
 # ============================
 # UPDATE CART QUANTITY
 # ============================
+
 @app.route("/update-cart-quantity", methods=["POST"])
 def update_cart_quantity():
     if session.get("role") != "customer":
@@ -408,7 +410,6 @@ def update_cart_quantity():
     return redirect(url_for("cart"))
 
 
-
 # ================
 # REMOVE FROM CART
 # ================
@@ -433,21 +434,43 @@ def remove_from_cart_route():
     flash("Item removed from cart.", "success")
     return redirect(url_for("cart"))
 
+
 # ===============
 # ADD TO WISHLIST
 # ===============
 
+
 @app.route("/add-to-wishlist", methods=["POST"])
-def add_wishlist():
+def add_to_wishlist():
     if session.get("role") != "customer":
         return "Unauthorized", 403
 
     variant_id = request.form.get("variant_id")
+    customer_id = session["user_id"]
 
-    db.add_to_wishlist(conn, session["user_id"], variant_id)
+    db.add_to_wishlist(conn, customer_id, variant_id)
 
     flash("Added to wishlist!", "success")
     return redirect(url_for("shop"))
+
+# ====================
+# REMOVE FROM WISHLIST
+# ====================
+
+@app.route("/remove-from-wishlist", methods=["POST"])
+def remove_from_wishlist():
+    if not session.get("user_id"):
+        flash("Please log in to add items to your cart.", "error")
+        return redirect(url_for("login"))
+
+    variant_id = request.form.get("variant_id")
+    customer_id = session["user_id"]
+
+    db.remove_from_wishlist(conn, customer_id, variant_id)
+
+    flash("Removed from wishlist.", "success")
+    return redirect(url_for("wishlist"))
+
 
 # =============
 # VIEW WISHLIST
@@ -468,8 +491,9 @@ def wishlist():
 
 @app.route("/checkout", methods=["POST", "GET"])
 def checkout():
-    if session.get("role") != "customer":
-        return "Unauthorized", 403
+    if not session.get("user_id"):
+        flash("Please log in to checkout.", "error")
+        return redirect(url_for("login"))
 
     customer_id = session["user_id"]
 
@@ -492,8 +516,6 @@ def checkout():
         items=cart_items,
         total=total,
     )
-
-
 
 
 # ===========
