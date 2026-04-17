@@ -7,7 +7,7 @@
 <div style="display:flex; gap:30px;">
 
 <!-- LEFT SIDE -->
-<div style="width:30%; border-right:1px solid black;">
+<div style="width:30%; border-right:1px solid black; padding-right:10px;">
 
 <h3>Conversations</h3>
 
@@ -35,7 +35,7 @@
 {% else %}
 
     <p style="color:gray;">
-        No conversations yet. Start one below →
+        No conversations yet.
     </p>
 
 {% endif %}
@@ -46,6 +46,12 @@
 <div style="width:70%;">
 
 <h3>Chat</h3>
+
+{% if active_partner %}
+    <a href="/chat" style="display:inline-block; margin-bottom:10px;">
+        ← Back to Conversations
+    </a>
+{% endif %}
 
 <div id="chat-box"
      style="height:400px; overflow-y:auto; border:1px solid gray; padding:10px;">
@@ -78,40 +84,54 @@
 
 </div>
 
+<!-- START NEW CHAT -->
 {% if not active_partner %}
 
-<h4>Start a new chat</h4>
+<h4 style="margin-top:15px;">Start a new chat</h4>
 
-<p>Vendors:</p>
+<p><strong>Vendors:</strong></p>
 
-{% for v in vendors %}
-    <li>
-        <a href="/chat/vendor/{{ v.vendor_id }}">
-            {{ v.name }}
-        </a>
-    </li>
-{% endfor %}
+{% if vendors %}
+    <ul>
+    {% for v in vendors %}
+        <li>
+            <a href="/chat/vendor/{{ v.vendor_id }}">
+                {{ v.name }}
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p style="color:gray;">No vendors available.</p>
+{% endif %}
 
-<p>Admins:</p>
+<p><strong>Admins:</strong></p>
 
-{% for a in admins %}
-    <li>
-        <a href="/chat/admin/{{ a.admin_id }}">
-            {{ a.name }}
-        </a>
-    </li>
-{% endfor %}
+{% if admins %}
+    <ul>
+    {% for a in admins %}
+        <li>
+            <a href="/chat/admin/{{ a.admin_id }}">
+                {{ a.name }}
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p style="color:gray;">No admins available.</p>
+{% endif %}
 
 {% endif %}
 
+<!-- MESSAGE INPUT -->
 {% if active_partner %}
 
-<form method="POST" action="/send_message">
+<form onsubmit="sendMessage(event)"style="margin-top:10px;">
 
     <input type="hidden" name="partner_type" value="{{ active_partner[0] }}">
     <input type="hidden" name="partner_id" value="{{ active_partner[1] }}">
 
-    <input type="text" name="text" required>
+    <input type="text" name="text" required style="width:80%;">
     <button type="submit">Send</button>
 
 </form>

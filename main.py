@@ -781,14 +781,15 @@ def chat_home():
     conversations = db.get_customer_conversations(conn, customer_id)
 
     vendors = db.get_all_vendors(conn)
-    admin = db.get_all_admins(conn)
+    admins = db.get_all_admins(conn)
 
     return render_template(
         "chat.html",
         conversations=conversations,
         messages=[],
-        active_partner=None
-        
+        active_partner=None,
+        vendors=vendors,
+        admins=admins
     )
 
 # ================
@@ -807,11 +808,16 @@ def chat_vendor(vendor_id):
         vendor_id
     )
 
+    vendors = db.get_all_vendors(conn)
+    admins = db.get_all_admins(conn)
+
     return render_template(
         "chat.html",
         conversations=conversations,
         messages=messages,
-        active_partner=("vendor", vendor_id)
+        active_partner=("vendor", vendor_id),
+        vendors=vendors,
+        admins=admins
     )
 
 
@@ -831,11 +837,16 @@ def chat_admin(admin_id):
         admin_id
     )
 
+    vendors = db.get_all_vendors(conn)
+    admins = db.get_all_admins(conn)
+
     return render_template(
         "chat.html",
         conversations=conversations,
         messages=messages,
-        active_partner=("admin", admin_id)
+        active_partner=("admin", admin_id),
+        vendors=vendors,
+        admins=admins
     )
 
 

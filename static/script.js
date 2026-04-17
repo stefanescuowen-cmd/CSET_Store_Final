@@ -78,6 +78,8 @@ const partnerType = "{{ active_partner[0] if active_partner else '' }}";
 const partnerId = Number("{{ active_partner[1] if active_partner else 0 }}");
 const currentUserId = Number("{{ session.get('user_id', 0) }}");
 
+let lastMessageCount = 0;
+
 function loadMessages() {
 
     if (!partnerType || partnerId === 0) return;
@@ -88,6 +90,11 @@ function loadMessages() {
 
             const box = document.getElementById("chat-box");
             if (!box) return;
+
+            // avoid unnecessary rerenders
+            if (data.length === lastMessageCount) return;
+
+            lastMessageCount = data.length;
 
             box.innerHTML = "";
 
@@ -114,5 +121,22 @@ function loadMessages() {
         });
 }
 
+function sendMessage(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    fetch("/send_message", {
+        method: "POST",
+        body: formData
+    })
+    .then(() => {
+        form.reset();
+        loadMessages(); // instant update after sending
+    })
+    .catch(err => console.error("Send error:", err));
+}
+
 loadMessages();
-setInterval(loadMessages, 3000);
+setInterval(loadMessages, 1500);
