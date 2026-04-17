@@ -240,6 +240,7 @@ input[type="submit"] {
 .QuickLinks{position: relative; transition: 0.25s; text-decoration: none; color: var(--accent-color); font-weight: 100; font-size: 20px; display: block; height: 20px;}
 
 /* ID */
+#Wolfy{color: black;}
 
 /* Psudo */
 input:focus, select:focus, select:active{border-color: var(--accent-color); outline: none;}
