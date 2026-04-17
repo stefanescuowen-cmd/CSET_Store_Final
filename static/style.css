@@ -182,6 +182,43 @@ input[type="submit"] {
 
 .return-card {min-width: 200px;}
 
+.product-card {
+    border: 1px solid #ddd; 
+    padding: 15px; 
+    margin: 10px;
+}
+
+.product-card .main-image img {
+    width:100%; 
+    height:200px; 
+    object-fit:cover; 
+    border-radius:8px;
+}
+
+.product-card .main-image div {
+    height:200px; 
+    background:#eee;
+}
+
+.product-card .img-thumbs {
+    display:flex; 
+    gap:6px; 
+    margin-top:8px; 
+    flex-wrap:wrap;
+}
+
+.product-card .img-thumbs img {
+    width:50px; 
+    height:50px; 
+    object-fit:cover; 
+    cursor:pointer; 
+    border:1px solid #ccc;
+}
+
+.return-card {
+    min-width: 200px;
+}
+
 /* Classes */
 .formContainerOut{padding: 20px; background-color: var(--bg-color-light); border-radius: 20px;}
 .formContainerIn{width: 100%;}

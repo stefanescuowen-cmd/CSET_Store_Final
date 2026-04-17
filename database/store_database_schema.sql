@@ -107,14 +107,14 @@ CREATE TABLE order_confirmations (
 -- REVIEWS
 CREATE TABLE reviews (
     review_id INT PRIMARY KEY AUTO_INCREMENT,
-    variant_id INT NOT NULL,
+    product_id INT NOT NULL,
     customer_id INT NOT NULL,
     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     description TEXT NOT NULL,
     image TEXT,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (variant_id, customer_id),
-    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE,
+    UNIQUE (product_id, customer_id),
+    FOREIGN KEY (product_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 

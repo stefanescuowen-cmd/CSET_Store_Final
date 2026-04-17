@@ -383,8 +383,16 @@ def shop():
     else:
         # Default view
         products = db.get_all_products(conn)
+
+    images = db.get_product_images(conn)
+
+    image_map = {}
+    for img in images:
+        pid = img["product_id"]
+        image_map.setdefault(pid, []).append(img["image_url"])
+
         
-    return render_template("shop.html", products=products, search_term=search_term)
+    return render_template("shop.html", products=products, search_term=search_term, image_map=image_map)
 
 
 # ============
@@ -721,6 +729,38 @@ def account():
         user=user,
         role=role
     )
+
+
+# =======
+# REVIEWS
+# =======
+
+@app.route("/reviews")
+def reviews_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    reviews = db.get_all_reviews(conn)
+
+    return render_template("reviews.html", reviews=reviews)
+
+
+# ==========
+# ADD REVIEW
+# ==========
+
+@app.route("/add-review", methods=["POST"])
+def add_review_route():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    product_id = request.form.get("product_id")
+    rating = request.form.get("rating")
+    comment = request.form.get("comment")
+
+    db.add_review(conn, session["user_id"], product_id, rating, comment)
+
+    return redirect(url_for("shop"))
 
 
 # ========

@@ -51,12 +51,17 @@ INSERT INTO product_variants (product_id, size, color, stock) VALUES
 
 -- IMAGES
 INSERT INTO product_images (product_id, image_url) VALUES
-(1, 'laptop_front.jpg'),
-(1, 'laptop_back.jpg'),
-(2, 'mouse_top.jpg'),
-(2, 'mouse_side.jpg'),
-(4, 'monitor_front.jpg'),
-(4, 'monitor_side.jpg');
+(1, '/static/images/products/laptop.jpg'),
+(1, '/static/images/products/laptop-2.jpg'),
+(2, '/static/images/products/white-mouse.webp'),
+(3, '/static/images/products/keyboard.jpg'),
+(4, '/static/images/products/monitor.jpg'),
+(5, '/static/images/products/phone-blue.jpg'),
+(6, '/static/images/products/headphones.jpg'),
+(7, '/static/images/products/tablet.jpg'),
+(8, '/static/images/products/camera.jpg'),
+(9, '/static/images/products/speaker.jpg'),
+(10, '/static/images/products/smartwatch.jpg');
 
 -- CARTS
 INSERT INTO carts (customer_id) VALUES (3), (4), (5);
@@ -104,7 +109,7 @@ INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status) VALUES
 (3, 4, 9, 'Confirmed');
 
 -- REVIEWS
-INSERT INTO reviews (variant_id, customer_id, rating, description, image, date) VALUES
+INSERT INTO reviews (product_id, customer_id, rating, description, image, date) VALUES
 (4, 5, 5, 'Amazing monitor, very clear display!', 'img1.jpg', NOW()),
 (5, 5, 4, 'Good phone but battery could be better.', 'img2.jpg', NOW()),
 (7, 3, 3, 'Tablet is okay for the price.', 'img4.jpg', NOW());
