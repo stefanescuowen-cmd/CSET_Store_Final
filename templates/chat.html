@@ -1,6 +1,145 @@
 {% extends "base.html" %}
+
 {% block body %}
-<h1>Chat</h1>
-<p>Here you can view and manage your chats.</p>
+
+<h1>Messages</h1>
+
+<div style="display:flex; gap:30px;">
+
+<!-- LEFT SIDE -->
+<div style="width:30%; border-right:1px solid black; padding-right:10px;">
+
+<h3>Conversations</h3>
+
+{% if conversations and conversations|length > 0 %}
+
+    {% for convo in conversations %}
+
+        {% if convo.vendor_id %}
+            <p>
+                <a href="/chat/vendor/{{ convo.vendor_id }}">
+                    {{ convo.partner_name }}
+                </a>
+            </p>
+
+        {% elif convo.admin_id %}
+            <p>
+                <a href="/chat/admin/{{ convo.admin_id }}">
+                    {{ convo.partner_name }}
+                </a>
+            </p>
+        {% endif %}
+
+    {% endfor %}
+
+{% else %}
+
+    <p style="color:gray;">
+        No conversations yet.
+    </p>
+
+{% endif %}
+
+</div>
+
+<!-- RIGHT SIDE -->
+<div style="width:70%;">
+
+<h3>Chat</h3>
+
+{% if active_partner %}
+    <a href="/chat" style="display:inline-block; margin-bottom:10px;">
+        ← Back to Conversations
+    </a>
+{% endif %}
+
+<div id="chat-box"
+     style="height:400px; overflow-y:auto; border:1px solid gray; padding:10px;">
+
+{% if messages and messages|length > 0 %}
+
+    {% for msg in messages %}
+        <p>
+            <strong>
+            {% if msg.customer_id == session.user_id %}
+                You:
+            {% else %}
+                Them:
+            {% endif %}
+            </strong>
+
+            {{ msg.text }}
+            <br>
+            <small>{{ msg.timestamp }}</small>
+        </p>
+    {% endfor %}
+
+{% else %}
+
+    <p style="color:gray;">
+        Select a conversation or start a new chat below.
+    </p>
+
+{% endif %}
+
+</div>
+
+<!-- START NEW CHAT -->
+{% if not active_partner %}
+
+<h4 style="margin-top:15px;">Start a new chat</h4>
+
+<p><strong>Vendors:</strong></p>
+
+{% if vendors %}
+    <ul>
+    {% for v in vendors %}
+        <li>
+            <a href="/chat/vendor/{{ v.vendor_id }}">
+                {{ v.name }}
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p style="color:gray;">No vendors available.</p>
+{% endif %}
+
+<p><strong>Admins:</strong></p>
+
+{% if admins %}
+    <ul>
+    {% for a in admins %}
+        <li>
+            <a href="/chat/admin/{{ a.admin_id }}">
+                {{ a.name }}
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p style="color:gray;">No admins available.</p>
+{% endif %}
+
+{% endif %}
+
+<!-- MESSAGE INPUT -->
+{% if active_partner %}
+
+<form onsubmit="sendMessage(event)" style="margin-top:10px;">
+
+    <input type="hidden" name="partner_type" value="{{ active_partner[0] }}">
+    <input type="hidden" name="partner_id" value="{{ active_partner[1] }}">
+
+    <input type="text" name="text" required style="width:80%;">
+    <button type="submit">Send</button>
+
+</form>
+
+{% endif %}
+
+</div>
+
+</div>
 
 {% endblock %}

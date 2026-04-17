@@ -156,28 +156,208 @@ def remove_from_cart(connection, cart_id, variant_id):
     })
     connection.commit()
 
-# ====
-# CHAT
-# ====
+# ==============
+# CUSTOMER CHATS
+# ==============
+
+def get_customer_conversations(connection, customer_id):
+
+    query = text("""
+        SELECT
+            c.vendor_id,
+            c.admin_id,
+            CASE
+                WHEN c.vendor_id IS NOT NULL THEN 'vendor'
+                WHEN c.admin_id IS NOT NULL THEN 'admin'
+            END AS partner_type,
+            u.name AS partner_name,
+            MAX(c.timestamp) AS last_message_time
+        FROM chats c
+        JOIN users u
+            ON u.user_id = COALESCE(c.vendor_id, c.admin_id)
+        WHERE c.customer_id = :customer_id
+        GROUP BY c.vendor_id, c.admin_id, u.name
+        ORDER BY last_message_time DESC
+    """)
+
+    return connection.execute(query, {
+        "customer_id": customer_id
+    }).mappings().all()
+
+
+# ===========
+# VENDOR LIST
+# ===========
+
+def get_all_vendors(connection):
+    query = text("""
+        SELECT v.vendor_id, u.name
+        FROM vendors v
+        JOIN users u ON u.user_id = v.vendor_id
+        ORDER BY u.name
+    """)
+    return connection.execute(query).mappings().all()
+
+
+# ==========
+# ADMIN LIST
+# ==========
+
+def get_all_admins(connection):
+    query = text("""
+        SELECT a.admin_id, u.name
+        FROM admins a
+        JOIN users u ON u.user_id = a.admin_id
+        ORDER BY u.name
+    """)
+    return connection.execute(query).mappings().all()
+
+
+# ========================
+# CUSTOMER <=> VENDOR CHAT
+# ========================
+
+def get_customer_vendor_chat(connection, customer_id, vendor_id):
+
+    query = text("""
+        SELECT
+            c.*,
+            u.name AS sender_name
+        FROM chats c
+        JOIN users u ON u.user_id = c.customer_id
+        WHERE c.customer_id = :customer_id
+        AND c.vendor_id = :vendor_id
+        ORDER BY c.timestamp
+    """)
+
+    return connection.execute(query, {
+        "customer_id": customer_id,
+        "vendor_id": vendor_id
+    }).mappings().all()
+
+
+def get_vendor_chat(connection, vendor_id, customer_id):
+
+    query = text("""
+        SELECT
+            c.*,
+            u.name AS sender_name
+        FROM chats c
+        JOIN users u ON u.user_id = c.customer_id
+        WHERE c.vendor_id = :vendor_id
+        AND c.customer_id = :customer_id
+        ORDER BY c.timestamp
+    """)
+
+    return connection.execute(query, {
+        "vendor_id": vendor_id,
+        "customer_id": customer_id
+    }).mappings().all()
+
+
+# =======================
+# CUSTOMER <=> ADMIN CHAT
+# =======================
+
+def get_customer_admin_chat(connection, customer_id, admin_id):
+
+    query = text("""
+        SELECT
+            c.*,
+            u.name AS sender_name
+        FROM chats c
+        JOIN users u ON u.user_id = c.customer_id
+        WHERE c.customer_id = :customer_id
+        AND c.admin_id = :admin_id
+        ORDER BY c.timestamp
+    """)
+
+    return connection.execute(query, {
+        "customer_id": customer_id,
+        "admin_id": admin_id
+    }).mappings().all()
+
+
+def get_admin_chat(connection, admin_id, customer_id):
+
+    query = text("""
+        SELECT
+            c.*,
+            u.name AS sender_name
+        FROM chats c
+        JOIN users u ON u.user_id = c.customer_id
+        WHERE c.admin_id = :admin_id
+        AND c.customer_id = :customer_id
+        ORDER BY c.timestamp
+    """)
+
+    return connection.execute(query, {
+        "admin_id": admin_id,
+        "customer_id": customer_id
+    }).mappings().all()
+
+
+# =============
+# CONVERSATIONS
+# =============
+
+def get_vendor_conversations(connection, vendor_id):
+
+    query = text("""
+        SELECT
+            c.customer_id,
+            u.name AS partner_name,
+            MAX(c.timestamp) AS last_message_time
+        FROM chats c
+        JOIN users u ON u.user_id = c.customer_id
+        WHERE c.vendor_id = :vendor_id
+        GROUP BY c.customer_id, u.name
+        ORDER BY last_message_time DESC
+    """)
+
+    return connection.execute(query, {
+        "vendor_id": vendor_id
+    }).mappings().all()
+
+
+def get_admin_conversations(connection, admin_id):
+
+    query = text("""
+        SELECT
+            c.customer_id,
+            u.name AS partner_name,
+            MAX(c.timestamp) AS last_message_time
+        FROM chats c
+        JOIN users u ON u.user_id = c.customer_id
+        WHERE c.admin_id = :admin_id
+        GROUP BY c.customer_id, u.name
+        ORDER BY last_message_time DESC
+    """)
+
+    return connection.execute(query, {
+        "admin_id": admin_id
+    }).mappings().all()
+
+
+# ============
+# SEND MESSAGE
+# ============
 
 def send_message(connection, customer_id, vendor_id, admin_id, text_msg):
+
     query = text("""
         INSERT INTO chats (customer_id, vendor_id, admin_id, text)
         VALUES (:customer_id, :vendor_id, :admin_id, :text)
     """)
+
     connection.execute(query, {
         "customer_id": customer_id,
         "vendor_id": vendor_id,
         "admin_id": admin_id,
         "text": text_msg
     })
+
     connection.commit()
-
-
-def get_messages_by_customer(connection, customer_id):
-    query = text("SELECT * FROM chats WHERE customer_id = :customer_id")
-    result = connection.execute(query, {"customer_id": customer_id})
-    return result.mappings().all()
 
 
 # ======
