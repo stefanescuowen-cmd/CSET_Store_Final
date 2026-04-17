@@ -318,10 +318,12 @@ def customer_dashboard():
 @app.route("/vendor")
 def vendor_dashboard():
     if "user_id" not in session:
+        flash('You need to log in as a vendor!', 'error')
         return redirect(url_for("login"))
 
     if get_user_role(conn, session["user_id"]) != "vendor":
-        return "Unauthorized", 403
+        flash('Only vendors can access this page!', 'error')
+        return redirect(url_for('index'))
 
     vendor_id = session["user_id"]
 
@@ -679,8 +681,21 @@ def add_product():
         flash("Must be a vendor or admin to access.", "error")
         return redirect(url_for('index'))
     
+    role = session.get("role")
+    
     if request.method == "POST":
+        #send vendor id automatically if user is vendor and otherwise from the form
+        if role == "admin":
+            vendor_id = request.form.get("vendor-id")
+        elif role == "vendor":
+            vendor_id = session["user_id"]
+
         title = request.form.get("title")
+
+        images = request.form.getlist("image")
+        
+        final_images = [url for url in images if url.strip()]
+
         description = request.form.get("description")
         price = float(request.form.get("price"))
         discount_price = request.form.get("discount_price") if request.form.get("discount_price") else None
@@ -698,14 +713,15 @@ def add_product():
                 "stock": int(stocks[i])
             })
 
-        db.add_new_product(conn, session["user_id"], title, description, price, discount_price, discount_end, variants)
-
-        print(variants)
+        db.add_new_product(conn, vendor_id, title, description, price, discount_price, discount_end, variants, final_images)
 
         flash("Product added successfully!", "success")
-        return redirect(url_for('vendor_dashboard'))
+        if role == "admin":
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return redirect(url_for('vendor_dashboard'))
     
-    return render_template("add-product.html")
+    return render_template("add-product.html", role=role)
   
   
 # =============

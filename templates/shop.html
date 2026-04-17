@@ -31,7 +31,8 @@
             {% if images %}
                 <img 
                     id="main-img-{{ product.product_id }}"
-                    src="{{ images[0] }}">
+                    src="{{ images[0] }}"
+                    onclick="openLightbox(this.src)">
             {% else %}
                 <div>
                     No image
@@ -115,4 +116,9 @@
     <p>No products found.</p>
 {% endif %}
 
+<div id="lightbox" onclick="closeLightbox()" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); cursor:pointer; align-items:center; justify-content:center;">
+    <img id="lightbox-img" src="" style="max-width:90%; max-height:90%; border: 3px solid var(--accent-color); border-radius: 10px;">
+</div>
+
 {% endblock %}
+

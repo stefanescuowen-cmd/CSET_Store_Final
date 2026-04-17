@@ -404,7 +404,7 @@ def get_orders(connection, customer_id):
 # PRODUCTS
 # ========
 
-def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants):    
+def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants, images):    
     query = text("""
         INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
         VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_end)
@@ -418,6 +418,17 @@ def add_new_product(connection, vendor_id, title, description, price, discount_p
         "discount_end": discount_end
     })
     product_id = result.lastrowid
+
+    if images:
+        img_query = text("""
+            INSERT INTO product_images (product_id, image_url) 
+            VALUES (:product_id, :image_url)
+        """)
+        for url in images:
+            connection.execute(img_query, {
+                "product_id": product_id,
+                "image_url": url
+            })
 
     for variant in variants:
         variant_query = text("""
