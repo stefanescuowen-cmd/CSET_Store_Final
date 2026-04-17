@@ -2,24 +2,49 @@
 
 {% block body %}
 
-<h1>Reviews</h1>
+<h1>Reviews for {{ product.title }}</h1>
 
-{% if reviews %}
+<form action="{{ url_for('reviews_page') }}" method="GET">
+        
+        <label for="rating">Filter by Stars:</label>
+        <select name="rating" id="rating">
+            <option value="">All Ratings</option>
+            <option value="5" {% if current_filter == 5 %}selected{% endif %}>5 Stars</option>
+            <option value="4" {% if current_filter == 4 %}selected{% endif %}>4 Stars</option>
+            <option value="3" {% if current_filter == 3 %}selected{% endif %}>3 Stars</option>
+            <option value="2" {% if current_filter == 2 %}selected{% endif %}>2 Stars</option>
+            <option value="1" {% if current_filter == 1 %}selected{% endif %}>1 Star</option>
+        </select>
 
-    {% for r in reviews %}
-        <div class="product-card">
-            <h3>{{ r.title }}</h3>
+        <label for="sort">Sort by:</label>
+        <select name="sort" id="sort">
+            <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Newest First</option>
+            <option value="rating_high" {% if current_sort == 'rating_high' %}selected{% endif %}>Highest Rating</option>
+            <option value="rating_low" {% if current_sort == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
+        </select>
 
-            <p><strong>{{ r.name }}</strong></p>
+        <button type="submit">Apply</button>
+        <a href="{{ url_for('reviews_page') }}">Clear All</a>
+    </form>
 
-            <p>Rating: {{ r.rating }}/5</p>
+<hr>
 
-            <p>{{ r.description }}</p>
-        </div>
-    {% endfor %}
+{% for review in reviews %}
+    <div class="review-card">
+        <strong>{{ review.reviewer_name }}</strong> 
+        <span>Rating: {{ review.rating }}/5</span>
+        <p>{{ review.description }}</p>
+        <small>Posted on: {{ review.date }}</small>
+    </div>
+{% endfor %}
 
-{% else %}
-    <p>No reviews yet.</p>
-{% endif %}
+<hr>
+
+<h3>Write a Review</h3>
+<form method="POST" action="/product/{{ product_id }}/add_review">
+    <input type="number" name="rating" min="1" max="5" required placeholder="Rating (1-5)">
+    <textarea name="description" required placeholder="Your review..."></textarea>
+    <button type="submit">Submit Review</button>
+</form>
 
 {% endblock %}

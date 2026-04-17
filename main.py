@@ -748,6 +748,8 @@ def account():
     )
 
 
+from flask import render_template, request, redirect, session, url_for
+
 # =======
 # REVIEWS
 # =======
@@ -757,9 +759,32 @@ def reviews_page():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    reviews = db.get_all_reviews(conn)
+    sort_selection = request.args.get('sort', 'date')
+    rating_filter = request.args.get('rating', type=int)
+    
+    # NEW: Get product_id from the URL if you want to filter by product
+    p_id = request.args.get('product_id', type=int)
 
-    return render_template("reviews.html", reviews=reviews)
+    with engine.connect() as connection:
+        reviews = db.get_all_reviews(connection, sort_by=sort_selection, filter_rating=rating_filter)
+        
+        product = None
+        if p_id:
+            product = connection.execute(
+                text("SELECT title FROM products WHERE product_id = :id"), 
+                {"id": p_id}
+            ).mappings().first()
+        else:
+            product = {"title": "All Products"}
+
+    return render_template(
+        "reviews.html", 
+        reviews=reviews, 
+        current_sort=sort_selection, 
+        current_filter=rating_filter,
+        product=product
+    )
+
 
 # ==========
 # ADD REVIEW
@@ -771,13 +796,23 @@ def add_review_route():
         return redirect(url_for("login"))
 
     product_id = request.form.get("product_id")
-    rating = request.form.get("rating")
+    rating = request.form.get("rating", type=int)
     comment = request.form.get("comment")
 
-    db.add_review(conn, session["user_id"], product_id, rating, comment)
+    if not rating or not (1 <= rating <= 5):
+        return redirect(url_for("shop"))
 
-    return redirect(url_for("shop"))
+    # Call the database function
+    db.add_review(
+        connection=conn, 
+        customer_id=session["user_id"], 
+        product_id=product_id, 
+        rating=rating, 
+        description=comment
+    )
 
+    # Redirect to the reviews page to see the new entry
+    return redirect(url_for("reviews_page"))
 
 # =================
 # CHAT HOME
