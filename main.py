@@ -763,25 +763,45 @@ def add_review_route():
     return redirect(url_for("shop"))
 
 
-# ====
-# CHAT
-# ====
+# =================
+# CHAT HOME
+# =================
 
 @app.route("/chat")
 def chat_home():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    if session["role"] != "customer":
-        flash("Customers only.", "error")
+    role = session.get("role")
+    user_id = session["user_id"]
+
+    conversations = []
+    vendors = []
+    admins = []
+
+    if role == "customer":
+        conversations = db.get_customer_conversations(conn, user_id)
+        vendors = db.get_all_vendors(conn)
+        admins = db.get_all_admins(conn)
+
+    elif role == "vendor":
+        conversations = db.get_vendor_conversations(conn, user_id)
+
+        # Vendors should talk to admins OR customers depending on your design
+        admins = db.get_all_admins(conn)
+
+        # IMPORTANT: vendors should NOT see all vendors
+        vendors = []
+
+    elif role == "admin":
+        conversations = db.get_admin_conversations(conn, user_id)
+
+        # admins can talk to vendors + customers
+        vendors = db.get_all_vendors(conn)
+
+    else:
+        flash("Unauthorized.", "error")
         return redirect(url_for("index"))
-
-    customer_id = session["user_id"]
-
-    conversations = db.get_customer_conversations(conn, customer_id)
-
-    vendors = db.get_all_vendors(conn)
-    admins = db.get_all_admins(conn)
 
     return render_template(
         "chat.html",
@@ -792,21 +812,32 @@ def chat_home():
         admins=admins
     )
 
-# ================
+
+# =================
 # CHAT WITH VENDOR
-# ================
+# =================
 
 @app.route("/chat/vendor/<int:vendor_id>")
 def chat_vendor(vendor_id):
-    customer_id = session["user_id"]
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-    conversations = db.get_customer_conversations(conn, customer_id)
+    user_id = session["user_id"]
+    role = session.get("role")
 
-    messages = db.get_customer_vendor_chat(
-        conn,
-        customer_id,
-        vendor_id
-    )
+    conversations = []
+
+    if role == "customer":
+        conversations = db.get_customer_conversations(conn, user_id)
+        messages = db.get_customer_vendor_chat(conn, user_id, vendor_id)
+
+    elif role == "vendor":
+        conversations = db.get_vendor_conversations(conn, user_id)
+        messages = db.get_vendor_chat(conn, user_id, vendor_id)
+
+    elif role == "admin":
+        conversations = db.get_admin_conversations(conn, user_id)
+        messages = db.get_admin_chat(conn, user_id, vendor_id)
 
     vendors = db.get_all_vendors(conn)
     admins = db.get_all_admins(conn)
@@ -821,21 +852,31 @@ def chat_vendor(vendor_id):
     )
 
 
-# ===============
+# =================
 # CHAT WITH ADMIN
-# ===============
+# =================
 
 @app.route("/chat/admin/<int:admin_id>")
 def chat_admin(admin_id):
-    customer_id = session["user_id"]
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-    conversations = db.get_customer_conversations(conn, customer_id)
+    user_id = session["user_id"]
+    role = session.get("role")
 
-    messages = db.get_customer_admin_chat(
-        conn,
-        customer_id,
-        admin_id
-    )
+    conversations = []
+
+    if role == "customer":
+        conversations = db.get_customer_conversations(conn, user_id)
+        messages = db.get_customer_admin_chat(conn, user_id, admin_id)
+
+    elif role == "vendor":
+        conversations = db.get_vendor_conversations(conn, user_id)
+        messages = db.get_vendor_chat(conn, user_id, admin_id)
+
+    elif role == "admin":
+        conversations = db.get_admin_conversations(conn, user_id)
+        messages = db.get_admin_chat(conn, user_id, admin_id)
 
     vendors = db.get_all_vendors(conn)
     admins = db.get_all_admins(conn)
@@ -850,39 +891,48 @@ def chat_admin(admin_id):
     )
 
 
-# ========
-# CHAT API
-# ========
+# =================
+# CHAT API (REALTIME)
+# =================
 
 @app.route("/chat_messages/<partner_type>/<int:partner_id>")
 def chat_messages(partner_type, partner_id):
 
-    customer_id = session["user_id"]
+    if "user_id" not in session:
+        return jsonify([])
 
-    if partner_type == "vendor":
-        messages = db.get_customer_vendor_chat(
-            conn,
-            customer_id,
-            partner_id
-        )
+    user_id = session["user_id"]
+    role = session.get("role")
+
+    if role == "customer":
+        if partner_type == "vendor":
+            messages = db.get_customer_vendor_chat(conn, user_id, partner_id)
+        else:
+            messages = db.get_customer_admin_chat(conn, user_id, partner_id)
+
+    elif role == "vendor":
+        messages = db.get_vendor_chat(conn, user_id, partner_id)
+
+    elif role == "admin":
+        messages = db.get_admin_chat(conn, user_id, partner_id)
+
     else:
-        messages = db.get_customer_admin_chat(
-            conn,
-            customer_id,
-            partner_id
-        )
+        messages = []
 
     return jsonify(messages)
 
 
-# ============ 
+# =================
 # SEND MESSAGE
-# ============
+# =================
 
 @app.route("/send_message", methods=["POST"])
 def send_message():
 
-    customer_id = session["user_id"]
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
 
     partner_type = request.form.get("partner_type")
     partner_id = int(request.form.get("partner_id"))
@@ -893,22 +943,18 @@ def send_message():
 
     if partner_type == "vendor":
         vendor_id = partner_id
-    else:
+    elif partner_type == "admin":
         admin_id = partner_id
 
     db.send_message(
         conn,
-        customer_id,
+        user_id,
         vendor_id,
         admin_id,
         text_msg
     )
 
-    return redirect(url_for(
-        "chat_vendor" if partner_type == "vendor" else "chat_admin",
-        vendor_id=partner_id if partner_type == "vendor" else None,
-        admin_id=partner_id if partner_type == "admin" else None
-    ))
+    return redirect(url_for("chat"))
 
 
 # ========
