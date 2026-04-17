@@ -101,7 +101,7 @@ select, ::checkmark
     margin-bottom: 5px;
 }
 
-select{margin-bottom: 20px; font-size: 16px; border: 2px solid var(--header-bg-light); color: var(--text-color);}
+select{z-index: 2; margin-bottom: 20px; font-size: 16px; border: 2px solid var(--header-bg-light); color: var(--text-color);}
 option{font-size: 16px; transition: 0.25s; padding: 5px; position: relative; left: 50%; transform: translate(-50%); width: 20%; min-width: 150px; margin: 10px 5px; border-radius: 20px; color: var(--text-color); border: none; background-color: var(--bg-color-base); outline: var(--accent-color) 2px solid;}
 
 /* Submit Button */
@@ -168,7 +168,8 @@ input[type="submit"] {
     margin-top: 30px;
 }
 
-.product-card, .return-card {
+.product-card, .return-card
+{
     background-color: var(--bg-color-light);
     border-radius: 20px;
     padding: 20px;
@@ -179,9 +180,7 @@ input[type="submit"] {
     max-width: 300px;
 }
 
-.return-card {
-    min-width: 200px;
-}
+.return-card {min-width: 200px;}
 
 /* Classes */
 .formContainerOut{padding: 20px; background-color: var(--bg-color-light); border-radius: 20px;}
@@ -195,6 +194,13 @@ input[type="submit"] {
 .dangerZone p a{animation: DANGER 1s linear infinite;}
 .dangerZone p {text-align: center;}
 .dangerZone input{left: 50%; transform: translate(-50%); position: relative; max-width: 500px; background-color: rgb(125, 0, 0); color: white; outline: 2px solid;}
+.ProductButton{font-size: 16px; transition: 0.25s; padding: 5px; position: relative; width: 20%; min-width: 150px; margin: 10px 5px; border-radius: 20px; color: var(--text-color); border: none; background-color: var(--bg-color-base); outline: var(--accent-color) 2px solid;}
+.WarningButton{position: relative; max-width: 500px; background-color: rgb(125, 0, 0); color: white; outline: 2px solid;}
+.formEdit input, textarea{resize: none; background-color: var(--bg-color); border: 2px solid var(--header-bg-light); border-radius: 8px; padding: 12px; margin-bottom: 20px; color: var(--text-color); font-size: 16px; transition: border-color 0.3s ease;}
+.QuickLinksHolder{color: var(--text-color); font-weight: 900; font-size: 32px; display: flex; list-style: "☺";}
+.QuickLinksHolder li{width: calc(20% - 50px); max-width: 200px; margin-left: 50px; height: 50px; align-items: center;}
+.QuickLinksHolder li:first-child{margin-left: 0; width: 20%;}
+.QuickLinks{position: relative; transition: 0.25s; text-decoration: none; color: var(--accent-color); font-weight: 100; font-size: 20px; display: block; height: 20px;}
 
 /* ID */
 
@@ -202,17 +208,23 @@ input[type="submit"] {
 input:focus, select:focus, select:active{border-color: var(--accent-color); outline: none;}
 input[type="submit"]:hover {background-color: var(--accent-hover); transform: translateY(-2px);}
 input[type="submit"]:active{transform: translateY(0); background-color: var(--accent-active);}
-#HeadLinks li a:link{color: var(--accent-color); background-color: var(--header-bg-base);}
-#HeadLinks li a:hover{color: var(--accent-hover); background-color: var(--header-bg-light); transition: 0.25s;}
-#HeadLinks li a:active{color: var(--accent-active); background-color: var(--header-bg-dark); transition: 0.1s;}
-.dangerZone input:hover{animation: DANGER2 linear 1s infinite; background-color: rgb(150, 0, 0); transform: translate(-50%, 0);}
-.dangerZone input:active {transform: translate(-50%,0);}
 option:hover{background-color: var(--bg-color-light); transform:translate(-50%, -2px); color: var(--accent-color); outline: var(--accent-hover) 2px solid;}
 option:active{background-color: var(--bg-color-dark); transform:translate(-50%, 2px); color: var(--accent-active); outline: var(--accent-active) 2px solid;}
 option:checked{background-color: var(--accent-active);}
 option:checked:hover{color: var(--bg-color-light); background-color: var(--accent-color); outline: var(--accent-hover) 2px solid;}
 option:checked:active{color: var(--bg-color-dark); background-color: var(--header-bg-light); outline: 2px solid var(--accent-active);}
 option:disabled{display: none;}
+.dangerZone input:hover{animation: DANGER2 linear 1s infinite; background-color: rgb(150, 0, 0); transform: translate(-50%, 0);}
+.dangerZone input:active {transform: translate(-50%,2px);}
+.ProductButton:hover{background-color: var(--bg-color-light); transform:translateY(-2px); color: var(--accent-color); outline: var(--accent-hover) 2px solid;}
+.ProductButton:active{background-color: var(--bg-color-dark); transform:translateY(2px); color: var(--accent-active); outline: var(--accent-active) 2px solid;}
+.WarningButton:hover{animation: DANGER2 linear 1s infinite; background-color: rgb(150, 0, 0); transform: translateY(-2px); outline: 2px solid;}
+.WarningButton:active {transform: translateY(2px); color: var(--text-color); background-color: rgb(75, 0, 0); outline: 2px solid;}
+.QuickLinks:hover{color: var(--accent-hover); transform: translateY(-2px);}
+.QuickLinks:active{color: var(--accent-active); transform: translateY(2px);}
+#HeadLinks li a:link{color: var(--accent-color); background-color: var(--header-bg-base);}
+#HeadLinks li a:hover{color: var(--accent-hover); background-color: var(--header-bg-light); transition: 0.25s;}
+#HeadLinks li a:active{color: var(--accent-active); background-color: var(--header-bg-dark); transition: 0.1s;}
 
 /* Optimization */
 @media screen and (max-width: 1250px)

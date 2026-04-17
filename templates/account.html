@@ -1,65 +1,58 @@
 {% extends "base.html" %}
 {% block body %}
+<div>
+    <h1>My Account</h1>
 
-<h1>My Account</h1>
+    <!-- ================= -->
+    <!-- PROFILE (ALL USERS) -->
+    <!-- ================= -->
+    <h2>Profile</h2>
 
-<!-- ================= -->
-<!-- PROFILE (ALL USERS) -->
-<!-- ================= -->
-<h2>Profile</h2>
+    <p><strong>Name:</strong> {{ user.name }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Username:</strong> {{ user.username }}</p>
 
-<p><strong>Name:</strong> {{ user.name }}</p>
-<p><strong>Email:</strong> {{ user.email }}</p>
-<p><strong>Username:</strong> {{ user.username }}</p>
+    <!-- ================= -->
+    <!-- CUSTOMER SECTION -->
+    <!-- ================= -->
+    {% if role == "customer" %}
+    <hr>
+    <h2>Customer Quick Actions</h2>
+    <div class="formContainerOut">
+        <ul class="QuickLinksHolder">
+            <li><a class="QuickLinks" href="/customer">My Dashboard</a></li>
+            <li><a class="QuickLinks" href="/cart">Cart</a></li>
+            <li><a class="QuickLinks" href="/wishlist">Wishlist</a></li>
+            <li><a class="QuickLinks" href="/checkout">Checkout</a></li>
+        </ul>
+    </div>
+    {% endif %}
 
-<hr>
+    <!-- ================= -->
+    <!-- VENDOR SECTION -->
+    <!-- ================= -->
+    {% if role == "vendor" %}
+    <hr>
+    <h2>Vendor Tools</h2>
+    <div class="formContainerOut">
+        <ul class="QuickLinksHolder">
+            <li><a class="QuickLinks" href="/vendor">Vendor Dashboard</a></li>
+        </ul>
+    </div>
+    {% endif %}
 
-<!-- ================= -->
-<!-- CUSTOMER SECTION -->
-<!-- ================= -->
-{% if role == "customer" %}
-
-<h2>Customer Quick Actions</h2>
-
-<ul>
-    <li><a href="/customer">My Dashboard</a></li>
-    <li><a href="/cart">Cart</a></li>
-    <li><a href="/wishlist">Wishlist</a></li>
-    <li><a href="/checkout">Checkout</a></li>
-</ul>
-
-<hr>
-
-{% endif %}
-
-<!-- ================= -->
-<!-- VENDOR SECTION -->
-<!-- ================= -->
-{% if role == "vendor" %}
-
-<h2>Vendor Tools</h2>
-
-<ul>
-    <li><a href="/vendor">Vendor Dashboard</a></li>
-</ul>
-
-<hr>
-
-{% endif %}
-
-<!-- ================= -->
-<!-- ADMIN SECTION -->
-<!-- ================= -->
-{% if role == "admin" %}
-
-<h2>Admin Tools</h2>
-
-<ul>
-    <li><a href="/admin">Admin Dashboard</a></li>
-</ul>
-
-<hr>
-
-{% endif %}
-
+    <!-- ================= -->
+    <!-- ADMIN SECTION -->
+    <!-- ================= -->
+    {% if role == "admin" %}
+    <hr>
+    <h2>Admin Tools</h2>
+    <div class="formContainerOut">
+        <ul class="QuickLinksHolder">
+            <li><a class="QuickLinks" href="/admin">Admin Dashboard</a></li>
+            <li><a class="QuickLinks" href="/admin">Admin Dashboard</a></li>
+        </ul>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
