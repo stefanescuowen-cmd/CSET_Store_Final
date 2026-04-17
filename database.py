@@ -160,24 +160,99 @@ def remove_from_cart(connection, cart_id, variant_id):
 # CHAT
 # ====
 
+# Get all chat partners for customer
+def get_customer_conversations(connection, customer_id):
+    query = text("""
+        SELECT
+            c.vendor_id,
+            c.admin_id,
+            u.name AS partner_name
+        FROM chats c
+        LEFT JOIN users u
+            ON u.user_id = COALESCE(c.vendor_id, c.admin_id)
+        WHERE c.customer_id = :customer_id
+        GROUP BY c.vendor_id, c.admin_id, u.name
+    """)
+
+    result = connection.execute(query, {
+        "customer_id": customer_id
+    })
+
+    return result.mappings().all()
+
+
+# Get messages with vendor
+
+
+def get_all_vendors(connection):
+    query = text("""
+        SELECT v.vendor_id, u.name
+        FROM vendors v
+        JOIN users u ON u.user_id = v.vendor_id
+    """)
+    return connection.execute(query).mappings().all()
+
+
+def get_customer_vendor_chat(connection, customer_id, vendor_id):
+    query = text("""
+        SELECT *
+        FROM chats
+        WHERE customer_id = :customer_id
+        AND vendor_id = :vendor_id
+        ORDER BY timestamp
+    """)
+
+    result = connection.execute(query, {
+        "customer_id": customer_id,
+        "vendor_id": vendor_id
+    })
+
+    return result.mappings().all()
+
+
+# Get messages with admin
+
+def get_all_admins(connection):
+    query = text("""
+        SELECT a.admin_id, u.name
+        FROM admins a
+        JOIN users u ON u.user_id = a.admin_id
+    """)
+    return connection.execute(query).mappings().all()
+
+
+def get_customer_admin_chat(connection, customer_id, admin_id):
+    query = text("""
+        SELECT *
+        FROM chats
+        WHERE customer_id = :customer_id
+        AND admin_id = :admin_id
+        ORDER BY timestamp
+    """)
+
+    result = connection.execute(query, {
+        "customer_id": customer_id,
+        "admin_id": admin_id
+    })
+
+    return result.mappings().all()
+
+
+# Send message to vendor or admin (one of vendor_id or admin_id should be provided)
 def send_message(connection, customer_id, vendor_id, admin_id, text_msg):
     query = text("""
         INSERT INTO chats (customer_id, vendor_id, admin_id, text)
         VALUES (:customer_id, :vendor_id, :admin_id, :text)
     """)
+
     connection.execute(query, {
         "customer_id": customer_id,
         "vendor_id": vendor_id,
         "admin_id": admin_id,
         "text": text_msg
     })
+
     connection.commit()
-
-
-def get_messages_by_customer(connection, customer_id):
-    query = text("SELECT * FROM chats WHERE customer_id = :customer_id")
-    result = connection.execute(query, {"customer_id": customer_id})
-    return result.mappings().all()
 
 
 # ======
