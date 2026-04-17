@@ -814,164 +814,39 @@ def add_review_route():
     # Redirect to the reviews page to see the new entry
     return redirect(url_for("reviews_page"))
 
-# =================
-# CHAT HOME
-# =================
+# ============
+# CHAT PAGE
+# ============
 
-@app.route("/chat")
-def chat_home():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    role = session.get("role")
-    user_id = session["user_id"]
-
-    conversations = []
-    vendors = []
-    admins = []
-
-    if role == "customer":
-        conversations = db.get_customer_conversations(conn, user_id)
-        vendors = db.get_all_vendors(conn)
-        admins = db.get_all_admins(conn)
-
-    elif role == "vendor":
-        conversations = db.get_vendor_conversations(conn, user_id)
-
-        # Vendors should talk to admins OR customers depending on your design
-        admins = db.get_all_admins(conn)
-
-        # IMPORTANT: vendors should NOT see all vendors
-        vendors = []
-
-    elif role == "admin":
-        conversations = db.get_admin_conversations(conn, user_id)
-
-        # admins can talk to vendors + customers
-        vendors = db.get_all_vendors(conn)
-
-    else:
-        flash("Unauthorized.", "error")
-        return redirect(url_for("index"))
-
-    return render_template(
-        "chat.html",
-        conversations=conversations,
-        messages=[],
-        active_partner=None,
-        vendors=vendors,
-        admins=admins
-    )
+@app.route('/chat')
+def chat():
+    user_id = session.get('user_id')
+    role = session.get('role') 
+    
+    if not user_id:
+        return redirect('/login')
+    
+    target_id = request.args.get('with_id')
+    target_role = request.args.get('target_role')
 
 
-# =================
-# CHAT WITH VENDOR
-# =================
+    with engine.connect() as conn:
 
-@app.route("/chat/vendor/<int:vendor_id>")
-def chat_vendor(vendor_id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+        sidebar_chats = db.get_chat_list(conn, user_id, role)
 
-    user_id = session["user_id"]
-    role = session.get("role")
+        active_chat_history = []
+        if target_id and target_role:
+            if role == 'customer':
+                active_chat_history = db.get_specific_chat_history(conn, user_id, target_id, target_role)
+            else:
+                active_chat_history = db.get_specific_chat_history(conn, target_id, user_id, role)
 
-    conversations = []
-
-    if role == "customer":
-        conversations = db.get_customer_conversations(conn, user_id)
-        messages = db.get_customer_vendor_chat(conn, user_id, vendor_id)
-
-    elif role == "vendor":
-        conversations = db.get_vendor_conversations(conn, user_id)
-        messages = db.get_vendor_chat(conn, user_id, vendor_id)
-
-    elif role == "admin":
-        conversations = db.get_admin_conversations(conn, user_id)
-        messages = db.get_admin_chat(conn, user_id, vendor_id)
-
-    vendors = db.get_all_vendors(conn)
-    admins = db.get_all_admins(conn)
-
-    return render_template(
-        "chat.html",
-        conversations=conversations,
-        messages=messages,
-        active_partner=("vendor", vendor_id),
-        vendors=vendors,
-        admins=admins
-    )
-
-
-# =================
-# CHAT WITH ADMIN
-# =================
-
-@app.route("/chat/admin/<int:admin_id>")
-def chat_admin(admin_id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    user_id = session["user_id"]
-    role = session.get("role")
-
-    conversations = []
-
-    if role == "customer":
-        conversations = db.get_customer_conversations(conn, user_id)
-        messages = db.get_customer_admin_chat(conn, user_id, admin_id)
-
-    elif role == "vendor":
-        conversations = db.get_vendor_conversations(conn, user_id)
-        messages = db.get_vendor_chat(conn, user_id, admin_id)
-
-    elif role == "admin":
-        conversations = db.get_admin_conversations(conn, user_id)
-        messages = db.get_admin_chat(conn, user_id, admin_id)
-
-    vendors = db.get_all_vendors(conn)
-    admins = db.get_all_admins(conn)
-
-    return render_template(
-        "chat.html",
-        conversations=conversations,
-        messages=messages,
-        active_partner=("admin", admin_id),
-        vendors=vendors,
-        admins=admins
-    )
-
-
-# =================
-# CHAT API (REALTIME)
-# =================
-
-@app.route("/chat_messages/<partner_type>/<int:partner_id>")
-def chat_messages(partner_type, partner_id):
-
-    if "user_id" not in session:
-        return jsonify([])
-
-    user_id = session["user_id"]
-    role = session.get("role")
-
-    if role == "customer":
-        if partner_type == "vendor":
-            messages = db.get_customer_vendor_chat(conn, user_id, partner_id)
-        else:
-            messages = db.get_customer_admin_chat(conn, user_id, partner_id)
-
-    elif role == "vendor":
-        messages = db.get_vendor_chat(conn, user_id, partner_id)
-
-    elif role == "admin":
-        messages = db.get_admin_chat(conn, user_id, partner_id)
-
-    else:
-        messages = []
-
-    return jsonify(messages)
-
+        return render_template('chat.html', 
+                               sidebar_chats=sidebar_chats, 
+                               history=active_chat_history,
+                               target_id=target_id,
+                               target_role=target_role)
+    
 
 # =================
 # SEND MESSAGE
@@ -983,29 +858,209 @@ def send_message():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    user_id = session["user_id"]
+    user_id = session.get('user_id')
+    role = session.get('role')
 
-    partner_type = request.form.get("partner_type")
-    partner_id = int(request.form.get("partner_id"))
-    text_msg = request.form.get("text")
+    target_id = int(request.form.get("target_id"))
+    target_role = request.form.get("target_role")
 
+    text_msg = request.form.get("message")
+
+    customer_id = None
     vendor_id = None
     admin_id = None
 
-    if partner_type == "vendor":
-        vendor_id = partner_id
-    elif partner_type == "admin":
-        admin_id = partner_id
+    if role == 'customer':
+        customer_id = user_id
+        if target_role == 'vendor':
+            vendor_id = target_id
+        else:
+            admin_id = target_id
 
-    db.send_message(
-        conn,
-        user_id,
-        vendor_id,
-        admin_id,
-        text_msg
-    )
+    # The sender is the vendor
+    elif role == 'vendor':
+        customer_id = target_id
+        vendor_id = user_id  
 
-    return redirect(url_for("chat"))
+    # The sender is the admin
+    elif role == 'admin':
+        customer_id = target_id
+        admin_id = user_id   
+
+    with engine.connect() as conn:
+        db.send_chat_message(
+            conn,
+            sender_id=user_id,
+            customer_id=customer_id,
+            text_content=text_msg,
+            vendor_id=vendor_id,
+            admin_id=admin_id
+        )
+
+    return redirect(url_for("chat", with_id=target_id, target_role=target_role))
+
+
+
+
+# # =================
+# # CHAT HOME
+# # =================
+
+# @app.route("/chat")
+# def chat_home():
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+
+#     role = session.get("role")
+#     user_id = session["user_id"]
+
+#     conversations = []
+#     vendors = []
+#     admins = []
+
+#     if role == "customer":
+#         conversations = db.get_customer_conversations(conn, user_id)
+#         vendors = db.get_all_vendors(conn)
+#         admins = db.get_all_admins(conn)
+
+#     elif role == "vendor":
+#         conversations = db.get_vendor_conversations(conn, user_id)
+
+#         print(conversations)
+
+#         # Vendors should talk to admins OR customers depending on your design
+#         admins = db.get_all_admins(conn)
+
+#         # IMPORTANT: vendors should NOT see all vendors
+#         vendors = []
+
+#     elif role == "admin":
+#         conversations = db.get_admin_conversations(conn, user_id)
+
+#         # admins can talk to vendors + customers
+#         vendors = db.get_all_vendors(conn)
+
+#     else:
+#         flash("Unauthorized.", "error")
+#         return redirect(url_for("index"))
+
+#     return render_template(
+#         "chat.html",
+#         conversations=conversations,
+#         messages=[],
+#         active_partner=None,
+#         vendors=vendors,
+#         admins=admins
+#     )
+
+
+# # =================
+# # CHAT WITH VENDOR
+# # =================
+
+# @app.route("/chat/vendor/<int:vendor_id>")
+# def chat_vendor(vendor_id):
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+
+#     user_id = session["user_id"]
+#     role = session.get("role")
+
+#     conversations = []
+
+#     if role == "customer":
+#         conversations = db.get_customer_conversations(conn, user_id)
+#         messages = db.get_customer_vendor_chat(conn, user_id, vendor_id)
+
+#     elif role == "vendor":
+#         conversations = db.get_vendor_conversations(conn, user_id)
+#         messages = db.get_vendor_chat(conn, user_id, vendor_id)
+
+#     elif role == "admin":
+#         conversations = db.get_admin_conversations(conn, user_id)
+#         messages = db.get_admin_chat(conn, user_id, vendor_id)
+
+#     vendors = db.get_all_vendors(conn)
+#     admins = db.get_all_admins(conn)
+
+#     return render_template(
+#         "chat.html",
+#         conversations=conversations,
+#         messages=messages,
+#         active_partner=("vendor", vendor_id),
+#         vendors=vendors,
+#         admins=admins
+#     )
+
+
+# # =================
+# # CHAT WITH ADMIN
+# # =================
+
+# @app.route("/chat/admin/<int:admin_id>")
+# def chat_admin(admin_id):
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+
+#     user_id = session["user_id"]
+#     role = session.get("role")
+
+#     conversations = []
+
+#     if role == "customer":
+#         conversations = db.get_customer_conversations(conn, user_id)
+#         messages = db.get_customer_admin_chat(conn, user_id, admin_id)
+
+#     elif role == "vendor":
+#         conversations = db.get_vendor_conversations(conn, user_id)
+#         messages = db.get_vendor_chat(conn, user_id, admin_id)
+
+#     elif role == "admin":
+#         conversations = db.get_admin_conversations(conn, user_id)
+#         messages = db.get_admin_chat(conn, user_id, admin_id)
+
+#     vendors = db.get_all_vendors(conn)
+#     admins = db.get_all_admins(conn)
+
+#     return render_template(
+#         "chat.html",
+#         conversations=conversations,
+#         messages=messages,
+#         active_partner=("admin", admin_id),
+#         vendors=vendors,
+#         admins=admins
+#     )
+
+
+# =================
+# CHAT API (REALTIME)
+# =================
+
+# @app.route("/chat_messages/<partner_type>/<int:partner_id>")
+# def chat_messages(partner_type, partner_id):
+
+#     if "user_id" not in session:
+#         return jsonify([])
+
+#     user_id = session["user_id"]
+#     role = session.get("role")
+
+#     if role == "customer":
+#         if partner_type == "vendor":
+#             messages = db.get_customer_vendor_chat(conn, user_id, partner_id)
+#         else:
+#             messages = db.get_customer_admin_chat(conn, user_id, partner_id)
+
+#     elif role == "vendor":
+#         messages = db.get_vendor_chat(conn, user_id, partner_id)
+
+#     elif role == "admin":
+#         messages = db.get_admin_chat(conn, user_id, partner_id)
+
+#     else:
+#         messages = []
+
+#     return jsonify(messages)
 
 
 # ========

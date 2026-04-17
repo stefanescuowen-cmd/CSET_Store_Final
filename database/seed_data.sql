@@ -122,15 +122,15 @@ VALUES
   ('Wrong item', 'Received wrong product', 'Refund', 'Pending', 4, 4, 2, 'img_refund.jpg');
 
 -- CHATS
-INSERT INTO chats (customer_id, vendor_id, admin_id, return_id, text, image, timestamp) VALUES
-(3, NULL, 2, 1, 'My phone screen is cracked.', NULL, NOW()),
-(4, 8, NULL, NULL, 'When will the monitor be back in stock?', NULL, NOW()),
-(5, 9, NULL, NULL, 'I need help with my order.', NULL, NOW()),
-(5, NULL, 1, 2, 'My monitor arrived damaged.', NULL, NOW()),
-(5, NULL, 1, 2, 'I need help with return process.', NULL, NOW()),
-(6, 10, NULL, NULL, 'Is the tablet still in stock?', NULL, NOW()),
-(7, 8, NULL, NULL, 'When will my order ship?', NULL, NOW()),
-(5, NULL, 1, NULL, 'My product stopped working under warranty.', NULL, NOW());
+INSERT INTO chats (sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp) VALUES
+(3, 3, NULL, 2, 1, 'My phone screen is cracked.', NULL, NOW()),
+(4, 4, 8, NULL, NULL, 'When will the monitor be back in stock?', NULL, NOW()),
+(5, 5, 9, NULL, NULL, 'I need help with my order.', NULL, NOW()),
+(5, 5, NULL, 1, 2, 'My monitor arrived damaged.', NULL, NOW()),
+(5, 5, NULL, 1, 2, 'I need help with return process.', NULL, NOW()),
+(6, 6, 10, NULL, NULL, 'Is the tablet still in stock?', NULL, NOW()),
+(7, 7, 8, NULL, NULL, 'When will my order ship?', NULL, NOW()),
+(5, 5, NULL, 1, NULL, 'My product stopped working under warranty.', NULL, NOW());
 
 -- Create wishlists for customers
 INSERT INTO wishlists (customer_id) VALUES (3), (4);
