@@ -138,6 +138,7 @@ CREATE TABLE returns (
 -- CHAT
 CREATE TABLE chats (
     chat_id INT PRIMARY KEY AUTO_INCREMENT,
+    sender_id INT NOT NULL,
     customer_id INT NOT NULL,
     vendor_id INT,
     admin_id INT,
