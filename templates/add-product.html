@@ -7,6 +7,12 @@
 <div class="form-container">
     <h2>Enter Product Details</h2>
     <form method="POST" action="/add-product">
+        <!--only show vendor id field if logged in user is an admin-->
+        {% if role == "admin" %}
+            <label for="vendor-id">Vendor ID:</label>
+            <input type="number" id="vendor-id" name="vendor-id" required><br><br>
+        {% endif %}
+
         <label for="title">Title:</label><br>
         <input type="text" id="title" name="title" required><br><br>
 

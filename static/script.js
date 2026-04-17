@@ -54,6 +54,17 @@ function setMainImage(productId, imageUrl) {
     }
 }
 
+function openLightbox(imgSrc) {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    lightboxImg.src = imgSrc;
+    lightbox.style.display = 'flex';
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+}
+
 // Add product
 function addVariant() {
     const container = document.getElementById('variants-container');
