@@ -748,7 +748,50 @@ def account():
     )
 
 
-from flask import render_template, request, redirect, session, url_for
+# =====================
+# CUSTOMER RETURN ROUTE
+# =====================
+
+@app.route("/submit-return", methods=["POST"])
+def submit_return():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db.create_return_request(
+        conn,
+        customer_id=session["user_id"],
+        order_id=request.form.get("order_id"),
+        variant_id=request.form.get("variant_id"),
+        title=request.form.get("title"),
+        description=request.form.get("description"),
+        demand=request.form.get("demand")
+    )
+    return redirect(url_for("my_returns"))
+
+@app.route("/my-returns")
+def my_returns():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_returns = db.get_customer_returns(conn, session["user_id"])
+    return render_template("my_returns.html", returns=user_returns)
+
+# ==================
+# ADMIN RETURN MGMT
+# ==================
+
+@app.route("/admin/returns")
+def admin_returns():
+    # You should add a check here to ensure the user is an admin!
+    all_returns = db.get_all_returns_admin(conn)
+    return render_template("admin_returns.html", returns=all_returns)
+
+@app.route("/admin/returns/update/<int:return_id>", methods=["POST"])
+def admin_update_return(return_id):
+    new_status = request.form.get("status")
+    db.update_return_status(conn, return_id, new_status)
+    return redirect(url_for("admin_returns"))
+
 
 # =======
 # REVIEWS
@@ -814,9 +857,9 @@ def add_review_route():
     # Redirect to the reviews page to see the new entry
     return redirect(url_for("reviews_page"))
 
-# =================
-# CHAT HOME
-# =================
+# ==========
+# CHAT ROUTE
+# ==========
 
 @app.route("/chat")
 def chat_home():
