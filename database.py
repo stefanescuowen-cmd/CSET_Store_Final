@@ -360,6 +360,91 @@ def send_message(connection, customer_id, vendor_id, admin_id, text_msg):
     connection.commit()
 
 
+# =======
+# REVIEWS
+# =======
+
+def create_review(connection, product_id, customer_id, rating, description, image=None):
+    """
+    Inserts a new review. If the user has already reviewed this product,
+    it updates the existing review (handling the UNIQUE constraint).
+    """
+    query = text("""
+        INSERT INTO reviews (product_id, customer_id, rating, description, image)
+        VALUES (:product_id, :customer_id, :rating, :description, :image)
+        ON DUPLICATE KEY UPDATE 
+            rating = :rating, 
+            description = :description, 
+            image = :image, 
+            date = CURRENT_TIMESTAMP
+    """)
+    connection.execute(query, {
+        "product_id": product_id,
+        "customer_id": customer_id,
+        "rating": rating,
+        "description": description,
+        "image": image
+    })
+    connection.commit()
+
+def get_product_reviews(connection, product_id, sort_by="date", filter_rating=None):
+    """
+    Retrieves reviews for a specific product.
+    Supports filtering by rating and sorting by date or rating.
+    """
+    # 1. Base SQL joining users to get the reviewer's name
+    sql = """
+        SELECT r.*, u.name as reviewer_name 
+        FROM reviews r
+        JOIN users u ON r.customer_id = u.user_id
+        WHERE r.product_id = :product_id
+    """
+    params = {"product_id": product_id}
+
+    # 2. Add Filtering logic
+    if filter_rating:
+        sql += " AND r.rating = :rating"
+        params["rating"] = filter_rating
+
+    # 3. Add Sorting logic
+    if sort_by == "rating_high":
+        sql += " ORDER BY r.rating DESC"
+    elif sort_by == "rating_low":
+        sql += " ORDER BY r.rating ASC"
+    else:
+        sql += " ORDER BY r.date DESC" # Default to newest first
+
+    result = connection.execute(text(sql), params)
+    return result.mappings().all()
+
+def get_all_reviews(connection, sort_by="date", filter_rating=None):
+    # Base SQL logic
+    sql = """
+        SELECT r.*, u.name as reviewer_name, p.title as product_title
+        FROM reviews r
+        JOIN users u ON r.customer_id = u.user_id
+        JOIN product_variants pv ON r.product_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+    """
+    params = {}
+    
+    # Filtering logic - Check if a specific rating was requested
+    if filter_rating:
+        sql += " WHERE r.rating = :rating"
+        params["rating"] = filter_rating
+
+    # Sorting logic - Decide the order based on the user's choice
+    if sort_by == "rating_high":
+        sql += " ORDER BY r.rating DESC"
+    elif sort_by == "rating_low":
+        sql += " ORDER BY r.rating ASC"
+    else:
+        sql += " ORDER BY r.date DESC" # Default to newest first
+
+    result = connection.execute(text(sql), params)
+    return result.mappings().all()
+
+
 # ======
 # ORDERS
 # ======
