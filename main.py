@@ -776,14 +776,15 @@ def my_returns():
     user_returns = db.get_customer_returns(conn, session["user_id"])
     return render_template("my_returns.html", returns=user_returns)
 
-# ==================
-# ADMIN RETURN MGMT
-# ==================
+# =======================
+# ADMIN RETURN MANAGEMENT
+# =======================
 
 @app.route("/admin/returns")
 def admin_returns():
-    # You should add a check here to ensure the user is an admin!
-    all_returns = db.get_all_returns_admin(conn)
+    if "user_id" not in session or get_user_role(conn, session["user_id"]) != "admin":
+        return redirect(url_for('login'))
+    all_returns = db.get_all_pending_returns(conn) 
     return render_template("admin_returns.html", returns=all_returns)
 
 @app.route("/admin/returns/update/<int:return_id>", methods=["POST"])
@@ -805,7 +806,6 @@ def reviews_page():
     sort_selection = request.args.get('sort', 'date')
     rating_filter = request.args.get('rating', type=int)
     
-    # NEW: Get product_id from the URL if you want to filter by product
     p_id = request.args.get('product_id', type=int)
 
     with engine.connect() as connection:
@@ -884,7 +884,7 @@ def chat_home():
         # Vendors should talk to admins OR customers depending on your design
         admins = db.get_all_admins(conn)
 
-        # IMPORTANT: vendors should NOT see all vendors
+        # Vendors should NOT see all vendors
         vendors = []
 
     elif role == "admin":

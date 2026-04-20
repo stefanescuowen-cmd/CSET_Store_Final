@@ -676,16 +676,18 @@ def get_customer_returns(connection, customer_id):
     """)
     return connection.execute(query, {"customer_id": customer_id}).mappings().all()
 
-def get_all_returns_admin(connection):
+def get_all_pending_returns(connection):
     query = text("""
         SELECT r.*, u.name as customer_name, p.title as product_title
         FROM returns r
         JOIN users u ON r.customer_id = u.user_id
         JOIN product_variants pv ON r.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
-        ORDER BY FIELD(status, 'Pending', 'Confirmed', 'Processing', 'Complete', 'Rejected')
+        ORDER BY r.date DESC
     """)
     return connection.execute(query).mappings().all()
+
+get_all_returns_admin = get_all_pending_returns
 
 def update_return_status(connection, return_id, new_status):
     query = text("UPDATE returns SET status = :status WHERE return_id = :id")
