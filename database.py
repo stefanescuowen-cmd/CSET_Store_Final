@@ -198,44 +198,71 @@ def send_chat_message(connection, sender_id, customer_id, text_content, vendor_i
     connection.commit()
 
 def get_chat_list(connection, user_id, role):
+    #Join users table to get names for everyone
+    query_str = """
+        SELECT
+            c.customer_id, cu.name as customer_name,
+            c.vendor_id, vu.name as vendor_name,
+            MAX(c.admin_id) as admin_id, 
+            MAX(au.name) as admin_name
+        FROM chats c
+        JOIN users cu ON c.customer_id = cu.user_id
+        LEFT JOIN users vu ON c.vendor_id = vu.user_id
+        LEFT JOIN users au ON c.admin_id = au.user_id
+    """
+
     if role == 'customer':
-        query = text("""
-            SELECT DISTINCT vendor_id, admin_id
-            FROM chats
-            WHERE customer_id = :uid
-        """)
+        query_str += " WHERE c.customer_id = :uid"
     elif role == 'vendor':
-        query = text("""
-            SELECT DISTINCT customer_id 
-            FROM chats 
-            WHERE vendor_id = :uid
-        """)
-    else: # Admin
-        query = text("""
-            SELECT DISTINCT customer_id 
-            FROM chats 
-            WHERE admin_id = :uid
-        """)
+        query_str += " WHERE c.vendor_id = :uid"
+    
+    # GROUP BY ensures we don't get duplicates in the sidebar
+    query_str += " GROUP BY c.customer_id, c.vendor_id, c.admin_id"
 
-    return connection.execute(query, {"uid": user_id}).mappings().all()
+    return connection.execute(text(query_str), {"uid": user_id}).mappings().all()
 
-def get_specific_chat_history(connection, customer_id, other_id, other_role):
-    #vendor function
-    if other_role == 'vendor':
-        query = text("""
-            SELECT * FROM chats 
-            WHERE customer_id = :cid AND vendor_id = :oid
-            ORDER BY timestamp ASC
-        """)
-    #admin function
+def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=None):
+    base_query = """
+        SELECT 
+            c.*, 
+            u.name as sender_name
+        FROM chats c
+        JOIN users u ON c.sender_id = u.user_id
+        WHERE c.customer_id = :cid
+    """
+
+    params = {"cid": customer_id}
+
+    if vendor_id:
+        base_query += " AND c.vendor_id = :vid"
+        params["vid"] = vendor_id
     else:
-        query = text("""
-            SELECT * FROM chats 
-            WHERE customer_id = :cid AND admin_id = :oid
-            ORDER BY timestamp ASC
-        """)
+        base_query += " AND c.admin_id = :aid AND c.vendor_id IS NULL"
+        params["aid"] = admin_id
 
-    return connection.execute(query, {"cid": customer_id, "oid": other_id}).mappings().all()
+    return connection.execute(text(base_query), params).mappings().all()
+                
+
+def get_all_vendors(connection):
+    return connection.execute(text("SELECT vendor_id as id, name FROM vendors JOIN users ON vendor_id = user_id")).mappings().all()
+
+def get_all_admins(connection):
+    return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()
+
+def get_all_customers(connection):
+    return connection.execute(text("SELECT customer_id as id, name FROM customers JOIN users ON customer_id = user_id")).mappings().all()
+
+def get_vendor_customers(connection, vendor_id):
+    query = text("""
+        SELECT DISTINCT o.customer_id as id, u.name
+        FROM order_items oi
+        JOIN products p ON oi.variant_id = (SELECT variant_id FROM product_variants pv WHERE pv.product_id = p.product_id LIMIT 1)
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN users u ON o.customer_id = u.user_id
+        WHERE p.vendor_id = :vid
+    """)
+    return connection.execute(query, {"vid": vendor_id}).mappings().all()
+
 
 # =======
 # REVIEWS
