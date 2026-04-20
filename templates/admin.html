@@ -63,20 +63,22 @@
 {% else %}
 <div class="return-grid">
     {% for return in returns %}
-
         <div class="return-card">
-            <p>Order ID: {{ return.order_id }}</p>
-            <p>Product: {{ return.title }}</p>
-            <p>Reason: {{ return.description }}</p>
-            <p>Return Request: {{ return.demand }}</p>
-            <p>Status: {{ return.status }}</p>
-            <!-- Add buttons to approve/reject returns -->
-            <form action="/admin/returns/{{ return.return_id }}/approve" method="POST">
-                <button type="submit">Approve</button>
-            </form>
-            <form action="/admin/returns/{{ return.return_id }}/reject" method="POST">
-                <button type="submit">Reject</button>
-            </form>
+            <p><strong>Order ID:</strong> {{ return.order_id }}</p>
+            <p><strong>Product:</strong> {{ return.product_title }}</p> <p><strong>Reason:</strong> {{ return.description }}</p>
+            <p><strong>Request:</strong> {{ return.demand }}</p>
+            <p><strong>Status:</strong> {{ return.status }}</p>
+
+            {% if return.status == 'Pending' %}
+                <form action="/admin/returns/{{ return.return_id }}/approve" method="POST" style="display:inline;">
+                    <button type="submit">Approve</button>
+                </form>
+                <form action="/admin/returns/{{ return.return_id }}/reject" method="POST" style="display:inline;">
+                    <button type="submit">Reject</button>
+                </form>
+            {% else %}
+                <p><em>Action already taken: {{ return.status }}</em></p>
+            {% endif %}
         </div>
     {% endfor %}
 </div>
