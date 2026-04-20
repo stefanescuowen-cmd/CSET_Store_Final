@@ -152,7 +152,8 @@ CREATE TABLE chats (
     FOREIGN KEY (return_id) REFERENCES returns(return_id) ON DELETE CASCADE,
     CHECK (
         (vendor_id IS NOT NULL AND admin_id IS NULL) OR
-        (vendor_id IS NULL AND admin_id IS NOT NULL)
+        (vendor_id IS NULL AND admin_id IS NOT NULL) OR
+        (vendor_id IS NOT NULL AND admin_id IS NOT NULL)
     )
 );
 

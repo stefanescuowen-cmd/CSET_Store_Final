@@ -125,71 +125,10 @@ function showPayment(method) {
     }
 }
 
-// // Chat
+// Chat
 
-// const partnerType = "{{ active_partner[0] if active_partner else '' }}";
-// const partnerId = Number("{{ active_partner[1] if active_partner else 0 }}");
-// const currentUserId = Number("{{ session.get('user_id', 0) }}");
-
-// let lastMessageCount = 0;
-
-// function loadMessages() {
-
-//     if (!partnerType || partnerId === 0) return;
-
-//     fetch(`/chat_messages/${partnerType}/${partnerId}`)
-//         .then(res => res.json())
-//         .then(data => {
-
-//             const box = document.getElementById("chat-box");
-//             if (!box) return;
-
-//             // avoid unnecessary rerenders
-//             if (data.length === lastMessageCount) return;
-
-//             lastMessageCount = data.length;
-
-//             box.innerHTML = "";
-
-//             data.forEach(msg => {
-
-//                 const sender = (Number(msg.customer_id) === currentUserId)
-//                     ? "You"
-//                     : "Them";
-
-//                 box.innerHTML += `
-//                     <p>
-//                         <strong>${sender}:</strong>
-//                         ${msg.text}
-//                         <br>
-//                         <small>${msg.timestamp || ""}</small>
-//                     </p>
-//                 `;
-//             });
-
-//             box.scrollTop = box.scrollHeight;
-//         })
-//         .catch(err => {
-//             console.error("Chat load error:", err);
-//         });
-// }
-
-// function sendMessage(event) {
-//     event.preventDefault();
-
-//     const form = event.target;
-//     const formData = new FormData(form);
-
-//     fetch("/send_message", {
-//         method: "POST",
-//         body: formData
-//     })
-//     .then(() => {
-//         form.reset();
-//         loadMessages(); // instant update after sending
-//     })
-//     .catch(err => console.error("Send error:", err));
-// }
-
-// loadMessages();
-// setInterval(loadMessages, 1500);
+function toggleRecipients() {
+    var reason = document.getElementById('reason').value;
+    document.getElementById('vendor_select').style.display = reason === 'question' ? 'block' : 'none';
+    document.getElementById('admin_select').style.display = reason === 'return' ? 'block' : 'none';
+}
