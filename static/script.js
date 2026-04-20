@@ -125,71 +125,71 @@ function showPayment(method) {
     }
 }
 
-// Chat
+// // Chat
 
-const partnerType = "{{ active_partner[0] if active_partner else '' }}";
-const partnerId = Number("{{ active_partner[1] if active_partner else 0 }}");
-const currentUserId = Number("{{ session.get('user_id', 0) }}");
+// const partnerType = "{{ active_partner[0] if active_partner else '' }}";
+// const partnerId = Number("{{ active_partner[1] if active_partner else 0 }}");
+// const currentUserId = Number("{{ session.get('user_id', 0) }}");
 
-let lastMessageCount = 0;
+// let lastMessageCount = 0;
 
-function loadMessages() {
+// function loadMessages() {
 
-    if (!partnerType || partnerId === 0) return;
+//     if (!partnerType || partnerId === 0) return;
 
-    fetch(`/chat_messages/${partnerType}/${partnerId}`)
-        .then(res => res.json())
-        .then(data => {
+//     fetch(`/chat_messages/${partnerType}/${partnerId}`)
+//         .then(res => res.json())
+//         .then(data => {
 
-            const box = document.getElementById("chat-box");
-            if (!box) return;
+//             const box = document.getElementById("chat-box");
+//             if (!box) return;
 
-            // avoid unnecessary rerenders
-            if (data.length === lastMessageCount) return;
+//             // avoid unnecessary rerenders
+//             if (data.length === lastMessageCount) return;
 
-            lastMessageCount = data.length;
+//             lastMessageCount = data.length;
 
-            box.innerHTML = "";
+//             box.innerHTML = "";
 
-            data.forEach(msg => {
+//             data.forEach(msg => {
 
-                const sender = (Number(msg.customer_id) === currentUserId)
-                    ? "You"
-                    : "Them";
+//                 const sender = (Number(msg.customer_id) === currentUserId)
+//                     ? "You"
+//                     : "Them";
 
-                box.innerHTML += `
-                    <p>
-                        <strong>${sender}:</strong>
-                        ${msg.text}
-                        <br>
-                        <small>${msg.timestamp || ""}</small>
-                    </p>
-                `;
-            });
+//                 box.innerHTML += `
+//                     <p>
+//                         <strong>${sender}:</strong>
+//                         ${msg.text}
+//                         <br>
+//                         <small>${msg.timestamp || ""}</small>
+//                     </p>
+//                 `;
+//             });
 
-            box.scrollTop = box.scrollHeight;
-        })
-        .catch(err => {
-            console.error("Chat load error:", err);
-        });
-}
+//             box.scrollTop = box.scrollHeight;
+//         })
+//         .catch(err => {
+//             console.error("Chat load error:", err);
+//         });
+// }
 
-function sendMessage(event) {
-    event.preventDefault();
+// function sendMessage(event) {
+//     event.preventDefault();
 
-    const form = event.target;
-    const formData = new FormData(form);
+//     const form = event.target;
+//     const formData = new FormData(form);
 
-    fetch("/send_message", {
-        method: "POST",
-        body: formData
-    })
-    .then(() => {
-        form.reset();
-        loadMessages(); // instant update after sending
-    })
-    .catch(err => console.error("Send error:", err));
-}
+//     fetch("/send_message", {
+//         method: "POST",
+//         body: formData
+//     })
+//     .then(() => {
+//         form.reset();
+//         loadMessages(); // instant update after sending
+//     })
+//     .catch(err => console.error("Send error:", err));
+// }
 
-loadMessages();
-setInterval(loadMessages, 1500);
+// loadMessages();
+// setInterval(loadMessages, 1500);
