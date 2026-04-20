@@ -748,7 +748,51 @@ def account():
     )
 
 
-from flask import render_template, request, redirect, session, url_for
+# =====================
+# CUSTOMER RETURN ROUTE
+# =====================
+
+@app.route("/submit-return", methods=["POST"])
+def submit_return():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db.create_return_request(
+        conn,
+        customer_id=session["user_id"],
+        order_id=request.form.get("order_id"),
+        variant_id=request.form.get("variant_id"),
+        title=request.form.get("title"),
+        description=request.form.get("description"),
+        demand=request.form.get("demand")
+    )
+    return redirect(url_for("my_returns"))
+
+@app.route("/my-returns")
+def my_returns():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_returns = db.get_customer_returns(conn, session["user_id"])
+    return render_template("my_returns.html", returns=user_returns)
+
+# =======================
+# ADMIN RETURN MANAGEMENT
+# =======================
+
+@app.route("/admin/returns")
+def admin_returns():
+    if "user_id" not in session or get_user_role(conn, session["user_id"]) != "admin":
+        return redirect(url_for('login'))
+    all_returns = db.get_all_pending_returns(conn) 
+    return render_template("admin_returns.html", returns=all_returns)
+
+@app.route("/admin/returns/update/<int:return_id>", methods=["POST"])
+def admin_update_return(return_id):
+    new_status = request.form.get("status")
+    db.update_return_status(conn, return_id, new_status)
+    return redirect(url_for("admin_returns"))
+
 
 # =======
 # REVIEWS
@@ -762,7 +806,6 @@ def reviews_page():
     sort_selection = request.args.get('sort', 'date')
     rating_filter = request.args.get('rating', type=int)
     
-    # NEW: Get product_id from the URL if you want to filter by product
     p_id = request.args.get('product_id', type=int)
 
     with engine.connect() as connection:
@@ -814,6 +857,11 @@ def add_review_route():
     # Redirect to the reviews page to see the new entry
     return redirect(url_for("reviews_page"))
 
+
+# ==========
+# CHAT ROUTE
+# ==========
+=======
 # ============
 # CHAT PAGE
 # ============
@@ -876,11 +924,13 @@ def send_message():
             vendor_id = target_id
         else:
             admin_id = target_id
-
+        # Vendors should NOT see all vendors
+        vendors = []
     # The sender is the vendor
     elif role == 'vendor':
         customer_id = target_id
         vendor_id = user_id  
+        main
 
     # The sender is the admin
     elif role == 'admin':

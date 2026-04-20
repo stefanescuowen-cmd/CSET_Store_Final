@@ -527,36 +527,49 @@ def delete_product(connection, product_id):
 # RETURNS
 # =======
 
-def create_return(connection, title, description, demand, customer_id, order_id, variant_id):
+def create_return_request(connection, customer_id, order_id, variant_id, title, description, demand):
     query = text("""
-        INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id)
-        VALUES (:title, :description, :demand, 'Pending', :customer_id, :order_id, :variant_id)
+        INSERT INTO returns (customer_id, order_id, variant_id, title, description, demand, status)
+        VALUES (:customer_id, :order_id, :variant_id, :title, :description, :demand, 'Pending')
     """)
     connection.execute(query, {
-        "title": title,
-        "description": description,
-        "demand": demand,
         "customer_id": customer_id,
         "order_id": order_id,
-        "variant_id": variant_id
+        "variant_id": variant_id,
+        "title": title,
+        "description": description,
+        "demand": demand
     })
     connection.commit()
 
-
-def get_returns(connection, customer_id):
-    query = text("SELECT * FROM returns WHERE customer_id = :customer_id")
-    result = connection.execute(query, {"customer_id": customer_id})
-    return result.mappings().all()
-
-def get_all_returns(connection):
-    query = text("SELECT * FROM returns")
-    result = connection.execute(query)
-    return result.mappings().all()
+def get_customer_returns(connection, customer_id):
+    query = text("""
+        SELECT r.*, p.title as product_title 
+        FROM returns r
+        JOIN product_variants pv ON r.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE r.customer_id = :customer_id
+        ORDER BY r.date DESC
+    """)
+    return connection.execute(query, {"customer_id": customer_id}).mappings().all()
 
 def get_all_pending_returns(connection):
-    query = text("SELECT * FROM returns WHERE status = 'Pending'")
-    result = connection.execute(query)
-    return result.mappings().all()
+    query = text("""
+        SELECT r.*, u.name as customer_name, p.title as product_title
+        FROM returns r
+        JOIN users u ON r.customer_id = u.user_id
+        JOIN product_variants pv ON r.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        ORDER BY r.date DESC
+    """)
+    return connection.execute(query).mappings().all()
+
+get_all_returns_admin = get_all_pending_returns
+
+def update_return_status(connection, return_id, new_status):
+    query = text("UPDATE returns SET status = :status WHERE return_id = :id")
+    connection.execute(query, {"status": new_status, "id": return_id})
+    connection.commit()
 
 
 # =======
