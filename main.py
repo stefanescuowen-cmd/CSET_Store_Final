@@ -861,7 +861,7 @@ def add_review_route():
 # ==========
 # CHAT ROUTE
 # ==========
-=======
+
 # ============
 # CHAT PAGE
 # ============
@@ -929,8 +929,7 @@ def send_message():
     # The sender is the vendor
     elif role == 'vendor':
         customer_id = target_id
-        vendor_id = user_id  
-        main
+        vendor_id = user_id
 
     # The sender is the admin
     elif role == 'admin':
