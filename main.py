@@ -378,13 +378,14 @@ def vendor_confirm_order_item():
 @app.route("/shop")
 def shop():
     args = {
-        "search": request.args.get("search"),
-        "vendor": request.args.get("vendor"),
-        "color": request.args.get("color"),
-        "size": request.args.get("size"),
-        "availability": request.args.get("availability")
+        "search": request.args.get("search", ""),
+        "vendor": request.args.get("vendor", ""),
+        "color": request.args.get("color", ""),
+        "size": request.args.get("size", ""),
+        "availability": request.args.get("availability", "")
     }
 
+    # Pass the connection and the unpacked dictionary
     products = db.get_filtered_products(conn, **args)
     images = db.get_product_images(conn)
 
@@ -804,11 +805,16 @@ def reviews_page():
 
     sort_selection = request.args.get('sort', 'date')
     rating_filter = request.args.get('rating', type=int)
-    
     p_id = request.args.get('product_id', type=int)
 
     with engine.connect() as connection:
-        reviews = db.get_all_reviews(connection, sort_by=sort_selection, filter_rating=rating_filter)
+
+        reviews = db.get_all_reviews(
+            connection, 
+            product_id=p_id, 
+            sort_by=sort_selection, 
+            filter_rating=rating_filter
+        )
         
         product = None
         if p_id:
@@ -816,7 +822,8 @@ def reviews_page():
                 text("SELECT title FROM products WHERE product_id = :id"), 
                 {"id": p_id}
             ).mappings().first()
-        else:
+       
+        if not product:
             product = {"title": "All Products"}
 
     return render_template(
@@ -824,7 +831,8 @@ def reviews_page():
         reviews=reviews, 
         current_sort=sort_selection, 
         current_filter=rating_filter,
-        product=product
+        product=product,
+        product_id=p_id
     )
 
 

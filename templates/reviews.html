@@ -4,47 +4,75 @@
 
 <h1>Reviews for {{ product.title }}</h1>
 
-<form action="{{ url_for('reviews_page') }}" method="GET">
-        
-        <label for="rating">Filter by Stars:</label>
-        <select name="rating" id="rating">
-            <option value="">All Ratings</option>
-            <option value="5" {% if current_filter == 5 %}selected{% endif %}>5 Stars</option>
-            <option value="4" {% if current_filter == 4 %}selected{% endif %}>4 Stars</option>
-            <option value="3" {% if current_filter == 3 %}selected{% endif %}>3 Stars</option>
-            <option value="2" {% if current_filter == 2 %}selected{% endif %}>2 Stars</option>
-            <option value="1" {% if current_filter == 1 %}selected{% endif %}>1 Star</option>
-        </select>
+<form action="{{ url_for('reviews_page') }}" method="GET" class="filter-bar">
+    {% if product_id %}
+    <input type="hidden" name="product_id" value="{{ product_id }}">
+    {% endif %}
+    
+    <label for="rating">Filter by Stars:</label>
+    <select name="rating" id="rating">
+        <option value="">All Ratings</option>
+        <option value="5" {% if current_filter == 5 %}selected{% endif %}>5 Stars</option>
+        <option value="4" {% if current_filter == 4 %}selected{% endif %}>4 Stars</option>
+        <option value="3" {% if current_filter == 3 %}selected{% endif %}>3 Stars</option>
+        <option value="2" {% if current_filter == 2 %}selected{% endif %}>2 Stars</option>
+        <option value="1" {% if current_filter == 1 %}selected{% endif %}>1 Star</option>
+    </select>
 
-        <label for="sort">Sort by:</label>
-        <select name="sort" id="sort">
-            <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Newest First</option>
-            <option value="rating_high" {% if current_sort == 'rating_high' %}selected{% endif %}>Highest Rating</option>
-            <option value="rating_low" {% if current_sort == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
-        </select>
+    <label for="sort">Sort by:</label>
+    <select name="sort" id="sort">
+        <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Newest First</option>
+        <option value="rating_high" {% if current_sort == 'rating_high' %}selected{% endif %}>Highest Rating</option>
+        <option value="rating_low" {% if current_sort == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
+    </select>
 
-        <button type="submit">Apply</button>
-        <a href="{{ url_for('reviews_page') }}">Clear All</a>
-    </form>
-
-<hr>
-
-{% for review in reviews %}
-    <div class="review-card">
-        <strong>{{ review.reviewer_name }}</strong> 
-        <span>Rating: {{ review.rating }}/5</span>
-        <p>{{ review.description }}</p>
-        <small>Posted on: {{ review.date }}</small>
-    </div>
-{% endfor %}
-
-<hr>
-
-<h3>Write a Review</h3>
-<form method="POST" action="/product/{{ product_id }}/add_review">
-    <input type="number" name="rating" min="1" max="5" required placeholder="Rating (1-5)">
-    <textarea name="description" required placeholder="Your review..."></textarea>
-    <button type="submit">Submit Review</button>
+    <button type="submit">Apply</button>
+    <a href="{{ url_for('reviews_page', product_id=product_id) if product_id else url_for('reviews_page') }}">
+        <button type="button">Clear Filters</button>
+    </a>
 </form>
+
+<hr>
+
+<div class="reviews-container">
+    {% for review in reviews %}
+        <div class="review-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;">
+            <strong>{{ review.name or review.reviewer_name }}</strong> 
+            <span style="color: #f39c12;">
+                {% for i in range(review.rating) %}★{% endfor %}
+                {% for i in range(5 - review.rating) %}☆{% endfor %}
+            </span>
+            <p>{{ review.description }}</p>
+            {% if review.date %}
+                <small>Posted on: {{ review.date }}</small>
+            {% endif %}
+        </div>
+    {% else %}
+        <p>No reviews found matching your criteria.</p>
+    {% endfor %}
+</div>
+
+<hr>
+
+{% if session.get("role") == "customer" and product_id %}
+    <h3>Write a Review for {{ product.title }}</h3>
+    <form method="POST" action="/add-review">
+        <input type="hidden" name="product_id" value="{{ product_id }}">
+        
+        <div style="margin-bottom: 10px;">
+            <label>Rating:</label>
+            <input type="number" name="rating" min="1" max="5" required placeholder="1-5">
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>Your Feedback:</label><br>
+            <textarea name="comment" required placeholder="What did you think of this appliance?" style="width: 100%; height: 100px;"></textarea>
+        </div>
+
+        <button type="submit">Submit Review</button>
+    </form>
+{% elif session.get("role") == "customer" %}
+    <p><em>Please select a specific product from the <a href="/shop">shop</a> to leave a review.</em></p>
+{% endif %}
 
 {% endblock %}
