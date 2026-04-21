@@ -44,9 +44,7 @@
                     src="{{ images[0] }}"
                     onclick="openLightbox(this.src)">
             {% else %}
-                <div>
-                    No image
-                </div>
+                <div>No image</div>
             {% endif %}
         </div>
 
@@ -59,6 +57,13 @@
         </div>
 
         <p>{{ product.description }}</p>
+
+        <div class="review-link" style="margin-bottom: 10px;">
+            <a href="{{ url_for('reviews_page', product_id=product.product_id) }}" style="color: #007bff; text-decoration: none; font-weight: bold;">
+                ★ View Reviews
+            </a>
+        </div>
+
         {% if product.discount_price %}
             <p>
                 <del>${{ product.price }}</del> 
@@ -88,43 +93,23 @@
         </p>
 
         {% if session.get("user_id") %}
+            <form action="/add-to-cart" method="POST">
+                <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}">
+                <button type="submit">Add to Cart</button>
+            </form>
 
-    <!-- LOGGED IN: NORMAL FUNCTIONALITY -->
-
-    <form action="/add-to-cart" method="POST">
-        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
-        
-        <input id="qty-{{ product.product_id }}" type="number"
-               name="quantity"
-               value="1"
-               min="1"
-               max="{{ product.variants[0].stock }}">
-               
-        <button type="submit">Add to Cart</button>
-    </form>
-
-    <form action="/add-to-wishlist" method="POST">
-        <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
-        <button type="submit">Add to Wishlist</button>
-    </form>
-
-{% else %}
-
-    <div>
-        <p>
-            You need an account to purchase or save items.
-        </p>
-
-        <a href="/login">
-            <button type="button">Login</button>
-        </a>
-
-        <a href="/signup">
-            <button type="button">Sign Up</button>
-        </a>
-    </div>
-
-{% endif %}
+            <form action="/add-to-wishlist" method="POST">
+                <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                <button type="submit">Add to Wishlist</button>
+            </form>
+        {% else %}
+            <div>
+                <p>You need an account to purchase or save items.</p>
+                <a href="/login"><button type="button">Login</button></a>
+                <a href="/signup"><button type="button">Sign Up</button></a>
+            </div>
+        {% endif %}
 
     </div>
 {% endfor %}
@@ -135,8 +120,7 @@
 {% endif %}
 
 <div id="lightbox" onclick="closeLightbox()" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); cursor:pointer; align-items:center; justify-content:center;">
-    <img id="lightbox-img" src="" style="max-width:90%; max-height:90%; border: 3px solid var(--accent-color); border-radius: 10px;">
+    <img id="lightbox-img" src="" style="max-width:90%; max-height:90%; border: 3px solid #fff; border-radius: 10px;">
 </div>
 
 {% endblock %}
-
