@@ -411,7 +411,7 @@ def get_orders(connection, customer_id):
 def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants, images):    
     query = text("""
         INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
-        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_end)
+        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_deadline)
     """)
     result = connection.execute(query, {
         "vendor_id": vendor_id,
@@ -419,7 +419,7 @@ def add_new_product(connection, vendor_id, title, description, price, discount_p
         "description": description,
         "price": price,
         "discount_price": discount_price,
-        "discount_end": discount_end
+        "discount_deadline": discount_end # This matches :discount_deadline above
     })
     product_id = result.lastrowid
 
@@ -450,6 +450,7 @@ def add_new_product(connection, vendor_id, title, description, price, discount_p
     return product_id
 
 def get_all_products(connection):
+    # 1. DEFINE the query variable first
     query = text("""
         SELECT 
             p.product_id, p.title, p.description, p.price, p.discount_price,
@@ -464,6 +465,8 @@ def get_all_products(connection):
         LEFT JOIN reviews r ON r.product_id = p.product_id 
         GROUP BY p.product_id
     """)
+    
+    # 2. EXECUTE the query (This is where your error was likely triggered)
     result = connection.execute(query).mappings().all()
 
     products = []
@@ -471,8 +474,8 @@ def get_all_products(connection):
         item = dict(row)
         item['variants'] = []
         
-        # Check if variants exist before splitting to avoid errors on products without variants
         if item.get('v_ids'):
+            # Convert Group_Concat strings into lists
             ids = str(item['v_ids']).split(',')
             sizes = str(item['v_sizes']).split(',')
             colors = str(item['v_colors']).split(',')
@@ -483,7 +486,8 @@ def get_all_products(connection):
                     "id": ids[i],
                     "size": sizes[i] if i < len(sizes) else "N/A",
                     "color": colors[i] if i < len(colors) else "N/A",
-                    "stock": stocks[i] if i < len(stocks) else 0
+                    # The int() here fixes the template addition error
+                    "stock": int(stocks[i]) if i < len(stocks) else 0
                 })
         
         products.append(item)
@@ -579,7 +583,6 @@ def get_filtered_products(connection, search=None, vendor=None, color=None, size
     
     raw_results = connection.execute(text(sql), params).mappings().all()
     
-    # ... keep your existing loop that processes variants ...
     products = []
     for row in raw_results:
         item = dict(row)
