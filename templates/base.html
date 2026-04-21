@@ -41,12 +41,12 @@
                         <!-- ADMIN NAV -->
                         {% if session.get("role") == "admin" %}
                             <li><a href="/admin">Admin Dashboard</a></li>
-                            <li><a href="/admin_returns">Manage Returns</a></li>
+                            <li><a href="/admin-returns">Manage Returns</a></li>
                         {% endif %}
 
                         <!-- ADMIN AND VENDOR NAV -->
                         {% if session.get("role") in ["admin", "vendor"] %}
-                            <li><a href="/add-product">Add Product</a></li>
+                            <li><a href="/new-product">Add Product</a></li>
                             <li><a href="/manage-products">Manage Products</a></li>
                             <li><a href="/orders">View Orders</a></li>
                         {% endif %}

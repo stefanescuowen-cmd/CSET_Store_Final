@@ -48,9 +48,9 @@ def index():
     return render_template("index.html", is_admin=is_admin)
 
 
-# =========================
+# ======
 # SIGNUP
-# =========================
+# ======
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -154,7 +154,7 @@ def admin_dashboard():
 # ADMIN PRODUCT MANAGEMENT
 # ========================
 
-@app.route("/admin/product/new", methods=["GET", "POST"])
+@app.route("/new-product", methods=["GET", "POST"])
 def new_product():
     if not get_user_role(conn, session["user_id"]) == "admin":
         flash("Access denied.", "error")
@@ -171,7 +171,7 @@ def new_product():
         flash("Product added successfully!", "success")
         return redirect(url_for('admin_dashboard'))
 
-    return render_template("new_product.html")
+    return render_template("new-product.html")
 
 @app.route("/admin/product/<int:product_id>/delete", methods=["POST"])
 def delete_product(product_id):
@@ -766,7 +766,7 @@ def submit_return():
         description=request.form.get("description"),
         demand=request.form.get("demand")
     )
-    return redirect(url_for("my_returns"))
+    return redirect(url_for("my-returns"))
 
 @app.route("/my-returns")
 def my_returns():
@@ -774,24 +774,24 @@ def my_returns():
         return redirect(url_for("login"))
     
     user_returns = db.get_customer_returns(conn, session["user_id"])
-    return render_template("my_returns.html", returns=user_returns)
+    return render_template("my-returns.html", returns=user_returns)
 
 # =======================
 # ADMIN RETURN MANAGEMENT
 # =======================
 
-@app.route("/admin/returns")
+@app.route("/admin-returns")
 def admin_returns():
     if "user_id" not in session or get_user_role(conn, session["user_id"]) != "admin":
         return redirect(url_for('login'))
     all_returns = db.get_all_pending_returns(conn) 
-    return render_template("admin_returns.html", returns=all_returns)
+    return render_template("admin-returns.html", returns=all_returns)
 
 @app.route("/admin/returns/update/<int:return_id>", methods=["POST"])
 def admin_update_return(return_id):
     new_status = request.form.get("status")
     db.update_return_status(conn, return_id, new_status)
-    return redirect(url_for("admin_returns"))
+    return redirect(url_for("admin-returns"))
 
 
 # =======
