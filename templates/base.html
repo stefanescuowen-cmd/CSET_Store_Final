@@ -46,8 +46,8 @@
 
                         <!-- ADMIN AND VENDOR NAV -->
                         {% if session.get("role") in ["admin", "vendor"] %}
-                            <li><a href="/new-product">Add Product</a></li>
-                            <li><a href="/manage-products">Manage Products</a></li>
+                            <li><a href="{{ url_for('new_product') }}">Add Product</a></li>
+                            <li><a href="{{ url_for('manage_products') }}">Manage Products</a></li>
                             <li><a href="/orders">View Orders</a></li>
                         {% endif %}
 
