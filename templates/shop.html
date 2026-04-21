@@ -4,6 +4,25 @@
 
 <h1>Shop</h1>
 
+<form method="GET" action="/shop" class="filter-bar">
+    <input type="text" name="search" placeholder="Search by name..." value="{{ args.search or '' }}">
+    <input type="text" name="vendor" placeholder="Vendor name" value="{{ args.vendor or '' }}">
+    
+    <select name="color">
+        <option value="">All Colors</option>
+        <option value="Silver" {% if args.color == 'Silver' %}selected{% endif %}>Silver</option>
+        </select>
+    
+    <select name="availability">
+        <option value="">Availability</option>
+        <option value="in_stock" {% if args.availability == 'in_stock' %}selected{% endif %}>In Stock</option>
+        <option value="out_of_stock" {% if args.availability == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+    </select>
+    
+    <button type="submit">Filter Results</button>
+    <a href="/shop">Clear</a>
+</form>
+
 <form method="GET" action="/shop">
     <input type="text" name="search"
         {% if search_query %} value="{{ search_query }}" 
@@ -67,7 +86,15 @@
             {% endfor %}
         </select>
 
-        <p>Stock: <span id="stock-{{ product.product_id }}">{{ product.variants[0].stock }}</span></p>
+        <p>Stock: 
+            <span id="stock-{{ product.product_id }}">
+                {% if product.variants and product.variants|length > 0 %}
+                    {{ product.variants[0].stock }}
+                {% else %}
+                    Out of Stock
+                {% endif %}
+            </span>
+        </p>
 
         {% if session.get("user_id") %}
 

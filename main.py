@@ -377,24 +377,22 @@ def vendor_confirm_order_item():
 
 @app.route("/shop")
 def shop():
-    search_term = request.args.get("search")
-    
-    if search_term:
-        # Use the search function from database.py
-        products = db.search_products(conn, search_term)
-    else:
-        # Default view
-        products = db.get_all_products(conn)
+    args = {
+        "search": request.args.get("search"),
+        "vendor": request.args.get("vendor"),
+        "color": request.args.get("color"),
+        "size": request.args.get("size"),
+        "availability": request.args.get("availability")
+    }
 
+    products = db.get_filtered_products(conn, **args)
     images = db.get_product_images(conn)
 
     image_map = {}
     for img in images:
-        pid = img["product_id"]
-        image_map.setdefault(pid, []).append(img["image_url"])
-
+        image_map.setdefault(img["product_id"], []).append(img["image_url"])
         
-    return render_template("shop.html", products=products, search_term=search_term, image_map=image_map)
+    return render_template("shop.html", products=products, image_map=image_map, args=args)
 
 
 # ============
@@ -404,7 +402,8 @@ def shop():
 @app.route("/product/<int:product_id>")
 def product(product_id):
     product = db.get_product_by_id(conn, product_id)
-    return render_template("product.html", product=product)
+    reviews = db.get_reviews_for_product(conn, product_id)
+    return render_template("product.html", product=product, reviews=reviews)
 
 
 # ====
@@ -836,26 +835,37 @@ def reviews_page():
 @app.route("/add-review", methods=["POST"])
 def add_review_route():
     if "user_id" not in session:
+        flash("Please log in to leave a review.", "error")
         return redirect(url_for("login"))
+
+    if session.get("role") != "customer":
+        flash("Only customers can write product reviews.", "error")
+        return redirect(url_for("shop"))
 
     product_id = request.form.get("product_id")
     rating = request.form.get("rating", type=int)
     comment = request.form.get("comment")
 
     if not rating or not (1 <= rating <= 5):
+        flash("Please provide a valid rating (1-5).", "error")
         return redirect(url_for("shop"))
 
-    # Call the database function
-    db.add_review(
-        connection=conn, 
-        customer_id=session["user_id"], 
-        product_id=product_id, 
-        rating=rating, 
-        description=comment
-    )
+    variant = conn.execute(
+        text("SELECT variant_id FROM product_variants WHERE product_id = :id LIMIT 1"),
+        {"id": product_id}
+    ).mappings().first()
 
-    # Redirect to the reviews page to see the new entry
-    return redirect(url_for("reviews_page"))
+    if variant:
+        db.add_review(
+            connection=conn, 
+            variant_id=variant['variant_id'],
+            customer_id=session["user_id"], 
+            rating=rating, 
+            description=comment
+        )
+        flash("Review submitted!", "success")
+    
+    return redirect(url_for("product", product_id=product_id))
 
 
 # ==========

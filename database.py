@@ -438,12 +438,15 @@ def get_all_products(connection):
     query = text("""
         SELECT 
             p.product_id, p.title, p.description, p.price, p.discount_price,
+            AVG(r.rating) as avg_rating,
+            COUNT(r.review_id) as review_count,
             GROUP_CONCAT(v.variant_id) as v_ids,
             GROUP_CONCAT(v.size) as v_sizes,
             GROUP_CONCAT(v.color) as v_colors,
             GROUP_CONCAT(v.stock) as v_stocks
         FROM products p
-        JOIN product_variants v ON p.product_id = v.product_id
+        LEFT JOIN product_variants v ON p.product_id = v.product_id
+        LEFT JOIN reviews r ON r.product_id = p.product_id 
         GROUP BY p.product_id
     """)
     result = connection.execute(query).mappings().all()
@@ -452,18 +455,22 @@ def get_all_products(connection):
     for row in result:
         item = dict(row)
         item['variants'] = []
-        ids = str(item['v_ids']).split(',')
-        sizes = str(item['v_sizes']).split(',')
-        colors = str(item['v_colors']).split(',')
-        stocks = str(item['v_stocks']).split(',')
+        
+        # Check if variants exist before splitting to avoid errors on products without variants
+        if item.get('v_ids'):
+            ids = str(item['v_ids']).split(',')
+            sizes = str(item['v_sizes']).split(',')
+            colors = str(item['v_colors']).split(',')
+            stocks = str(item['v_stocks']).split(',')
 
-        for i in range(len(ids)):
-            item['variants'].append({
-                "id": ids[i],
-                "size": sizes[i],
-                "color": colors[i],
-                "stock": stocks[i]
-            })
+            for i in range(len(ids)):
+                item['variants'].append({
+                    "id": ids[i],
+                    "size": sizes[i] if i < len(sizes) else "N/A",
+                    "color": colors[i] if i < len(colors) else "N/A",
+                    "stock": stocks[i] if i < len(stocks) else 0
+                })
+        
         products.append(item)
     return products
 
@@ -513,7 +520,51 @@ def search_products(connection, term):
         products.append(item)
     return products
 
+def get_filtered_products(connection, search=None, vendor=None, color=None, size=None, availability=None):
+    sql = """
+        SELECT 
+            p.product_id, p.title, p.description, p.price, p.discount_price,
+            u.name as vendor_name,
+            AVG(r.rating) as avg_rating,
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
+        FROM products p
+        JOIN product_variants v ON p.product_id = v.product_id
+        JOIN users u ON p.vendor_id = u.user_id
+        LEFT JOIN reviews r ON p.product_id = r.product_id
+        WHERE 1=1
+    """
+    params = {}
+    # ... (your existing filter logic for search, color, etc.) ...
 
+    sql += " GROUP BY p.product_id"
+    
+    raw_results = connection.execute(text(sql), params).mappings().all()
+    
+    products = []
+    for row in raw_results:
+        item = dict(row)
+        item['variants'] = []
+        
+        # Process the strings from GROUP_CONCAT into a list of dictionaries
+        if item.get('v_ids'):
+            ids = str(item['v_ids']).split(',')
+            sizes = str(item['v_sizes']).split(',')
+            colors = str(item['v_colors']).split(',')
+            stocks = str(item['v_stocks']).split(',')
+
+            for i in range(len(ids)):
+                item['variants'].append({
+                    "id": ids[i],
+                    "size": sizes[i],
+                    "color": colors[i],
+                    "stock": int(stocks[i])
+                })
+        products.append(item)
+        
+    return products
 
 def update_product(connection, product_id, title, description, price, discount_price, stock):
     query = text("""
