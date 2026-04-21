@@ -131,4 +131,32 @@ function toggleRecipients() {
     var reason = document.getElementById('reason').value;
     document.getElementById('vendor_select').style.display = reason === 'question' ? 'block' : 'none';
     document.getElementById('admin_select').style.display = reason === 'return' ? 'block' : 'none';
+    document.getElementById('return_select').style.display = reason === 'return' ? 'block' : 'none';
+}
+
+
+// Returns
+function filterVariantsByOrder() {
+    const orderSelect = document.getElementById('order_id');
+    const variantSelect = document.getElementById('variant_id');
+    const selectedOrderId = orderSelect.value;
+    const variantOptions = variantSelect.querySelectorAll('option');
+
+    document.getElementById('variant-select-group').style.display = "inline";
+
+    // Reset the product selection
+    variantSelect.value = "";
+
+    variantOptions.forEach(option => {
+        // Skip the placeholder option
+        if (!option.getAttribute('data-order-id')) return;
+
+        if (option.getAttribute('data-order-id') === selectedOrderId) {
+            option.style.display = "block";
+            option.disabled = false;
+        } else {
+            option.style.display = "none";
+            option.disabled = true;
+        }
+    });
 }
