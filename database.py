@@ -216,7 +216,8 @@ def get_chat_list(connection, user_id, role):
             c.customer_id, cu.name as customer_name,
             c.vendor_id, vu.name as vendor_name,
             MAX(c.admin_id) as admin_id, 
-            MAX(au.name) as admin_name
+            MAX(au.name) as admin_name,
+            MAX(c.return_id) as return_id
         FROM chats c
         JOIN users cu ON c.customer_id = cu.user_id
         LEFT JOIN users vu ON c.vendor_id = vu.user_id
@@ -229,11 +230,11 @@ def get_chat_list(connection, user_id, role):
         query_str += " WHERE c.vendor_id = :uid"
     
     # GROUP BY ensures we don't get duplicates in the sidebar
-    query_str += " GROUP BY c.customer_id, c.vendor_id, c.admin_id"
+    query_str += " GROUP BY c.customer_id, c.vendor_id, c.admin_id, c.return_id"
 
     return connection.execute(text(query_str), {"uid": user_id}).mappings().all()
 
-def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=None):
+def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=None, return_id=None):
     base_query = """
         SELECT 
             c.*, 
@@ -245,12 +246,17 @@ def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=
 
     params = {"cid": customer_id}
 
-    if vendor_id:
-        base_query += " AND c.vendor_id = :vid"
+    if return_id:
+        base_query += " AND c.return_id = :rid"
+        params["rid"] = return_id
+    elif vendor_id:
+        base_query += " AND c.vendor_id = :vid AND c.return_id IS NULL"
         params["vid"] = vendor_id
     else:
-        base_query += " AND c.admin_id = :aid AND c.vendor_id IS NULL"
+        base_query += " AND c.admin_id = :aid AND c.vendor_id IS NULL AND c.return_id IS NULL"
         params["aid"] = admin_id
+
+    base_query += " ORDER BY c.timestamp ASC"
 
     return connection.execute(text(base_query), params).mappings().all()
                 
@@ -274,6 +280,20 @@ def get_vendor_customers(connection, vendor_id):
         WHERE p.vendor_id = :vid
     """)
     return connection.execute(query, {"vid": vendor_id}).mappings().all()
+
+def get_user_name(connection, user_id):
+    query = text("SELECT name FROM users WHERE user_id = :uid")
+    return connection.execute(query, {"uid": user_id}).scalar()
+
+def get_return_title(connection, return_id):
+    query = text("""
+        SELECT p.title 
+        FROM returns r
+        JOIN product_variants pv ON r.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE r.return_id = :rid
+    """)
+    return connection.execute(query, {"rid": return_id}).scalar()
 
 
 # =======
@@ -393,14 +413,35 @@ def add_order_item(connection, order_id, variant_id, quantity):
 
 def get_orders(connection, customer_id):
     query = text("""
-        SELECT o.order_id, p.title, oi.quantity, o.order_status
+        SELECT o.order_id, 
+            GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles, 
+            SUM(oi.quantity) as quantity,
+            o.order_status
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE o.customer_id = :customer_id
+        GROUP BY o.order_id;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
+    return result.mappings().all()
+
+def get_order_items(connection, order_id):
+    query = text("""
+        SELECT 
+            oi.variant_id, 
+            oi.quantity, 
+            oi.item_status, 
+            p.title, 
+            pv.size, 
+            pv.color
+        FROM order_items oi
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE oi.order_id = :order_id
+    """)
+    result = connection.execute(query, {"order_id": order_id})
     return result.mappings().all()
 
 
