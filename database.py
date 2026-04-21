@@ -526,10 +526,10 @@ def get_filtered_products(connection, search=None, vendor=None, color=None, size
             p.product_id, p.title, p.description, p.price, p.discount_price,
             u.name as vendor_name,
             AVG(r.rating) as avg_rating,
-            GROUP_CONCAT(v.variant_id) as v_ids,
-            GROUP_CONCAT(v.size) as v_sizes,
-            GROUP_CONCAT(v.color) as v_colors,
-            GROUP_CONCAT(v.stock) as v_stocks
+            GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
+            GROUP_CONCAT(DISTINCT v.size) as v_sizes,
+            GROUP_CONCAT(DISTINCT v.color) as v_colors,
+            GROUP_CONCAT(DISTINCT v.stock) as v_stocks
         FROM products p
         JOIN product_variants v ON p.product_id = v.product_id
         JOIN users u ON p.vendor_id = u.user_id
@@ -537,24 +537,43 @@ def get_filtered_products(connection, search=None, vendor=None, color=None, size
         WHERE 1=1
     """
     params = {}
-    # ... (your existing filter logic for search, color, etc.) ...
+
+    if search:
+        sql += " AND (p.title LIKE :search OR p.description LIKE :search)"
+        params['search'] = f"%{search}%"
+
+    if vendor:
+        sql += " AND u.name LIKE :vendor"
+        params['vendor'] = f"%{vendor}%"
+
+    if color:
+        sql += " AND v.color = :color"
+        params['color'] = color
+
+    if size:
+        sql += " AND v.size = :size"
+        params['size'] = size
+
+    # Handle Availability (In Stock vs Out of Stock)
+    if availability == "in_stock":
+        sql += " AND v.stock > 0"
+    elif availability == "out_of_stock":
+        sql += " AND v.stock = 0"
 
     sql += " GROUP BY p.product_id"
     
     raw_results = connection.execute(text(sql), params).mappings().all()
     
+    # ... keep your existing loop that processes variants ...
     products = []
     for row in raw_results:
         item = dict(row)
         item['variants'] = []
-        
-        # Process the strings from GROUP_CONCAT into a list of dictionaries
         if item.get('v_ids'):
             ids = str(item['v_ids']).split(',')
             sizes = str(item['v_sizes']).split(',')
             colors = str(item['v_colors']).split(',')
             stocks = str(item['v_stocks']).split(',')
-
             for i in range(len(ids)):
                 item['variants'].append({
                     "id": ids[i],
@@ -563,7 +582,6 @@ def get_filtered_products(connection, search=None, vendor=None, color=None, size
                     "stock": int(stocks[i])
                 })
         products.append(item)
-        
     return products
 
 def update_product(connection, product_id, title, description, price, discount_price, stock):

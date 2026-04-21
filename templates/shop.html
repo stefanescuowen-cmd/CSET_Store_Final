@@ -5,36 +5,27 @@
 <h1>Shop</h1>
 
 <form method="GET" action="/shop" class="filter-bar">
-    <input type="text" name="search" placeholder="Search by name..." value="{{ args.search or '' }}">
+    <input type="text" name="search" placeholder="Search products..." value="{{ args.search or '' }}">
     <input type="text" name="vendor" placeholder="Vendor name" value="{{ args.vendor or '' }}">
     
     <select name="color">
         <option value="">All Colors</option>
         <option value="Silver" {% if args.color == 'Silver' %}selected{% endif %}>Silver</option>
-        </select>
+        <option value="White" {% if args.color == 'White' %}selected{% endif %}>White</option>
+        <option value="Black" {% if args.color == 'Black' %}selected{% endif %}>Black</option>
+    </select>
     
     <select name="availability">
-        <option value="">Availability</option>
+        <option value="">Any Availability</option>
         <option value="in_stock" {% if args.availability == 'in_stock' %}selected{% endif %}>In Stock</option>
         <option value="out_of_stock" {% if args.availability == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
     </select>
     
-    <button type="submit">Filter Results</button>
-    <a href="/shop">Clear</a>
-</form>
-
-<form method="GET" action="/shop">
-    <input type="text" name="search"
-        {% if search_query %} value="{{ search_query }}" 
-        {% else %} placeholder="Search products..." 
-        {% endif %}
-        value="{{ search_query if search_query }}">
-
-    <button type="submit">Search</button>
-
-    {% if search_term %}
+    <button type="submit">Apply Search & Filters</button>
+    
+    {% if args.search or args.vendor or args.color or args.availability %}
         <a href="/shop">
-            <button type="button">Clear</button>
+            <button type="button">Clear All</button>
         </a>
     {% endif %}
 </form>
