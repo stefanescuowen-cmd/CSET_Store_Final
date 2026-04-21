@@ -245,7 +245,15 @@ def orders_page():
         return redirect(url_for("login"))
 
     customer_id = session["user_id"]
-    orders = db.get_orders(conn, customer_id)
+
+    with engine.connect() as conn:
+        orders_raw = db.get_orders(conn, customer_id)
+
+        orders = []
+        for order in orders_raw:
+            order_dict = dict(order)
+            order_dict['order_items_list'] = db.get_order_items(conn, order_dict['order_id'])
+            orders.append(order_dict)
 
     return render_template("orders.html", orders=orders)
 
@@ -766,15 +774,27 @@ def submit_return():
         description=request.form.get("description"),
         demand=request.form.get("demand")
     )
-    return redirect(url_for("my-returns"))
+    return redirect(url_for("my_returns"))
 
 @app.route("/my-returns")
 def my_returns():
     if "user_id" not in session:
         return redirect(url_for("login"))
     
-    user_returns = db.get_customer_returns(conn, session["user_id"])
-    return render_template("my-returns.html", returns=user_returns)
+    customer_id = session["user_id"]
+    with engine.connect() as conn:
+        user_returns = db.get_customer_returns(conn, customer_id)
+        
+        # Get orders and nest the items just like we did for the orders page
+        raw_orders = db.get_orders(conn, customer_id)
+        orders = []
+        for r in raw_orders:
+            o_dict = dict(r)
+            # Fetch items for this specific order
+            o_dict['order_items_list'] = db.get_order_items(conn, o_dict['order_id'])
+            orders.append(o_dict)
+            
+    return render_template("my-returns.html", returns=user_returns, orders=orders)
 
 # =======================
 # ADMIN RETURN MANAGEMENT
@@ -858,10 +878,6 @@ def add_review_route():
     return redirect(url_for("reviews_page"))
 
 
-# ==========
-# CHAT ROUTE
-# ==========
-
 # ============
 # CHAT PAGE
 # ============
@@ -875,9 +891,14 @@ def chat():
         return redirect('/login')
     
     is_new = request.args.get('new_chat') == 'true'
-    cid = request.args.get('cid')
-    vid = request.args.get('vid')
-    aid = request.args.get('aid')
+    
+    def to_int(val):
+        return int(val) if val and val.isdigit() else None
+
+    cid = to_int(request.args.get('cid'))
+    vid = to_int(request.args.get('vid'))
+    aid = to_int(request.args.get('aid'))
+    rid = to_int(request.args.get('rid'))
 
     with engine.connect() as conn:
 
@@ -886,20 +907,31 @@ def chat():
         #for new chat stuff
         recipients = []
         admins = []
+        returns = []
         if is_new:
             if role == 'customer':
                 recipients = db.get_all_vendors(conn)
                 admins = db.get_all_admins(conn)
+                returns = db.get_customer_returns(conn, user_id)
             elif role == 'vendor':
                 recipients = db.get_vendor_customers(conn, user_id)
             elif role == 'admin':
                 recipients = db.get_all_customers(conn)
 
+        
+
+
         #for existing chat stuff
         history = []
 
+        
+        cname = db.get_user_name(conn, cid) if cid else None
+        vname = db.get_user_name(conn, vid) if vid else None
+        aname = db.get_user_name(conn, aid) if aid else None
+        rname = db.get_return_title(conn, rid) if rid else None
+
         if cid:
-            history = db.get_specific_chat_history(conn, customer_id=cid, vendor_id=vid, admin_id=aid)
+            history = db.get_specific_chat_history(conn, customer_id=cid, vendor_id=vid, admin_id=aid, return_id=rid)
         
         return render_template('chat.html', 
                                 sidebar_chats=sidebar_chats, 
@@ -907,21 +939,25 @@ def chat():
                                 is_new = is_new,
                                 recipients=recipients,
                                 admins=admins,
+                                returns=returns,
                                 curr_cid=cid,
                                 curr_vid=vid,
-                                curr_aid=aid)
+                                curr_aid=aid,
+                                curr_rid=rid,
+                                cname=cname,
+                                vname=vname,
+                                aname=aname,
+                                rname=rname)
     
 
-# =================
-# SEND MESSAGE
-# =================
-
+#===========
+#SEND MESSAGE
+#===========
 @app.route("/send_message", methods=["POST"])
 def send_message():
     user_id = session.get('user_id')
     role = session.get('role')
 
-    # Helper to convert "dirty" form strings to Integers or None
     def clean_id(val):
         if val is None or str(val).strip().lower() in ['', 'none', 'null']:
             return None
@@ -929,27 +965,48 @@ def send_message():
             return int(val)
         except (ValueError, TypeError):
             return None
-    
-    cid = clean_id(request.form.get("cid"))
-    # Grab from dropdowns or hidden fields
-    vid = clean_id(request.form.get("vid")) or clean_id(request.form.get("vid_choice"))
-    aid = clean_id(request.form.get("aid")) or clean_id(request.form.get("aid_choice"))
+
+    # 1. Capture basic info
     text_msg = request.form.get("message")
+    reason = request.form.get("reason") # Only present in NEW chat form
+    
+    # 2. Determine IDs based on whether this is a NEW chat or a REPLY
+    if reason:
+        # --- New Chat Logic ---
+        cid = clean_id(request.form.get("cid"))
+        if reason == "question":
+            vid = clean_id(request.form.get("vid_choice"))
+            aid = None
+            rid = None
+        else: # reason == "return"
+            vid = None
+            aid = clean_id(request.form.get("aid_choice"))
+            rid = clean_id(request.form.get("return_choice"))
+    else:
+        # --- Reply Logic ---
+        cid = clean_id(request.form.get("cid"))
+        vid = clean_id(request.form.get("vid"))
+        aid = clean_id(request.form.get("aid"))
+        rid = clean_id(request.form.get("rid"))
 
-    # Clean up empty strings from form
-    final_vid = vid if vid and vid != '' else None
-    final_aid = aid if aid and aid != '' else None
+    # 3. Ensure Sender's ID is correctly assigned to their role column
+    final_vid = user_id if role == 'vendor' else vid
+    final_aid = user_id if role == 'admin' else aid
+    final_cid = user_id if role == 'customer' else cid
 
-    # Logic to ensure sender's ID is attached to the right column
-    if role == 'admin': final_aid = user_id
-    if role == 'vendor': final_vid = user_id
-
+    # 4. Save to Database
     with engine.connect() as conn:
-        db.send_chat_message(conn, sender_id=user_id, customer_id=cid, 
-                             text_content=text_msg, vendor_id=final_vid, admin_id=final_aid)
+        db.send_chat_message(
+            conn, 
+            sender_id=user_id, 
+            customer_id=final_cid, 
+            text_content=text_msg, 
+            vendor_id=final_vid, 
+            admin_id=final_aid, 
+            return_id=rid
+        )
 
-    return redirect(url_for("chat", cid=cid, vid=final_vid, aid=final_aid))
-
+    return redirect(url_for("chat", cid=final_cid, vid=final_vid, aid=final_aid, rid=rid))
 
 # ========
 # RESET DB
