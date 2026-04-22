@@ -58,6 +58,7 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
     return connection.execute(text(sql), params).mappings().all()
 
 
+
 # ======
 # VENDOR
 # ======
@@ -808,6 +809,29 @@ def get_vendor_orders(connection, vendor_id):
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
 
+def get_products_by_vendor(connection, vendor_id):
+    """
+    Fetches only the products belonging to a specific vendor.
+    Used for the Portappliances vendor dashboard.
+    """
+    query = text("""
+        SELECT 
+            p.product_id, 
+            p.title, 
+            p.description, 
+            p.warranty_period,
+            p.price, 
+            p.discount_price,
+            p.discount_deadline,
+            p.vendor_id
+        FROM products p
+        WHERE p.vendor_id = :vendor_id
+    """)
+    
+    # Executing the query with the vendor_id parameter for security
+    result = connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
+    
+    return result
 
 # ========
 # WISHLIST

@@ -151,22 +151,34 @@ def admin_dashboard():
 
 
 # ========================
-# ADMIN PRODUCT MANAGEMENT
+# PRODUCT MANAGEMENT
 # ========================
 
 @app.route("/admin/manage-products/") 
 def manage_products():
-    print("DEBUG: Entering manage_products route")
-    if get_user_role(conn, session.get("user_id")) != "admin":
+    user_id = session.get("user_id")
+    role = get_user_role(conn, user_id)
+    
+    # Allow both Admin and Vendor
+    if role not in ["admin", "vendor"]:
         flash("Access denied.", "error")
         return redirect(url_for('index'))
     
-    products = db.get_all_products(conn) 
-    return render_template("manage-products.html", products=products)
+    # Admins see everything; Vendors see only their own Portappliances inventory
+    if role == "admin":
+        products = db.get_all_products(conn)
+    else:
+        # We use a filtered function to protect vendor privacy
+        products = db.get_products_by_vendor(conn, user_id) 
+        
+    return render_template("manage-products.html", products=products, role=role)
 
 @app.route("/new-product/", methods=["GET", "POST"])
 def new_product():
-    if get_user_role(conn, session.get("user_id")) != "admin":
+    user_id = session.get("user_id")
+    role = get_user_role(conn, user_id)
+    
+    if role not in ["admin", "vendor"]:
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -174,17 +186,22 @@ def new_product():
         # Capture form data
         title = request.form.get("title")
         description = request.form.get("description")
-        price = float(request.form.get("price"))
+        price = float(request.form.get("price") or 0)
         discount_price = request.form.get("discount_price") or None
         discount_end = request.form.get("discount_end") or None
+        category = request.form.get("category")
+        warranty = request.form.get("warranty")
         
-        # Capture lists from the form
+        # Admin picks vendor from dropdown; Vendor is assigned to self
+        selected_vendor = request.form.get("vendor-id")
+        vendor_id = int(selected_vendor) if (role == "admin" and selected_vendor) else user_id
+
+        # Capture lists
         images = request.form.getlist("image") 
         variant_colors = request.form.getlist("variant_color[]")
         variant_sizes = request.form.getlist("variant_size[]")
         variant_stocks = request.form.getlist("variant_stock[]")
         
-        # Combine into a list of dictionaries for your database function
         variants = []
         for i in range(len(variant_colors)):
             variants.append({
@@ -193,21 +210,31 @@ def new_product():
                 "stock": int(variant_stocks[i])
             })
 
-        # Call the full db function
         db.add_new_product(
-            conn, session.get("user_id"), title, description, 
-            price, discount_price, discount_end, variants, images
+            conn, vendor_id, title, description, 
+            price, discount_price, discount_end, variants, images,
+            category=category, warranty=warranty
         ) 
 
         flash("Product added successfully!", "success")
         return redirect(url_for('manage_products')) 
 
-    return render_template("new-product.html")
+    vendors = db.get_all_vendors(conn) if role == "admin" else []
+    return render_template("new-product.html", vendors=vendors, role=role, is_edit=False)
 
 @app.route("/admin/product/<int:product_id>/edit/", methods=["GET", "POST"])
 def edit_product(product_id):
-    print(f"DEBUG: Editing product {product_id}")
-    if get_user_role(conn, session.get("user_id")) != "admin":
+    user_id = session.get("user_id")
+    role = get_user_role(conn, user_id)
+    
+    product = db.get_product_by_id(conn, product_id)
+    if not product:
+        flash("Product not found.", "error")
+        return redirect(url_for('manage_products'))
+        
+    # Permission: Admin or the specific Vendor who owns the product
+    if role != "admin" and product.get('vendor_id') != user_id:
+        flash("Access denied.", "error")
         return redirect(url_for('index'))
 
     if request.method == "POST":
@@ -215,10 +242,19 @@ def edit_product(product_id):
         description = request.form.get("description")
         price = float(request.form.get("price") or 0)
         discount_price = request.form.get("discount_price") or None
+        discount_end = request.form.get("discount_end") or None
+        category = request.form.get("category")
+        warranty = request.form.get("warranty")
         
-        db.update_product(conn, product_id, title, description, price, discount_price, 0)
+        # Admins can reassign vendor via dropdown
+        selected_vendor = request.form.get("vendor-id")
+        vendor_id = int(selected_vendor) if role == "admin" else product.get('vendor_id')
+
+        db.update_product(
+            conn, product_id, vendor_id, title, description, price, 
+            discount_price, discount_end, category, warranty
+        )
         
-        # Variant updates
         variant_ids = request.form.getlist("variant_id[]")
         colors = request.form.getlist("variant_color[]")
         sizes = request.form.getlist("variant_size[]")
@@ -231,18 +267,31 @@ def edit_product(product_id):
         flash(f"Product '{title}' updated successfully!", "success")
         return redirect(url_for('manage_products'))
 
-    product = db.get_product_by_id(conn, product_id)
     variants = db.get_product_variants(conn, product_id) if hasattr(db, 'get_product_variants') else []
+    vendors = db.get_all_vendors(conn) if role == "admin" else []
     
-    return render_template("new-product.html", product=product, variants=variants, is_edit=True)
+    return render_template(
+        "new-product.html", 
+        product=product, 
+        variants=variants, 
+        is_edit=True, 
+        role=role, 
+        vendors=vendors
+    )
 
 @app.route("/admin/product/<int:product_id>/delete/", methods=["POST"])
 def delete_product(product_id):
-    if get_user_role(conn, session.get("user_id")) != "admin":
-        return redirect(url_for('index'))
+    user_id = session.get("user_id")
+    role = get_user_role(conn, user_id)
+    product = db.get_product_by_id(conn, product_id)
 
-    db.delete_product(conn, product_id)
-    flash("Product deleted successfully!", "success")
+    # Permission: Admin or the owner can delete
+    if role == "admin" or (product and product.get('vendor_id') == user_id):
+        db.delete_product(conn, product_id)
+        flash("Product deleted successfully!", "success")
+    else:
+        flash("Unauthorized action.", "error")
+        
     return redirect(url_for('manage_products'))
 
 # ======
