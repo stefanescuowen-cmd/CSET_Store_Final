@@ -821,7 +821,7 @@ def admin_returns():
 def admin_update_return(return_id):
     new_status = request.form.get("status")
     db.update_return_status(conn, return_id, new_status)
-    return redirect(url_for("admin-returns"))
+    return redirect(url_for("admin_returns"))
 
 
 # =======
