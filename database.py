@@ -58,6 +58,7 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
     return connection.execute(text(sql), params).mappings().all()
 
 
+
 # ======
 # VENDOR
 # ======
@@ -733,44 +734,50 @@ def update_return_status(connection, return_id, new_status):
 
 def add_review(connection, variant_id, customer_id, rating, description):
     query = text("""
-        INSERT INTO reviews (variant_id, customer_id, rating, description)
-        VALUES (:variant_id, :customer_id, :rating, :description)
+        INSERT INTO reviews (product_id, customer_id, rating, description)
+        VALUES (:v_id, :c_id, :rate, :desc)
     """)
     connection.execute(query, {
-        "variant_id": variant_id,
-        "customer_id": customer_id,
-        "rating": rating,
-        "description": description
+        "v_id": variant_id,    # This is the data from Python
+        "c_id": customer_id,
+        "rate": rating,
+        "desc": description
     })
     connection.commit()
 
 
-def get_reviews_for_product(connection, variant_id):
+def get_reviews_for_product(connection, product_id):
+    """
+    Fetches reviews for a specific product.
+    Using 'product_id' as defined in your reviews table schema.
+    """
     query = text("""
         SELECT 
             r.rating,
             r.description,
             u.name,
-            r.variant_id
+            r.product_id  -- Changed from r.variant_id
         FROM reviews r
         JOIN users u ON r.customer_id = u.user_id
-        WHERE r.variant_id = :variant_id
+        WHERE r.product_id = :product_id  -- Changed from r.variant_id
     """)
-    return connection.execute(query, {"variant_id": variant_id}).mappings().all()
+    # Ensure we use the correct key in the parameter dictionary
+    return connection.execute(query, {"product_id": product_id}).mappings().all()
 
 def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
-    # Base query
+    # Base query: Changed r.variant_id to r.product_id
     sql = """
         SELECT r.rating, r.description, r.date, u.name as reviewer_name
         FROM reviews r
         JOIN users u ON r.customer_id = u.user_id
+        LEFT JOIN product_variants pv ON r.product_id = pv.variant_id
         WHERE 1=1
     """
     params = {}
 
-    # Changed from r.variant_id to r.product_id to match your likely schema
     if product_id:
-        sql += " AND r.product_id = :p_id"
+        # We filter based on the product_id associated with the variant link
+        sql += " AND pv.product_id = :p_id"
         params['p_id'] = product_id
 
     if filter_rating:
@@ -808,6 +815,29 @@ def get_vendor_orders(connection, vendor_id):
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
 
+def get_products_by_vendor(connection, vendor_id):
+    """
+    Fetches only the products belonging to a specific vendor.
+    Used for the Portappliances vendor dashboard.
+    """
+    query = text("""
+        SELECT 
+            p.product_id, 
+            p.title, 
+            p.description, 
+            p.warranty_period,
+            p.price, 
+            p.discount_price,
+            p.discount_deadline,
+            p.vendor_id
+        FROM products p
+        WHERE p.vendor_id = :vendor_id
+    """)
+    
+    # Executing the query with the vendor_id parameter for security
+    result = connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
+    
+    return result
 
 # ========
 # WISHLIST
