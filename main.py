@@ -155,42 +155,59 @@ def admin_dashboard():
 # ========================
 
 @app.route("/admin/manage-products/") 
-def admin_manage_products():
-    """List all products for management."""
+def manage_products():
+    print("DEBUG: Entering manage_products route")
     if get_user_role(conn, session.get("user_id")) != "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
     
-    # Using get_all_products to ensure we get the full dictionary 
-    # including processed variants for the table
     products = db.get_all_products(conn) 
     return render_template("manage-products.html", products=products)
 
 @app.route("/new-product/", methods=["GET", "POST"])
 def new_product():
-    """Add a new product to the inventory."""
     if get_user_role(conn, session.get("user_id")) != "admin":
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
     if request.method == "POST":
+        # Capture form data
         title = request.form.get("title")
         description = request.form.get("description")
-        price = float(request.form.get("price") or 0)
+        price = float(request.form.get("price"))
+        discount_price = request.form.get("discount_price") or None
+        discount_end = request.form.get("discount_end") or None
         
-        # Note: Ensure your database function matches these arguments
-        db.add_new_product(conn, session.get("user_id"), title, description, price) 
+        # Capture lists from the form
+        images = request.form.getlist("image") 
+        variant_colors = request.form.getlist("variant_color[]")
+        variant_sizes = request.form.getlist("variant_size[]")
+        variant_stocks = request.form.getlist("variant_stock[]")
+        
+        # Combine into a list of dictionaries for your database function
+        variants = []
+        for i in range(len(variant_colors)):
+            variants.append({
+                "color": variant_colors[i],
+                "size": variant_sizes[i],
+                "stock": int(variant_stocks[i])
+            })
+
+        # Call the full db function
+        db.add_new_product(
+            conn, session.get("user_id"), title, description, 
+            price, discount_price, discount_end, variants, images
+        ) 
 
         flash("Product added successfully!", "success")
-        return redirect(url_for('admin_manage_products')) 
+        return redirect(url_for('manage_products')) 
 
-    return render_template("new-product.html", is_edit=False)
+    return render_template("new-product.html")
 
 @app.route("/admin/product/<int:product_id>/edit/", methods=["GET", "POST"])
 def edit_product(product_id):
-    """Edit an existing product and its variants."""
+    print(f"DEBUG: Editing product {product_id}")
     if get_user_role(conn, session.get("user_id")) != "admin":
-        flash("Access denied.", "error")
         return redirect(url_for('index'))
 
     if request.method == "POST":
@@ -199,10 +216,9 @@ def edit_product(product_id):
         price = float(request.form.get("price") or 0)
         discount_price = request.form.get("discount_price") or None
         
-        # This calls the db function that updates the main product table
         db.update_product(conn, product_id, title, description, price, discount_price, 0)
         
-        # Logic for updating specific variants (colors/sizes/stock)
+        # Variant updates
         variant_ids = request.form.getlist("variant_id[]")
         colors = request.form.getlist("variant_color[]")
         sizes = request.form.getlist("variant_size[]")
@@ -213,9 +229,8 @@ def edit_product(product_id):
                 db.update_variant(conn, variant_ids[i], colors[i], sizes[i], stocks[i])
 
         flash(f"Product '{title}' updated successfully!", "success")
-        return redirect(url_for('admin_manage_products'))
+        return redirect(url_for('manage_products'))
 
-    # Load data for the form
     product = db.get_product_by_id(conn, product_id)
     variants = db.get_product_variants(conn, product_id) if hasattr(db, 'get_product_variants') else []
     
@@ -223,14 +238,12 @@ def edit_product(product_id):
 
 @app.route("/admin/product/<int:product_id>/delete/", methods=["POST"])
 def delete_product(product_id):
-    """Delete a product from the database."""
     if get_user_role(conn, session.get("user_id")) != "admin":
-        flash("Access denied.", "error")
         return redirect(url_for('index'))
 
     db.delete_product(conn, product_id)
     flash("Product deleted successfully!", "success")
-    return redirect(url_for('admin_manage_products'))
+    return redirect(url_for('manage_products'))
 
 # ======
 # ORDERS

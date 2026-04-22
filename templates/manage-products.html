@@ -28,7 +28,7 @@
             <td>
                 {% set total_stock = 0 %}
                 {% for v in product.variants %}
-                    {% set total_stock = total_stock + v.stock %}
+                    {% set total_stock = total_stock + v.stock|int %}
                 {% endfor %}
                 {{ total_stock }}
             </td>

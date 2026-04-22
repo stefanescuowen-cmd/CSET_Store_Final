@@ -6,7 +6,7 @@
 
 <div class="form-container">
     <h2>Enter Product Details</h2>
-    <form method="POST" action="/add-product">
+    <form method="POST" action="{{ url_for('new_product') }}">
         <!--only show vendor id field if logged in user is an admin-->
         {% if role == "admin" %}
             <label for="vendor-id">Vendor ID:</label>
