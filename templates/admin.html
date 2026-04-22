@@ -68,24 +68,19 @@
             <p><strong>Product:</strong> {{ return.product_title }}</p> <p><strong>Reason:</strong> {{ return.description }}</p>
             <p><strong>Request:</strong> {{ return.demand }}</p>
             <p><strong>Status:</strong> {{ return.status }}</p>
-
-            {% if return.status == 'Pending' %}
-                <form action="/admin/returns/{{ return.return_id }}/approve" method="POST" style="display:inline;">
-                    <button type="submit">Approve</button>
-                </form>
-                <form action="/admin/returns/{{ return.return_id }}/reject" method="POST" style="display:inline;">
-                    <button type="submit">Reject</button>
-                </form>
-            {% else %}
-                <p><em>Action already taken: {{ return.status }}</em></p>
-            {% endif %}
         </div>
     {% endfor %}
 </div>
+
+<a href="/admin-returns">
+    <button type="button">Manage Returns</button>
+</a>
 {% endif %}
 
 <h2>Orders Management</h2>
 
+
+<div class="return-grid">
 {% for order in orders %}
     <div class="return-card">
 
@@ -107,5 +102,6 @@
 
     </div>
 {% endfor %}
+</div>
 
 {% endblock %}
