@@ -29,36 +29,6 @@ def get_all_orders(connection):
     result = connection.execute(query)
     return result.mappings().all()
 
-def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
-    # Base query
-    sql = """
-        SELECT r.rating, r.description, r.date, u.name as reviewer_name
-        FROM reviews r
-        JOIN users u ON r.customer_id = u.user_id
-        WHERE 1=1
-    """
-    params = {}
-
-    if product_id:
-        sql += " AND r.product_id = :p_id" 
-        params['p_id'] = product_id
-
-    if filter_rating:
-        sql += " AND r.rating = :rating"
-        params['rating'] = filter_rating
-
-    # Add sorting
-    if sort_by == 'rating_high':
-        sql += " ORDER BY r.rating DESC"
-    elif sort_by == 'rating_low':
-        sql += " ORDER BY r.rating ASC"
-    else:
-        sql += " ORDER BY r.date DESC"
-
-    return connection.execute(text(sql), params).mappings().all()
-
-
-
 # ======
 # VENDOR
 # ======
@@ -295,94 +265,6 @@ def get_return_title(connection, return_id):
         WHERE r.return_id = :rid
     """)
     return connection.execute(query, {"rid": return_id}).scalar()
-
-
-# =======
-# REVIEWS
-# =======
-
-def create_review(connection, product_id, customer_id, rating, description, image=None):
-    """
-    Inserts a new review. If the user has already reviewed this product,
-    it updates the existing review (handling the UNIQUE constraint).
-    """
-    query = text("""
-        INSERT INTO reviews (product_id, customer_id, rating, description, image)
-        VALUES (:product_id, :customer_id, :rating, :description, :image)
-        ON DUPLICATE KEY UPDATE 
-            rating = :rating, 
-            description = :description, 
-            image = :image, 
-            date = CURRENT_TIMESTAMP
-    """)
-    connection.execute(query, {
-        "product_id": product_id,
-        "customer_id": customer_id,
-        "rating": rating,
-        "description": description,
-        "image": image
-    })
-    connection.commit()
-
-def get_product_reviews(connection, product_id, sort_by="date", filter_rating=None):
-    """
-    Retrieves reviews for a specific product.
-    Supports filtering by rating and sorting by date or rating.
-    """
-    # 1. Base SQL joining users to get the reviewer's name
-    sql = """
-        SELECT r.*, u.name as reviewer_name 
-        FROM reviews r
-        JOIN users u ON r.customer_id = u.user_id
-        WHERE r.product_id = :product_id
-    """
-    params = {"product_id": product_id}
-
-    # 2. Add Filtering logic
-    if filter_rating:
-        sql += " AND r.rating = :rating"
-        params["rating"] = filter_rating
-
-    # 3. Add Sorting logic
-    if sort_by == "rating_high":
-        sql += " ORDER BY r.rating DESC"
-    elif sort_by == "rating_low":
-        sql += " ORDER BY r.rating ASC"
-    else:
-        sql += " ORDER BY r.date DESC" # Default to newest first
-
-    result = connection.execute(text(sql), params)
-    return result.mappings().all()
-
-def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
-    # Base query - Selecting necessary fields
-    sql = """
-        SELECT r.rating, r.description, r.date, u.name as reviewer_name
-        FROM reviews r
-        JOIN users u ON r.customer_id = u.user_id
-        WHERE 1=1
-    """
-    params = {}
-
-    # If the column in your 'reviews' table is actually 'product_id'
-    if product_id:
-        sql += " AND r.product_id = :p_id" 
-        params['p_id'] = product_id
-
-    # Add rating filter
-    if filter_rating:
-        sql += " AND r.rating = :rating"
-        params['rating'] = filter_rating
-
-    # Add sorting logic
-    if sort_by == 'rating_high':
-        sql += " ORDER BY r.rating DESC"
-    elif sort_by == 'rating_low':
-        sql += " ORDER BY r.rating ASC"
-    else:
-        sql += " ORDER BY r.date DESC"
-
-    return connection.execute(text(sql), params).mappings().all()
 
 
 # ======
@@ -819,33 +701,31 @@ def get_reviews_for_product(connection, product_id):
     return connection.execute(query, {"product_id": product_id}).mappings().all()
 
 def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
-    # Base query: Changed r.variant_id to r.product_id
     sql = """
-        SELECT r.rating, r.description, r.date, u.name as reviewer_name
+        SELECT r.*, p.title AS product_name, u.name AS reviewer_name
         FROM reviews r
+        JOIN product_variants v ON r.product_id = v.variant_id -- Fixed: r.product_id
+        JOIN products p ON v.product_id = p.product_id
         JOIN users u ON r.customer_id = u.user_id
-        LEFT JOIN product_variants pv ON r.product_id = pv.variant_id
         WHERE 1=1
     """
     params = {}
 
     if product_id:
-        # We filter based on the product_id associated with the variant link
-        sql += " AND pv.product_id = :p_id"
-        params['p_id'] = product_id
-
+        sql += " AND p.product_id = :p_id"
+        params["p_id"] = product_id
+    
     if filter_rating:
         sql += " AND r.rating = :rating"
-        params['rating'] = filter_rating
+        params["rating"] = filter_rating
 
-    # Sorting logic
-    if sort_by == 'rating_high':
+    if sort_by == 'date':
+        sql += " ORDER BY r.date DESC"
+    elif sort_by == 'rating_high':
         sql += " ORDER BY r.rating DESC"
     elif sort_by == 'rating_low':
         sql += " ORDER BY r.rating ASC"
-    else:
-        sql += " ORDER BY r.date DESC"
-
+    
     return connection.execute(text(sql), params).mappings().all()
 
 # ======

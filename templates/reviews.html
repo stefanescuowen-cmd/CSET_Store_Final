@@ -2,7 +2,19 @@
 
 {% block body %}
 
-<h1>Reviews for {{ product.title }}</h1>
+<div class="reviews-header" style="margin-bottom: 20px;">
+    <h1>
+        {% if product and product.title != 'All Products' %}
+            Reviews for {{ product.title }}
+        {% else %}
+            All Product Reviews
+        {% endif %}
+    </h1>
+    {% if product and product.category %}
+        <p><em>Category: {{ product.category }}</em></p>
+    {% endif %}
+    <a href="{{ url_for('shop') }}">← Back to Shop</a>
+</div>
 
 <form action="{{ url_for('reviews_page') }}" method="GET" class="filter-bar">
     {% if product_id %}
@@ -12,11 +24,9 @@
     <label for="rating">Filter by Stars:</label>
     <select name="rating" id="rating">
         <option value="">All Ratings</option>
-        <option value="5" {% if current_filter == 5 %}selected{% endif %}>5 Stars</option>
-        <option value="4" {% if current_filter == 4 %}selected{% endif %}>4 Stars</option>
-        <option value="3" {% if current_filter == 3 %}selected{% endif %}>3 Stars</option>
-        <option value="2" {% if current_filter == 2 %}selected{% endif %}>2 Stars</option>
-        <option value="1" {% if current_filter == 1 %}selected{% endif %}>1 Star</option>
+        {% for r in range(5, 0, -1) %}
+            <option value="{{ r }}" {% if current_filter == r %}selected{% endif %}>{{ r }} Stars</option>
+        {% endfor %}
     </select>
 
     <label for="sort">Sort by:</label>
@@ -37,7 +47,8 @@
 <div class="reviews-container">
     {% for review in reviews %}
         <div class="review-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;">
-            <strong>{{ review.name or review.reviewer_name }}</strong> 
+            <small>Product: {{ review.product_name}}</small><br>
+            <strong>{{ review.reviewer_name }}</strong> 
             <span style="color: #f39c12;">
                 {% for i in range(review.rating) %}★{% endfor %}
                 {% for i in range(5 - review.rating) %}☆{% endfor %}
@@ -56,12 +67,12 @@
 
 {% if session.get("role") == "customer" and product_id %}
     <h3>Write a Review for {{ product.title }}</h3>
-    <form method="POST" action="/add-review">
+    <form method="POST" action="{{ url_for('add_review_route') }}">
         <input type="hidden" name="product_id" value="{{ product_id }}">
         
         <div style="margin-bottom: 10px;">
-            <label>Rating:</label>
-            <input type="number" name="rating" min="1" max="5" required placeholder="1-5">
+            <label>Rating (1-5):</label>
+            <input type="number" name="rating" min="1" max="5" required>
         </div>
 
         <div style="margin-bottom: 10px;">
@@ -72,7 +83,7 @@
         <button type="submit">Submit Review</button>
     </form>
 {% elif session.get("role") == "customer" %}
-    <p><em>Please select a specific product from the <a href="/shop">shop</a> to leave a review.</em></p>
+    <p><em>Please select a specific product from the <a href="{{ url_for('shop') }}">shop</a> to leave a review.</em></p>
 {% endif %}
 
 {% endblock %}
