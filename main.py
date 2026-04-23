@@ -1,4 +1,6 @@
 # Imports
+from datetime import datetime
+
 from flask import Flask, redirect, render_template, request, url_for, flash, session, jsonify
 from sqlalchemy import create_engine, text
 
@@ -267,9 +269,9 @@ def edit_product(product_id):
         sizes = request.form.getlist("variant_size[]")
         stocks = request.form.getlist("variant_stock[]")
         
-        if hasattr(db, 'update_variant'):
+        if hasattr(db, 'update_variants'):
             for i in range(len(variant_ids)):
-                db.update_variant(conn, variant_ids[i], colors[i], sizes[i], stocks[i])
+                db.update_variants(conn, variant_ids[i], colors[i], sizes[i], stocks[i])
 
         #image updates
         images = request.form.getlist("image")
@@ -280,13 +282,21 @@ def edit_product(product_id):
         flash(f"Product '{title}' updated successfully!", "success")
         return redirect(url_for('manage_products'))
 
+    # 1. Fetch images specifically for the template
+    images = db.get_product_images_by_id(conn, product_id) if hasattr(db, 'get_product_images_by_id') else []
+    print("product images:" + str(images))
+    
+    # 2. Fetch variants
     variants = db.get_product_variants(conn, product_id) if hasattr(db, 'get_product_variants') else []
+    
+    # 3. Fetch vendors
     vendors = db.get_all_vendors(conn) if role == "admin" else []
     
     return render_template(
         "new-product.html", 
         product=product, 
         variants=variants, 
+        images=images,  # <-- ADD THIS LINE
         is_edit=True, 
         role=role, 
         vendors=vendors
@@ -463,6 +473,22 @@ def shop():
     }
 
     products = db.get_filtered_products(conn, **args)
+    
+    now = datetime.now()
+    for p in products:
+        if p.get('discount_deadline'):
+            # Calculate time remaining
+            deadline = p['discount_deadline']
+            if deadline > now:
+                delta = deadline - now
+                # Store days and hours to show in template
+                p['days_left'] = delta.days
+                p['hours_left'] = delta.seconds // 3600
+                p['mins_left'] = (delta.seconds // 60) % 60 # New: Minutes calculation
+            else:
+                # Deadline passed: tell template to hide the discount
+                p['discount_price'] = None
+                
     images = db.get_product_images(conn)
     
     # NEW: Fetch dynamic lists for the dropdowns

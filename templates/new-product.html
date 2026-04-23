@@ -12,7 +12,9 @@
             <select id="vendor-id" name="vendor-id" required>
                 <option value="">-- Select Vendor --</option>
                 {% for v in vendors %}
-                    <option value="{{ v.id }}">{{ v.name }}</option>
+                    <option value="{{ v.id }}" {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
+                        {{ v.name }}
+                    </option>
                 {% endfor %}
             </select><br><br>
         {% endif %}
@@ -30,15 +32,27 @@
         <div id="images-container">
             {% if is_edit and images %}
                 {% for img in images %}
-                    <div class="image-group">
-                        <input type="text" name="image" value="{{ img.image_url }}" required>
-                    </div>
+                    {% if loop.first %}
+                        <div class="image-group">
+                            <label for="image">Primary Image URL:</label>
+                            <input type="text" name="image" value="{{ img.image_url }}" required>
+                        </div>
+                    {% else %}
+                        <div class="image-group">   
+                            <br>
+                            <label for="image">Image URL:</label>
+                            <input type="text" name="image" value="{{ img.image_url }}" required>
+                            <button type="button" onclick="removeImage(this)">Remove</button>
+
+                        </div>
+                    {% endif %}
                 {% endfor %}
             {% else %}
                 <div class="image-group">
                     <input type="text" name="image" required>
                 </div>
             {% endif %}
+            
         </div>
         <button type="button" onclick="addImage()">Add Image</button><br><br>
 
@@ -52,7 +66,7 @@
         <input type="number" id="discount_price" name="discount_price" step="0.01" min="0" value="{{ product.discount_price if is_edit else '' }}"><br><br>
 
         <label for="discount_end">Discount End Date (optional):</label><br>
-        <input type="datetime-local" id="discount_end" name="discount_end" value="{{ product.discount_deadline if is_edit else '' }}"><br><br>
+        <input type="datetime-local" id="discount_end" name="discount_end" value="{{ product.discount_deadline.strftime('%Y-%m-%dT%H:%M') if product.discount_deadline else '' }}"><br><br>
 
         <h3>Variants</h3>
         <div id="variants-container">

@@ -88,6 +88,15 @@
                 <del>${{ product.price }}</del> 
                 <strong style="color: green;">${{ product.discount_price }}</strong>
             </p>
+            
+            {% if product.days_left is defined %}
+                <div class="countdown-timer" style="font-size: 0.85em; color: #d9534f; font-weight: bold; margin-bottom: 10px;">
+                    ⏳ Sale ends in: 
+                    {% if product.days_left > 0 %}{{ product.days_left }}d {% endif %}
+                    {% if product.hours_left > 0 or product.days_left > 0 %}{{ product.hours_left }}h {% endif %}
+                    {{ product.mins_left }}m
+                </div>
+            {% endif %}
         {% else %}
             <p>${{ product.price }}</p>
         {% endif %}
