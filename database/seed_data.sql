@@ -23,17 +23,17 @@ INSERT INTO customers VALUES (3), (4), (5), (6), (7);
 INSERT INTO vendors VALUES (8), (9), (10);
 
 -- PRODUCTS
-INSERT INTO products (title, description, warranty_period, price, discount_price, discount_deadline, vendor_id) VALUES
-('Laptop', 'Gaming laptop', 24, 1200, 1000, NULL, 8),
-('Mouse', 'Wireless mouse', 12, 50, 40, '2026-05-01', 8),
-('Keyboard', 'Mechanical keyboard', 12, 100, NULL, NULL, 9),
-('Monitor', '4K Monitor', 24, 400, 350, '2026-04-20', 9),
-('Phone', 'Smartphone', 12, 800, NULL, NULL, 10),
-('Headphones', 'Noise cancelling', 12, 200, 150, NULL, 10),
-('Tablet', 'Android tablet', 12, 300, NULL, NULL, 8),
-('Camera', 'DSLR camera', 24, 900, NULL, NULL, 9),
-('Speaker', 'Bluetooth speaker', 12, 120, 90, '2026-04-25', 10),
-('Watch', 'Smartwatch', 12, 250, NULL, NULL, 8);
+INSERT INTO products (title, description, warranty_period, price, discount_price, discount_deadline, vendor_id, category) VALUES
+('Laptop', 'Gaming laptop', 24, 1200, 1000, NULL, 8, 'Computers'),
+('Mouse', 'Wireless mouse', 12, 50, 40, '2026-05-01', 8, 'Accessories'),
+('Keyboard', 'Mechanical keyboard', 12, 100, NULL, NULL, 9, 'Accessories'),
+('Monitor', '4K Monitor', 24, 400, 350, '2026-04-20', 9, 'Monitors'),
+('Phone', 'Smartphone', 12, 800, NULL, NULL, 10, 'Phones'),
+('Headphones', 'Noise cancelling', 12, 200, 150, NULL, 10, 'Audio'),
+('Tablet', 'Android tablet', 12, 300, NULL, NULL, 8, 'Tablets'),
+('Camera', 'DSLR camera', 24, 900, NULL, NULL, 9, 'Cameras'),
+('Speaker', 'Bluetooth speaker', 12, 120, 90, '2026-04-25', 10, 'Audio'),
+('Watch', 'Smartwatch', 12, 250, NULL, NULL, 8, 'Wearables');
 
 -- VARIANTS
 INSERT INTO product_variants (product_id, size, color, stock) VALUES
@@ -144,4 +144,3 @@ SELECT wishlist_id, 3 FROM wishlists WHERE customer_id = 3;
 
 INSERT INTO wishlist_items (wishlist_id, variant_id)
 SELECT wishlist_id, 5 FROM wishlists WHERE customer_id = 4;
-

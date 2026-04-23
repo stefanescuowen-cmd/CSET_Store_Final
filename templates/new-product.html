@@ -23,15 +23,22 @@
         <label for="category">Category:</label><br>
         <input type="text" id="category" name="category" value="{{ product.category if is_edit else '' }}" required><br><br>
 
-        <label for="warranty">Warranty Period (e.g., 1 Year):</label><br>
-        <input type="text" id="warranty" name="warranty" value="{{ product.warranty if is_edit else '' }}"><br><br>
+        <label for="warranty">Warranty Period (months):</label><br>
+        <input type="number" id="warranty" name="warranty" value="{{ product.warranty_period if is_edit else '12' }}" required><br><br>
 
         <h3>Images</h3>
         <div id="images-container">
-            <div class="image-group">
-                <label>Image URL:</label>
-                <input type="text" name="image" value="{{ product.image_url if is_edit else '' }}" required><br>
-            </div>
+            {% if is_edit and images %}
+                {% for img in images %}
+                    <div class="image-group">
+                        <input type="text" name="image" value="{{ img.image_url }}" required>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="image-group">
+                    <input type="text" name="image" required>
+                </div>
+            {% endif %}
         </div>
         <button type="button" onclick="addImage()">Add Image</button><br><br>
 

@@ -779,6 +779,9 @@ def add_product():
         sizes = request.form.getlist("variant_size[]")
         stocks = request.form.getlist("variant_stock[]")
 
+        category = request.form.get("category")
+        warranty = int(request.form.get("warranty"))
+
         variants = []
         for i in range(len(colors)):
             variants.append({

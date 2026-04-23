@@ -687,6 +687,17 @@ def delete_product(connection, product_id):
     connection.commit()
 
 
+def get_unique_colors(connection):
+    query = text("SELECT DISTINCT color FROM product_variants WHERE color IS NOT NULL")
+    result = connection.execute(query).fetchall()
+    return [row[0] for row in result]
+
+def get_unique_categories(connection):
+    query = text("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
+    result = connection.execute(query).fetchall()
+    return [row[0] for row in result]
+
+
 # =======
 # RETURNS
 # =======
