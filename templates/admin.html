@@ -24,12 +24,7 @@
             <p>{{ product.description }}</p>
             <p>Price: ${{ product.price }}</p>
             <p>Stock: {{ product.stock }}</p>
-            
-            <button type="button" onclick="toggleEdit('{{ product.product_id }}')">Edit</button>
-            
-            <form action="/admin/product/{{ product.product_id }}/delete" method="POST" style="display:inline;">
-                <button type="submit" onclick="return confirm('Delete this item?')">Delete</button>
-            </form>
+        
         </div>
 
         <form id="edit-form-{{ product.product_id }}" 
@@ -51,6 +46,9 @@
 {% endfor %}
 </div>
 
+<a href="/admin/manage-products">
+    <button type="button">Manage Products</button>
+</a>
 <a href="/new-product">
     <button type="button">Add New Product</button>
 </a>

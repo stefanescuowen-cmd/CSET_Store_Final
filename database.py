@@ -503,13 +503,13 @@ def get_all_products(connection):
     # 1. DEFINE the query variable first
     query = text("""
         SELECT 
-            p.product_id, p.title, p.description, p.price, p.discount_price,
+            p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
             AVG(r.rating) as avg_rating,
             COUNT(r.review_id) as review_count,
-            GROUP_CONCAT(v.variant_id) as v_ids,
-            GROUP_CONCAT(v.size) as v_sizes,
-            GROUP_CONCAT(v.color) as v_colors,
-            GROUP_CONCAT(v.stock) as v_stocks
+            GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
+            GROUP_CONCAT(DISTINCT v.size) as v_sizes,
+            GROUP_CONCAT(DISTINCT v.color) as v_colors,
+            GROUP_CONCAT(DISTINCT v.stock) as v_stocks
         FROM products p
         LEFT JOIN product_variants v ON p.product_id = v.product_id
         LEFT JOIN reviews r ON r.product_id = p.product_id 
@@ -546,6 +546,12 @@ def get_all_products(connection):
 def get_product_images(connection):
     query = text("SELECT * FROM product_images")
     result = connection.execute(query)
+    return result.mappings().all()
+
+
+def get_product_images_by_id(connection, product_id):
+    query = text("SELECT image_url FROM product_images WHERE product_id = :product_id")
+    result = connection.execute(query, {"product_id": product_id})
     return result.mappings().all()
 
 
@@ -592,13 +598,13 @@ def search_products(connection, term):
 def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
     sql = """
         SELECT 
-            p.product_id, p.title, p.description, p.price, p.discount_price,
+            p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
             u.name as vendor_name,
             AVG(r.rating) as avg_rating,
-            GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
-            GROUP_CONCAT(DISTINCT v.size) as v_sizes,
-            GROUP_CONCAT(DISTINCT v.color) as v_colors,
-            GROUP_CONCAT(DISTINCT v.stock) as v_stocks
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
         FROM products p
         JOIN product_variants v ON p.product_id = v.product_id
         JOIN users u ON p.vendor_id = u.user_id
@@ -716,6 +722,12 @@ def update_product_images(connection, product_id, image_urls):
         })
 
     connection.commit()
+
+
+def get_product_variants(connection, product_id):
+    query = text("SELECT * FROM product_variants WHERE product_id = :product_id")
+    result = connection.execute(query, {"product_id": product_id})
+    return result.mappings().all()
 
 
 def delete_product(connection, product_id):
