@@ -916,7 +916,7 @@ def reviews_page():
     p_id = request.args.get('product_id', type=int)
 
     with engine.connect() as connection:
-
+        # 1. Fetch reviews using your DB helper
         reviews = db.get_all_reviews(
             connection, 
             product_id=p_id, 
@@ -924,19 +924,21 @@ def reviews_page():
             filter_rating=rating_filter
         )
         
+        # 2. Fetch product details (including category) for the header
         product = None
         if p_id:
             product = connection.execute(
-                text("SELECT title FROM products WHERE product_id = :id"), 
+                text("SELECT title, category FROM products WHERE product_id = :id"), 
                 {"id": p_id}
             ).mappings().first()
        
+        # Fallback if no specific product is selected or found
         if not product:
-            product = {"title": "All Products"}
+            product = {"title": "All Products", "category": "General"}
 
     return render_template(
         "reviews.html", 
-        reviews=reviews, 
+        reviews=reviews,
         current_sort=sort_selection, 
         current_filter=rating_filter,
         product=product,
@@ -966,6 +968,7 @@ def add_review_route():
         flash("Please provide a valid rating (1-5).", "error")
         return redirect(url_for("shop"))
 
+    # Use the existing connection to find a variant to attach the review to
     variant = conn.execute(
         text("SELECT variant_id FROM product_variants WHERE product_id = :id LIMIT 1"),
         {"id": product_id}
@@ -980,8 +983,11 @@ def add_review_route():
             description=comment
         )
         flash("Review submitted!", "success")
+    else:
+        flash("Error: Product variant not found.", "error")
     
-    return redirect(url_for("product", product_id=product_id))
+    # Redirect back to the reviews page for this specific product
+    return redirect(url_for("reviews_page", product_id=product_id))
 
 
 # ============
