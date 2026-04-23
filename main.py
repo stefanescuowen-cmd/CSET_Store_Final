@@ -183,14 +183,13 @@ def new_product():
         return redirect(url_for('index'))
 
     if request.method == "POST":
-        # Capture form data
         title = request.form.get("title")
+        category = request.form.get("category")
+        warranty = int(request.form.get("warranty") or 12)
         description = request.form.get("description")
         price = float(request.form.get("price") or 0)
         discount_price = request.form.get("discount_price") or None
         discount_end = request.form.get("discount_end") or None
-        category = request.form.get("category")
-        warranty = request.form.get("warranty")
         
         # Admin picks vendor from dropdown; Vendor is assigned to self
         selected_vendor = request.form.get("vendor-id")
@@ -211,9 +210,17 @@ def new_product():
             })
 
         db.add_new_product(
-            conn, vendor_id, title, description, 
-            price, discount_price, discount_end, variants, images,
-            category=category, warranty=warranty
+            conn,
+            vendor_id,
+            title, 
+            description,
+            price, 
+            discount_price, 
+            discount_end, 
+            variants, 
+            images,
+            category,
+            warranty
         ) 
 
         flash("Product added successfully!", "success")
@@ -263,6 +270,12 @@ def edit_product(product_id):
         if hasattr(db, 'update_variant'):
             for i in range(len(variant_ids)):
                 db.update_variant(conn, variant_ids[i], colors[i], sizes[i], stocks[i])
+
+        #image updates
+        images = request.form.getlist("image")
+        final_images = [url for url in images if url.strip()]
+        if hasattr(db, 'update_product_images'):
+            db.update_product_images(conn, product_id, final_images)
 
         flash(f"Product '{title}' updated successfully!", "success")
         return redirect(url_for('manage_products'))
@@ -438,10 +451,6 @@ def vendor_confirm_order_item():
     return redirect(url_for("vendor_orders"))
 
 
-# =========
-# SHOP PAGE
-# =========
-
 @app.route("/shop")
 def shop():
     args = {
@@ -449,18 +458,31 @@ def shop():
         "vendor": request.args.get("vendor", ""),
         "color": request.args.get("color", ""),
         "size": request.args.get("size", ""),
-        "availability": request.args.get("availability", "")
+        "availability": request.args.get("availability", ""),
+        "category": request.args.get("category", "") # Don't forget this!
     }
 
-    # Pass the connection and the unpacked dictionary
     products = db.get_filtered_products(conn, **args)
     images = db.get_product_images(conn)
+    
+    # NEW: Fetch dynamic lists for the dropdowns
+    colors = db.get_unique_colors(conn)
+    categories = db.get_unique_categories(conn)
+    vendors = db.get_all_vendors(conn)
 
     image_map = {}
     for img in images:
         image_map.setdefault(img["product_id"], []).append(img["image_url"])
         
-    return render_template("shop.html", products=products, image_map=image_map, args=args)
+    return render_template(
+        "shop.html", 
+        products=products, 
+        image_map=image_map, 
+        args=args,
+        colors=colors,        # Send to template
+        categories=categories, # Send to template
+        vendors=vendors        # Send to template
+    )
 
 
 # ============
@@ -772,6 +794,9 @@ def add_product():
         sizes = request.form.getlist("variant_size[]")
         stocks = request.form.getlist("variant_stock[]")
 
+        category = request.form.get("category")
+        warranty = int(request.form.get("warranty"))
+
         variants = []
         for i in range(len(colors)):
             variants.append({
@@ -780,7 +805,11 @@ def add_product():
                 "stock": int(stocks[i])
             })
 
-        db.add_new_product(conn, vendor_id, title, description, price, discount_price, discount_end, variants, final_images)
+        db.add_new_product(
+            conn, vendor_id, title, description, price, 
+            discount_price, discount_end, variants, images, 
+            category, warranty
+        )
 
         flash("Product added successfully!", "success")
         if role == "admin":

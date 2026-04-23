@@ -450,18 +450,26 @@ def get_order_items(connection, order_id):
 # PRODUCTS
 # ========
 
-def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants, images):    
+def add_new_product(connection, vendor_id, title, description, price, 
+                    discount_price, discount_end, variants, images, category, warranty): 
+    
+    # 2. Add 'warranty_period' (or whatever your SQL column is) to the query
     query = text("""
-        INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
-        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_deadline)
+        INSERT INTO products (vendor_id, title, description, price, 
+                             discount_price, discount_deadline, category, warranty_period)
+        VALUES (:vendor_id, :title, :description, :price, 
+                :discount_price, :discount_deadline, :category, :warranty)
     """)
+    
     result = connection.execute(query, {
         "vendor_id": vendor_id,
         "title": title,
         "description": description,
         "price": price,
         "discount_price": discount_price,
-        "discount_deadline": discount_end # This matches :discount_deadline above
+        "discount_deadline": discount_end,
+        "category": category,
+        "warranty": warranty
     })
     product_id = result.lastrowid
 
@@ -581,7 +589,7 @@ def search_products(connection, term):
         products.append(item)
     return products
 
-def get_filtered_products(connection, search=None, vendor=None, color=None, size=None, availability=None):
+def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
     sql = """
         SELECT 
             p.product_id, p.title, p.description, p.price, p.discount_price,
@@ -602,6 +610,10 @@ def get_filtered_products(connection, search=None, vendor=None, color=None, size
     if search:
         sql += " AND (p.title LIKE :search OR p.description LIKE :search)"
         params['search'] = f"%{search}%"
+
+    if category:
+        sql += " AND p.category = :category"
+        params['category'] = category
 
     if vendor:
         sql += " AND u.name LIKE :vendor"
@@ -644,13 +656,17 @@ def get_filtered_products(connection, search=None, vendor=None, color=None, size
         products.append(item)
     return products
 
-def update_product(connection, product_id, title, description, price, discount_price, stock):
+def update_product(connection, product_id, vendor_id, title, description, price, discount_price, discount_end=None, category=None, warranty=None):
     query = text("""
         UPDATE products 
         SET title = :title, 
             description = :description,
             price = :price, 
-            discount_price = :discount_price
+            discount_price = :discount_price,
+            discount_deadline = :discount_end,
+            category = :category,
+            warranty_period = :warranty,
+            vendor_id = :vendor_id
         WHERE product_id = :product_id
     """)
     connection.execute(query, {
@@ -658,25 +674,63 @@ def update_product(connection, product_id, title, description, price, discount_p
         "description": description,
         "price": price,
         "discount_price": discount_price,
-        "product_id": product_id
-    })
-
-    stock_query = text("""
-        UPDATE product_variants
-        SET stock = :stock
-        WHERE product_id = :product_id
-    """)
-    connection.execute(stock_query, {
-        "stock": stock,
-        "product_id": product_id
+        "product_id": product_id,
+        "discount_end": discount_end,
+        "category": category,
+        "warranty": warranty,
+        "vendor_id": vendor_id
     })
 
     connection.commit()
+
+def update_variants(connection, variant_ids, colors, sizes, stocks):
+    for i in range(len(variant_ids)):
+        query = text("""
+            UPDATE product_variants
+            SET color = :color, size = :size, stock = :stock
+            WHERE variant_id = :variant_id
+        """)
+        connection.execute(query, {
+            "color": colors[i],
+            "size": sizes[i],
+            "stock": stocks[i],
+            "variant_id": variant_ids[i]
+        })
+    connection.commit()
+
+def update_product_images(connection, product_id, image_urls):
+    # 1. Delete existing images for the product
+    delete_query = text("DELETE FROM product_images WHERE product_id = :product_id")
+    connection.execute(delete_query, {"product_id": product_id})
+
+    # 2. Insert new images
+    insert_query = text("""
+        INSERT INTO product_images (product_id, image_url)
+        VALUES (:product_id, :image_url)
+    """)
+
+    for url in image_urls:
+        connection.execute(insert_query, {
+            "product_id": product_id,
+            "image_url": url
+        })
+
+    connection.commit()
+
 
 def delete_product(connection, product_id):
     query = text("DELETE FROM products WHERE product_id = :product_id")
     connection.execute(query, {"product_id": product_id})
     connection.commit()
+
+
+def get_unique_colors(connection):
+    query = text("SELECT DISTINCT color FROM product_variants WHERE color IS NOT NULL")
+    return [row[0] for row in connection.execute(query).fetchall()]
+
+def get_unique_categories(connection):
+    query = text("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
+    return [row[0] for row in connection.execute(query).fetchall()]
 
 
 # =======

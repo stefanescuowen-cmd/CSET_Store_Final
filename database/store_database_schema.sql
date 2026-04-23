@@ -32,6 +32,7 @@ CREATE TABLE products (
     product_id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
+    category VARCHAR(100) NOT NULL,
     warranty_period INT NOT NULL DEFAULT 12, -- in months
     price DECIMAL(10,2) NOT NULL,
     discount_price DECIMAL(10,2),
