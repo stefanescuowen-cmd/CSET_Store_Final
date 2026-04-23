@@ -450,18 +450,26 @@ def get_order_items(connection, order_id):
 # PRODUCTS
 # ========
 
-def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants, images):    
+def add_new_product(connection, vendor_id, title, description, price, 
+                    discount_price, discount_end, variants, images, category, warranty): 
+    
+    # 2. Add 'warranty_period' (or whatever your SQL column is) to the query
     query = text("""
-        INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
-        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_deadline)
+        INSERT INTO products (vendor_id, title, description, price, 
+                             discount_price, discount_deadline, category, warranty_period)
+        VALUES (:vendor_id, :title, :description, :price, 
+                :discount_price, :discount_deadline, :category, :warranty)
     """)
+    
     result = connection.execute(query, {
         "vendor_id": vendor_id,
         "title": title,
         "description": description,
         "price": price,
         "discount_price": discount_price,
-        "discount_deadline": discount_end # This matches :discount_deadline above
+        "discount_deadline": discount_end,
+        "category": category,
+        "warranty": warranty
     })
     product_id = result.lastrowid
 

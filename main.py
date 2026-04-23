@@ -183,14 +183,13 @@ def new_product():
         return redirect(url_for('index'))
 
     if request.method == "POST":
-        # Capture form data
         title = request.form.get("title")
+        category = request.form.get("category")
+        warranty = int(request.form.get("warranty") or 12)
         description = request.form.get("description")
         price = float(request.form.get("price") or 0)
         discount_price = request.form.get("discount_price") or None
         discount_end = request.form.get("discount_end") or None
-        category = request.form.get("category")
-        warranty = request.form.get("warranty")
         
         # Admin picks vendor from dropdown; Vendor is assigned to self
         selected_vendor = request.form.get("vendor-id")
@@ -211,9 +210,17 @@ def new_product():
             })
 
         db.add_new_product(
-            conn, vendor_id, title, description, 
-            price, discount_price, discount_end, variants, images,
-            category=category, warranty=warranty
+            conn,
+            vendor_id,
+            title, 
+            description,
+            price, 
+            discount_price, 
+            discount_end, 
+            variants, 
+            images,
+            category,
+            warranty
         ) 
 
         flash("Product added successfully!", "success")
@@ -780,7 +787,11 @@ def add_product():
                 "stock": int(stocks[i])
             })
 
-        db.add_new_product(conn, vendor_id, title, description, price, discount_price, discount_end, variants, final_images)
+        db.add_new_product(
+            conn, vendor_id, title, description, price, 
+            discount_price, discount_end, variants, images, 
+            category, warranty
+        )
 
         flash("Product added successfully!", "success")
         if role == "admin":
