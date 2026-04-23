@@ -271,6 +271,12 @@ def edit_product(product_id):
             for i in range(len(variant_ids)):
                 db.update_variant(conn, variant_ids[i], colors[i], sizes[i], stocks[i])
 
+        #image updates
+        images = request.form.getlist("image")
+        final_images = [url for url in images if url.strip()]
+        if hasattr(db, 'update_product_images'):
+            db.update_product_images(conn, product_id, final_images)
+
         flash(f"Product '{title}' updated successfully!", "success")
         return redirect(url_for('manage_products'))
 
@@ -445,10 +451,6 @@ def vendor_confirm_order_item():
     return redirect(url_for("vendor_orders"))
 
 
-# =========
-# SHOP PAGE
-# =========
-
 @app.route("/shop")
 def shop():
     args = {
@@ -456,18 +458,31 @@ def shop():
         "vendor": request.args.get("vendor", ""),
         "color": request.args.get("color", ""),
         "size": request.args.get("size", ""),
-        "availability": request.args.get("availability", "")
+        "availability": request.args.get("availability", ""),
+        "category": request.args.get("category", "") # Don't forget this!
     }
 
-    # Pass the connection and the unpacked dictionary
     products = db.get_filtered_products(conn, **args)
     images = db.get_product_images(conn)
+    
+    # NEW: Fetch dynamic lists for the dropdowns
+    colors = db.get_unique_colors(conn)
+    categories = db.get_unique_categories(conn)
+    vendors = db.get_all_vendors(conn)
 
     image_map = {}
     for img in images:
         image_map.setdefault(img["product_id"], []).append(img["image_url"])
         
-    return render_template("shop.html", products=products, image_map=image_map, args=args)
+    return render_template(
+        "shop.html", 
+        products=products, 
+        image_map=image_map, 
+        args=args,
+        colors=colors,        # Send to template
+        categories=categories, # Send to template
+        vendors=vendors        # Send to template
+    )
 
 
 # ============
