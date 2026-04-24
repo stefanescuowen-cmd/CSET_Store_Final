@@ -60,14 +60,29 @@
     <p>No pending returns.</p>
 {% else %}
 <div class="return-grid">
-    {% for return in returns %}
-        <div class="return-card">
-            <p><strong>Order ID:</strong> {{ return.order_id }}</p>
-            <p><strong>Product:</strong> {{ return.product_title }}</p> <p><strong>Reason:</strong> {{ return.description }}</p>
-            <p><strong>Request:</strong> {{ return.demand }}</p>
-            <p><strong>Status:</strong> {{ return.status }}</p>
-        </div>
-    {% endfor %}
+{% for order in orders %}
+    <div class="return-card">
+        <p>
+            <strong>Order #{{ order.order_id }}</strong><br>
+            Customer ID: {{ order.customer_id }}<br>
+            Status: <strong id="status-{{ order.order_id }}">{{ order.order_status }}</strong>
+        </p>
+
+        {# ONLY show buttons if the status is Pending #}
+        {% if order.order_status == 'Pending' %}
+            <form method="POST" action="/admin/orders/{{ order.order_id }}/approve" style="display:inline;">
+                <button type="submit" style="background-color: #28a745; color: white;">Approve</button>
+            </form>
+
+            <form method="POST" action="/admin/orders/{{ order.order_id }}/reject" style="display:inline;">
+                <button type="submit" style="background-color: #dc3545; color: white;">Reject</button>
+            </form>
+        {% else %}
+            {# This shows once the order is no longer Pending #}
+            <span style="color: #666; font-style: italic;">Action Completed: {{ order.order_status }}</span>
+        {% endif %}
+    </div>
+{% endfor %}
 </div>
 
 <a href="/admin-returns">
@@ -77,13 +92,12 @@
 
 <h2>Orders Management</h2>
 
-
 <div class="return-grid">
 {% for order in orders %}
     <div class="return-card" id="order-card-{{ order.order_id }}">
 
         <p>
-            Order #{{ order.order_id }}<br>
+            <strong>Order #{{ order.order_id }}</strong><br>
             Customer ID: {{ order.customer_id }}<br>
             Product: {{ order.title }}<br>
             Qty: {{ order.quantity }}<br>

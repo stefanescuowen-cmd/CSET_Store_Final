@@ -74,16 +74,18 @@ CREATE TABLE cart_items (
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
--- ORDERS
+-- Create Orders with the total_price column
 CREATE TABLE orders (
     order_id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT NOT NULL,
     order_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled') NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     ordered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     delivered_at DATETIME,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
+-- Create Order Items
 CREATE TABLE order_items (
     order_id INT NOT NULL,
     variant_id INT NOT NULL,
@@ -94,6 +96,7 @@ CREATE TABLE order_items (
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
+-- Create Order Confirmations
 CREATE TABLE order_confirmations (
     order_id INT,
     vendor_id INT,
