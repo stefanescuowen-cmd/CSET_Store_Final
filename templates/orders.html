@@ -8,7 +8,9 @@
         <div class="order-container" style="border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
             <div class="order-header" style="background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px;">
                 <strong>Order #{{ order.order_id }}</strong> | 
-                <span>Status: {{ order.order_status }}</span>
+                <span>Status: <strong>{{ order.order_status }}</strong></span> |
+                <span>Total: <strong>${{ order.total_price }}</strong></span> |
+                <span>Date: {{ order.ordered_at.strftime('%Y-%m-%d') }}</span>
             </div>
 
             <table style="width: 100%; border-collapse: collapse;">

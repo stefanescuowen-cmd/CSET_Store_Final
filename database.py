@@ -52,17 +52,15 @@ def get_vendor_orders(connection, vendor_id):
     return result.mappings().all()
 
 
-def confirm_vendor_item(connection, order_id, vendor_id, variant_id):
+def confirm_vendor_item(connection, order_id, variant_id):
+    # Update the status of the specific item
     query = text("""
-        INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
-        VALUES (:order_id, :vendor_id, :variant_id, 'Confirmed')
-        ON DUPLICATE KEY UPDATE status = 'Confirmed'
+        UPDATE order_items 
+        SET item_status = 'Confirmed' 
+        WHERE order_id = :oid AND variant_id = :vid
     """)
-    connection.execute(query, {
-        "order_id": order_id,
-        "vendor_id": vendor_id,
-        "variant_id": variant_id
-    })
+    connection.execute(query, {"oid": order_id, "vid": variant_id})
+
     connection.commit()
 
 
@@ -271,12 +269,12 @@ def get_return_title(connection, return_id):
 # ORDERS
 # ======
 
-def create_order(connection, customer_id):
+def create_order(connection, customer_id, total_price):
     query = text("""
-        INSERT INTO orders (customer_id, order_status)
-        VALUES (:customer_id, 'Pending')
+        INSERT INTO orders (customer_id, order_status, total_price)
+        VALUES (:customer_id, 'Pending', :total)
     """)
-    result = connection.execute(query, {"customer_id": customer_id})
+    result = connection.execute(query, {"customer_id": customer_id, "total": total_price})
     connection.commit()
     return result.lastrowid
 
@@ -297,15 +295,17 @@ def add_order_item(connection, order_id, variant_id, quantity):
 def get_orders(connection, customer_id):
     query = text("""
         SELECT o.order_id, 
-            GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles, 
-            SUM(oi.quantity) as quantity,
-            o.order_status
+               o.total_price,
+               o.ordered_at,
+               o.order_status,
+               GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE o.customer_id = :customer_id
-        GROUP BY o.order_id;
+        GROUP BY o.order_id
+        ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
     return result.mappings().all()

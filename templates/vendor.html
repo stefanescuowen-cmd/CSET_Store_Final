@@ -29,12 +29,24 @@
 
 {% if orders %}
     {% for order in orders %}
-        <p>
-            Order #{{ order.order_id }} -
-            {{ order.title }} -
-            Qty: {{ order.quantity }} -
-            Status: {{ order.item_status }}
-        </p>
+        <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px;">
+            <p>
+                <strong>Order #{{ order.order_id }}</strong> - {{ order.title }}<br>
+                Qty: {{ order.quantity }} | Status: <strong>{{ order.item_status }}</strong>
+            </p>
+
+            {% if order.item_status == 'Pending' %}
+            <form method="POST" action="/vendor/orders/confirm">
+                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                <input type="hidden" name="variant_id" value="{{ order.variant_id }}">
+                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer;">
+                    Confirm Fulfillment
+                </button>
+            </form>
+            {% else %}
+                <span style="color: green;">✓ Confirmed</span>
+            {% endif %}
+        </div>
     {% endfor %}
 {% else %}
     <p>No incoming orders.</p>

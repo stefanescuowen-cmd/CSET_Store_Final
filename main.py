@@ -320,6 +320,8 @@ def orders_page():
 
     with engine.connect() as conn:
         orders_raw = db.get_orders(conn, customer_id)
+        if get_user_role(conn, session["user_id"]) == "admin":
+            orders_raw = db.get_all_orders(conn)
 
         orders = []
         for order in orders_raw:
@@ -336,16 +338,16 @@ def orders_page():
 
 @app.route("/admin/orders/<int:order_id>/approve", methods=["POST"])
 def approve_order(order_id):
-    if get_user_role(conn, session["user_id"]) != "admin":
+    if session.get("role") != "admin":
         return "Unauthorized", 403
 
-    conn.execute(text("""
-        UPDATE orders
-        SET order_status = 'Confirmed'
-        WHERE order_id = :id
-    """), {"id": order_id})
+    with engine.connect() as conn:
+        conn.execute(text("""
+            UPDATE orders SET order_status = 'Confirmed' WHERE order_id = :id
+        """), {"id": order_id})
+        conn.commit()
 
-    conn.commit()
+    flash(f"Order #{order_id} approved!", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -436,6 +438,7 @@ def vendor_orders():
 # VENDOR CONFIRM ORDER
 # ====================
 
+# VENDOR CONFIRM ITEM
 @app.route("/vendor/orders/confirm", methods=["POST"])
 def vendor_confirm_order_item():
     if session.get("role") != "vendor":
@@ -443,13 +446,16 @@ def vendor_confirm_order_item():
 
     order_id = request.form.get("order_id")
     variant_id = request.form.get("variant_id")
-    vendor_id = session["user_id"]
 
-    db.confirm_vendor_item(conn, order_id, vendor_id, variant_id)
+    with engine.connect() as conn:
+        db.confirm_vendor_item(conn, order_id, variant_id)
+    
+    flash("Item marked as Confirmed", "success")
+    return redirect(url_for("vendor_dashboard"))
 
-    flash("Item confirmed for fulfillment", "success")
-    return redirect(url_for("vendor_orders"))
-
+# =========
+# SHOP PAGE
+# =========
 
 @app.route("/shop")
 def shop():
@@ -479,9 +485,9 @@ def shop():
         products=products, 
         image_map=image_map, 
         args=args,
-        colors=colors,        # Send to template
-        categories=categories, # Send to template
-        vendors=vendors        # Send to template
+        colors=colors,
+        categories=categories,
+        vendors=vendors
     )
 
 
@@ -726,38 +732,41 @@ def place_order():
         return "Unauthorized", 403
 
     customer_id = session["user_id"]
+    
+    with engine.connect() as conn:
+        # Get items to process order
+        cart_items = db.get_cart_items(conn, customer_id)
 
-    cart_items = db.get_cart_items(conn, customer_id)
+        if not cart_items:
+            flash("Cart is empty.", "error")
+            return redirect(url_for("cart"))
 
-    if not cart_items:
-        flash("Cart is empty.", "error")
-        return redirect(url_for("cart"))
+        # 1. Calculate Total Price
+        total_price = 0
+        for item in cart_items:
+            # Fallback to standard price if discount is not set
+            price = item.get("discount_price") or item.get("price")
+            total_price += price * item["quantity"]
 
-    # 1. Create order (USE YOUR FUNCTION)
-    order_id = db.create_order(conn, customer_id)
+        # 2. Create the order record (now includes total_price)
+        order_id = db.create_order(conn, customer_id, total_price)
 
-    # 2. Add items (USE YOUR FUNCTION)
-    for item in cart_items:
-        db.add_order_item(
-            conn,
-            order_id,
-            item["variant_id"],
-            item["quantity"]
-        )
+        # 3. Add individual items to the order_items table
+        for item in cart_items:
+            db.add_order_item(conn, order_id, item["variant_id"], item["quantity"])
 
-    # 3. Clear cart
-    cart_id = conn.execute(text("""
-        SELECT cart_id FROM carts WHERE customer_id = :cid
-    """), {"cid": customer_id}).scalar()
+        # 4. Clear the cart
+        # Subquery finds the user's specific cart_id
+        conn.execute(text("""
+            DELETE FROM cart_items 
+            WHERE cart_id = (SELECT cart_id FROM carts WHERE customer_id = :cid)
+        """), {"cid": customer_id})
+        
+        # 5. Commit all changes at once
+        conn.commit()
 
-    conn.execute(text("""
-    DELETE FROM cart_items WHERE cart_id = :cart_id
-    """), {"cart_id": cart_id})
-
-    conn.commit()
-
-    flash("Order placed successfully!", "success")
-    return redirect(url_for("customer_dashboard"))
+    flash("Order placed successfully! Pending vendor confirmation.", "success")
+    return redirect(url_for("orders_page"))
 
 
 # ===========
