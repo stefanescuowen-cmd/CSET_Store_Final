@@ -10,7 +10,7 @@
 {% if orders %}
     {% for order in orders %}
         <div class="order-container" style="border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
-            <div class="order-header" style="background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="order-header" style="background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center; color: black;">
                 <div>
                     <strong>Order #{{ order.order_id }}</strong> | 
                     <span>Status: <strong>{{ order.order_status }}</strong></span> |
@@ -61,14 +61,11 @@
 
                             {# CUSTOMER ITEM ACTION #}
                             {% elif session['role'] == 'customer' %}
-                            <form action="{{ url_for('chat') }}" method="GET">
-                                <input type="hidden" name="new_chat" value="true">
-                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
-                                <button type="submit" style="background-color: #ff4747; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;">
-                                    Return Item
+                            <a href="/my-returns">
+                                <button type="button">
+                                    Request Return
                                 </button>
-                            </form>
+                            </a>
 
                             {# FALLBACK #}
                             {% else %}
