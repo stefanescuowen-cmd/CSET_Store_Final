@@ -16,9 +16,14 @@
             - ${{ product.price }}
         </p>
     {% endfor %}
+    <a href="/manage-products">
+        <button type="button">Manage Your Products</button>
+    </a>
 {% else %}
     <p>No products yet.</p>
 {% endif %}
+
+
 
 <hr>
 
@@ -28,28 +33,46 @@
 <h2>Incoming Orders</h2>
 
 {% if orders %}
+    <div class="order-grid">
     {% for order in orders %}
-        <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px;">
+        <div class="order-card">
             <p>
-                <strong>Order #{{ order.order_id }}</strong> - {{ order.title }}<br>
-                Qty: {{ order.quantity }} | Status: <strong>{{ order.item_status }}</strong>
+                <strong>Order #{{ order.order_id }}</strong><br>
+                Customer ID: {{ order.customer_id }}<br>
+                Overall Status: {{ order.order_status }}<br>
+                Ordered At: {{ order.ordered_at }}
             </p>
 
-            {% if order.item_status == 'Pending' %}
-            <form method="POST" action="/vendor/orders/confirm">
-                <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                <input type="hidden" name="variant_id" value="{{ order.variant_id }}">
-                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer;">
-                    Confirm Fulfillment
-                </button>
-            </form>
-            {% else %}
-                <span style="color: green;">✓ Confirmed</span>
-            {% endif %}
+            {% for item in order["items"] %}
+                <div style="margin-bottom: 1rem;">
+                    <p>
+                        {{ item.title }}<br>
+                        Variant: {{ item.color }} / {{ item.size }}<br>
+                        Qty: {{ item.quantity }}<br>
+                        Item Status: {{ item.item_status }}
+                    </p>
+
+                    {% if item.item_status == "Pending" %}
+                        <form method="POST" action="{{ url_for('vendor_update_order_item_status') }}">
+                            <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                            <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                            <input type="hidden" name="status" value="Confirmed">
+                            <button type="submit">Confirm Item</button>
+                        </form>
+                    {% elif item.item_status == "Confirmed" %}
+                        <form method="POST" action="{{ url_for('vendor_update_order_item_status') }}">
+                            <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                            <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                            <input type="hidden" name="status" value="Shipped">
+                            <button type="submit">Ship Item</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endfor %}
         </div>
     {% endfor %}
+    </div>
 {% else %}
     <p>No incoming orders.</p>
 {% endif %}
-
 {% endblock %}
