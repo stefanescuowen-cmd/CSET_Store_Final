@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block body %}
-
+<div class="reviews-page">
 <div class="reviews-header" style="margin-bottom: 20px;">
     <h1>
         {% if product and product.title != 'All Products' %}
@@ -13,7 +13,7 @@
     {% if product and product.category %}
         <p><em>Category: {{ product.category }}</em></p>
     {% endif %}
-    <a href="{{ url_for('shop') }}">← Back to Shop</a>
+    <button><a href="{{ url_for('shop') }}">← Back to Shop</a></button>
 </div>
 
 <form action="{{ url_for('reviews_page') }}" method="GET" class="filter-bar">
@@ -85,5 +85,5 @@
 {% elif session.get("role") == "customer" %}
     <p><em>Please select a specific product from the <a href="{{ url_for('shop') }}">shop</a> to leave a review.</em></p>
 {% endif %}
-
+</div>
 {% endblock %}
