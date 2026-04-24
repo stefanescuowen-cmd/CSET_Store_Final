@@ -352,12 +352,16 @@ def approve_order(order_id):
         return "Unauthorized", 403
 
     with engine.connect() as conn:
+        # Update the status to 'Confirmed'
         conn.execute(text("""
-            UPDATE orders SET order_status = 'Confirmed' WHERE order_id = :id
+            UPDATE orders 
+            SET order_status = 'Confirmed' 
+            WHERE order_id = :id
         """), {"id": order_id})
+        
         conn.commit()
 
-    flash(f"Order #{order_id} approved!", "success")
+    flash(f"Order #{order_id} has been Approved.", "success")
     return redirect(url_for("admin_dashboard"))
 
 

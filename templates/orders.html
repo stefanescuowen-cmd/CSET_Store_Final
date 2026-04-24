@@ -1,19 +1,37 @@
 {% extends "base.html" %}
 
 {% block body %}
-<h1>My Orders</h1>
+<h1>
+    {% if session['role'] == 'admin' %} All Orders (Admin Panel) 
+    {% elif session['role'] == 'vendor' %} Incoming Product Orders 
+    {% else %} My Orders {% endif %}
+</h1>
 
 {% if orders %}
     {% for order in orders %}
         <div class="order-container" style="border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
-            <div class="order-header" style="background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px;">
-                <strong>Order #{{ order.order_id }}</strong> | 
-                <span>Status: <strong>{{ order.order_status }}</strong></span> |
-                <span>Total: <strong>${{ order.total_price }}</strong></span> |
-                <span>Date: {{ order.ordered_at.strftime('%Y-%m-%d') }}</span>
+            <div class="order-header" style="background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>Order #{{ order.order_id }}</strong> | 
+                    <span>Status: <strong>{{ order.order_status }}</strong></span> |
+                    <span>Total: <strong>${{ order.total_price }}</strong></span> |
+                    <span>Date: {{ order.ordered_at.strftime('%Y-%m-%d') }}</span>
+                </div>
+
+                {# ADMIN GLOBAL ACTIONS #}
+                {% if session['role'] == 'admin' and order.order_status == 'Pending' %}
+                <div style="display: flex; gap: 5px;">
+                    <form action="{{ url_for('approve_order', order_id=order.order_id) }}" method="POST">
+                        <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Approve Order</button>
+                    </form>
+                    <form action="{{ url_for('reject_order', order_id=order.order_id) }}" method="POST">
+                        <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Reject Order</button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
 
-            <table style="width: 100%; border-collapse: collapse;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
                 <thead>
                     <tr style="text-align: left; border-bottom: 1px solid #ddd;">
                         <th>Product</th>
@@ -31,6 +49,18 @@
                         <td>{{ item.quantity }}</td>
                         <td>{{ item.item_status }}</td>
                         <td>
+                            {# VENDOR ITEM ACTION #}
+                            {% if session['role'] == 'vendor' and item.item_status == 'Pending' %}
+                            <form action="{{ url_for('vendor_confirm_order_item') }}" method="POST">
+                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                                    Confirm Shipment
+                                </button>
+                            </form>
+
+                            {# CUSTOMER ITEM ACTION #}
+                            {% elif session['role'] == 'customer' %}
                             <form action="{{ url_for('chat') }}" method="GET">
                                 <input type="hidden" name="new_chat" value="true">
                                 <input type="hidden" name="order_id" value="{{ order.order_id }}">
@@ -39,6 +69,11 @@
                                     Return Item
                                 </button>
                             </form>
+
+                            {# FALLBACK #}
+                            {% else %}
+                            <span style="color: #666;">No actions available</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -47,7 +82,7 @@
         </div>
     {% endfor %}
 {% else %}
-    <p>No orders yet.</p>
+    <p>No orders found.</p>
 {% endif %}
 
 {% endblock %}
