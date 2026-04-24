@@ -375,12 +375,12 @@ def get_return_title(connection, return_id):
 # ORDERS
 # ======
 
-def create_order(connection, customer_id, total_price):
+def create_order(connection, customer_id, total_price=None):
     query = text("""
-        INSERT INTO orders (customer_id, order_status, total_price)
-        VALUES (:customer_id, 'Pending', :total)
+        INSERT INTO orders (customer_id, order_status)
+        VALUES (:customer_id, 'Pending')
     """)
-    result = connection.execute(query, {"customer_id": customer_id, "total": total_price})
+    result = connection.execute(query, {"customer_id": customer_id})
     connection.commit()
     return result.lastrowid
 
@@ -401,7 +401,7 @@ def add_order_item(connection, order_id, variant_id, quantity):
 def get_orders(connection, customer_id):
     query = text("""
         SELECT o.order_id, 
-               o.total_price,
+               SUM(COALESCE(p.discount_price, p.price) * oi.quantity) as total_price,
                o.ordered_at,
                o.order_status,
                GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
@@ -410,7 +410,7 @@ def get_orders(connection, customer_id):
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE o.customer_id = :customer_id
-        GROUP BY o.order_id
+        GROUP BY o.order_id, o.ordered_at, o.order_status
         ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})

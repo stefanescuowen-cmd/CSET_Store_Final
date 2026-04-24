@@ -44,6 +44,8 @@
             </p>
 
             {% for item in order["items"] %}
+                <p>--</p>
+
                 <div style="margin-bottom: 1rem;">
                     <p>
                         {{ item.title }}<br>
@@ -68,6 +70,8 @@
                         </form>
                     {% endif %}
                 </div>
+
+                
             {% endfor %}
         </div>
     {% endfor %}

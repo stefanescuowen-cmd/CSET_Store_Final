@@ -60,27 +60,13 @@
     <p>No pending returns.</p>
 {% else %}
 <div class="return-grid">
-{% for order in orders %}
+{% for return in returns %}
     <div class="return-card">
         <p>
-            <strong>Order #{{ order.order_id }}</strong><br>
-            Customer ID: {{ order.customer_id }}<br>
-            Status: <strong id="status-{{ order.order_id }}">{{ order.order_status }}</strong>
+            <strong>Return #{{ return.return_id }}</strong><br>
+            Customer ID: {{ return.customer_id }}<br>
+            Status: <strong id="status-{{ return.return_id }}">{{ return.status }}</strong>
         </p>
-
-        {# ONLY show buttons if the status is Pending #}
-        {% if order.order_status == 'Pending' %}
-            <form method="POST" action="/admin/orders/{{ order.order_id }}/approve" style="display:inline;">
-                <button type="submit" style="background-color: #28a745; color: white;">Approve</button>
-            </form>
-
-            <form method="POST" action="/admin/orders/{{ order.order_id }}/reject" style="display:inline;">
-                <button type="submit" style="background-color: #dc3545; color: white;">Reject</button>
-            </form>
-        {% else %}
-            {# This shows once the order is no longer Pending #}
-            <span style="color: #666; font-style: italic;">Action Completed: {{ order.order_status }}</span>
-        {% endif %}
     </div>
 {% endfor %}
 </div>
