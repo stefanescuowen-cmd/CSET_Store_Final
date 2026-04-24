@@ -77,27 +77,31 @@
 
 <h2>Orders Management</h2>
 
-
 <div class="return-grid">
 {% for order in orders %}
-    <div class="return-card">
-
+    <div class="return-card" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
         <p>
-            Order #{{ order.order_id }}<br>
+            <strong>Order #{{ order.order_id }}</strong><br>
             Customer ID: {{ order.customer_id }}<br>
             Product: {{ order.title }}<br>
-            Qty: {{ order.quantity }}<br>
-            Status: {{ order.order_status }}
+            Status: <strong>{{ order.order_status }}</strong>
         </p>
 
-        <form method="POST" action="/admin/orders/{{ order.order_id }}/approve">
-            <button type="submit">Approve</button>
-        </form>
+        {% if order.order_status == 'Pending' %}
+            <div style="display: flex; gap: 10px;">
+                <form method="POST" action="/admin/orders/{{ order.order_id }}/approve">
+                    <button type="submit" style="background-color: #28a745; color: white;">Approve</button>
+                </form>
 
-        <form method="POST" action="/admin/orders/{{ order.order_id }}/reject">
-            <button type="submit">Reject</button>
-        </form>
-
+                <form method="POST" action="/admin/orders/{{ order.order_id }}/reject">
+                    <button type="submit" style="background-color: #dc3545; color: white;">Reject</button>
+                </form>
+            </div>
+        {% elif order.order_status == 'Confirmed' %}
+            <span style="color: #28a745;">Approved</span>
+        {% else %}
+            <span>{{ order.order_status }}</span>
+        {% endif %}
     </div>
 {% endfor %}
 </div>

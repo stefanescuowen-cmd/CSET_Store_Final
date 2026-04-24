@@ -73,17 +73,17 @@ INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES
 (3, 5, 2);
 
 -- ORDERS
-INSERT INTO orders (customer_id, order_status, ordered_at, delivered_at) VALUES
-(3, 'Confirmed', NOW(), NULL),
-(4, 'Shipped', NOW(), NULL),
-(5, 'Delivered', NOW(), NOW()),
-(6, 'Cancelled', NOW(), NULL),
-(7, 'Handed to delivery partner', NOW(), NULL),
-(3, 'Delivered', NOW(), NOW()),
-(4, 'Pending', NOW(), NULL),
-(5, 'Shipped', NOW(), NULL),
-(6, 'Shipped', NOW(), NULL),
-(3, 'Cancelled', NOW(), NULL);
+INSERT INTO orders (customer_id, order_status, total_price, ordered_at, delivered_at) VALUES
+(3, 'Confirmed', 120.50, NOW(), NULL),
+(4, 'Shipped', 85.00, NOW(), NULL),
+(5, 'Delivered', 210.00, NOW(), NOW()),
+(6, 'Cancelled', 45.00, NOW(), NULL),
+(7, 'Handed to delivery partner', 300.00, NOW(), NULL),
+(3, 'Delivered', 95.50, NOW(), NOW()),
+(4, 'Pending', 15.00, NOW(), NULL),
+(5, 'Shipped', 130.00, NOW(), NULL),
+(6, 'Shipped', 75.00, NOW(), NULL),
+(3, 'Cancelled', 55.00, NOW(), NULL);
 
 -- ORDER ITEMS
 INSERT INTO order_items (order_id, variant_id, quantity, item_status) VALUES
