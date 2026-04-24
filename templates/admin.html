@@ -80,23 +80,15 @@
 
 <div class="return-grid">
 {% for order in orders %}
-    <div class="return-card">
+    <div class="return-card" id="order-card-{{ order.order_id }}">
 
         <p>
             Order #{{ order.order_id }}<br>
             Customer ID: {{ order.customer_id }}<br>
             Product: {{ order.title }}<br>
             Qty: {{ order.quantity }}<br>
-            Status: {{ order.order_status }}
+            Status: <span class="order-status">{{ order.order_status }}</span>
         </p>
-
-        <form method="POST" action="/admin/orders/{{ order.order_id }}/approve">
-            <button type="submit">Approve</button>
-        </form>
-
-        <form method="POST" action="/admin/orders/{{ order.order_id }}/reject">
-            <button type="submit">Reject</button>
-        </form>
 
     </div>
 {% endfor %}

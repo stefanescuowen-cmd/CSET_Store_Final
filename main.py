@@ -1,7 +1,7 @@
 # Imports
 from datetime import datetime
 
-from flask import Flask, redirect, render_template, request, url_for, flash, session, jsonify
+from flask import Flask, redirect, render_template, request, url_for, flash, session
 from sqlalchemy import create_engine, text
 
 # IMPORT MODELS
@@ -156,7 +156,7 @@ def admin_dashboard():
 # PRODUCT MANAGEMENT
 # ========================
 
-@app.route("/admin/manage-products/") 
+@app.route("/manage-products/") 
 def manage_products():
     user_id = session.get("user_id")
     role = get_user_role(conn, user_id)
@@ -341,21 +341,12 @@ def orders_page():
 
 
 # ===================
-# ADMIN APPROVE ORDER
+# ADMIN ORDER ACTIONS
 # ===================
 
 @app.route("/admin/orders/<int:order_id>/approve", methods=["POST"])
 def approve_order(order_id):
-    if get_user_role(conn, session["user_id"]) != "admin":
-        return "Unauthorized", 403
-
-    conn.execute(text("""
-        UPDATE orders
-        SET order_status = 'Confirmed'
-        WHERE order_id = :id
-    """), {"id": order_id})
-
-    conn.commit()
+    flash("Admins can view orders, but vendors must confirm their own items.", "error")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -365,16 +356,7 @@ def approve_order(order_id):
 
 @app.route("/admin/orders/<int:order_id>/reject", methods=["POST"])
 def reject_order(order_id):
-    if get_user_role(conn, session["user_id"]) != "admin":
-        return "Unauthorized", 403
-
-    conn.execute(text("""
-        UPDATE orders
-        SET order_status = 'Cancelled'
-        WHERE order_id = :id
-    """), {"id": order_id})
-
-    conn.commit()
+    flash("Admins can view orders, but vendors must update their own items.", "error")
     return redirect(url_for("admin_dashboard"))
   
 
@@ -418,7 +400,23 @@ def vendor_dashboard():
     vendor_id = session["user_id"]
 
     products = db.get_vendor_products(conn, vendor_id)
-    orders = db.get_vendor_orders(conn, vendor_id)
+    order_items = db.get_vendor_orders(conn, vendor_id)
+    grouped_orders = {}
+
+    for item in order_items:
+        order_id = item["order_id"]
+        if order_id not in grouped_orders:
+            grouped_orders[order_id] = {
+                "order_id": order_id,
+                "customer_id": item["customer_id"],
+                "order_status": item["order_status"],
+                "ordered_at": item["ordered_at"],
+                "items": []
+            }
+
+        grouped_orders[order_id]["items"].append(item)
+
+    orders = list(grouped_orders.values())
 
     return render_template(
         "vendor.html",
@@ -433,32 +431,37 @@ def vendor_dashboard():
 
 @app.route("/vendor/orders")
 def vendor_orders():
-    if session.get("role") != "vendor":
-        return "Unauthorized", 403
-
-    vendor_id = session["user_id"]
-    orders = db.get_vendor_orders(conn, vendor_id)
-
-    return render_template("vendor_orders.html", orders=orders)
+    return redirect(url_for("vendor_dashboard"))
 
 
 # ====================
 # VENDOR CONFIRM ORDER
 # ====================
 
-@app.route("/vendor/orders/confirm", methods=["POST"])
-def vendor_confirm_order_item():
+@app.route("/vendor/orders/item-status", methods=["POST"])
+def vendor_update_order_item_status():
     if session.get("role") != "vendor":
         return "Unauthorized", 403
 
-    order_id = request.form.get("order_id")
-    variant_id = request.form.get("variant_id")
+    order_id = int(request.form.get("order_id"))
+    variant_id = int(request.form.get("variant_id"))
+    new_status = request.form.get("status")
     vendor_id = session["user_id"]
 
-    db.confirm_vendor_item(conn, order_id, vendor_id, variant_id)
+    success, message, overall_status = db.update_vendor_order_item_status(
+        conn, order_id, variant_id, vendor_id, new_status
+    )
 
-    flash("Item confirmed for fulfillment", "success")
-    return redirect(url_for("vendor_orders"))
+    if not success:
+        flash(message, "error")
+        return redirect(url_for("vendor_dashboard"))
+
+    action_label = "confirmed" if new_status == "Confirmed" else "shipped"
+    flash(
+        f"Order #{order_id} item was {action_label}. Overall order status is now {overall_status}.",
+        "success"
+    )
+    return redirect(url_for("vendor_dashboard"))
 
 
 @app.route("/shop")

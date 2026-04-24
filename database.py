@@ -37,16 +37,21 @@ def get_vendor_orders(connection, vendor_id):
     query = text("""
         SELECT 
             o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
             oi.variant_id,
             oi.quantity,
             oi.item_status,
-            p.title
+            p.title,
+            pv.color,
+            pv.size
         FROM order_items oi
         JOIN orders o ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE p.vendor_id = :vendor_id
-        ORDER BY o.order_id DESC
+        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
     """)
     result = connection.execute(query, {"vendor_id": vendor_id})
     return result.mappings().all()
@@ -64,6 +69,107 @@ def confirm_vendor_item(connection, order_id, vendor_id, variant_id):
         "variant_id": variant_id
     })
     connection.commit()
+
+
+def sync_order_status(connection, order_id):
+    statuses = connection.execute(text("""
+        SELECT item_status
+        FROM order_items
+        WHERE order_id = :order_id
+    """), {"order_id": order_id}).scalars().all()
+
+    if not statuses:
+        return None
+
+    if all(status == "Cancelled" for status in statuses):
+        new_status = "Cancelled"
+    else:
+        active_statuses = [status for status in statuses if status != "Cancelled"]
+        milestones = [
+            "Pending",
+            "Confirmed",
+            "Handed to delivery partner",
+            "Shipped",
+            "Delivered"
+        ]
+        ranking = {status: index for index, status in enumerate(milestones)}
+
+        lowest_rank = min(ranking.get(status, 0) for status in active_statuses) if active_statuses else 0
+        new_status = milestones[lowest_rank]
+
+    connection.execute(text("""
+        UPDATE orders
+        SET order_status = :status
+        WHERE order_id = :order_id
+    """), {
+        "status": new_status,
+        "order_id": order_id
+    })
+    connection.commit()
+    return new_status
+
+
+def update_vendor_order_item_status(connection, order_id, variant_id, vendor_id, new_status):
+    item = connection.execute(text("""
+        SELECT oi.item_status
+        FROM order_items oi
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE oi.order_id = :order_id
+          AND oi.variant_id = :variant_id
+          AND p.vendor_id = :vendor_id
+    """), {
+        "order_id": order_id,
+        "variant_id": variant_id,
+        "vendor_id": vendor_id
+    }).mappings().first()
+
+    if not item:
+        return False, "Order item not found.", None
+
+    current_status = item["item_status"]
+    allowed_transitions = {
+        "Pending": "Confirmed",
+        "Confirmed": "Shipped"
+    }
+
+    if allowed_transitions.get(current_status) != new_status:
+        return False, f"Item cannot move from {current_status} to {new_status}.", None
+
+    connection.execute(text("""
+        UPDATE order_items
+        SET item_status = :status
+        WHERE order_id = :order_id AND variant_id = :variant_id
+    """), {
+        "status": new_status,
+        "order_id": order_id,
+        "variant_id": variant_id
+    })
+
+    if new_status == "Confirmed":
+        connection.execute(text("""
+            INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
+            VALUES (:order_id, :vendor_id, :variant_id, 'Confirmed')
+            ON DUPLICATE KEY UPDATE status = 'Confirmed'
+        """), {
+            "order_id": order_id,
+            "vendor_id": vendor_id,
+            "variant_id": variant_id
+        })
+    elif new_status == "Shipped":
+        connection.execute(text("""
+            INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
+            VALUES (:order_id, :vendor_id, :variant_id, 'Shipped')
+            ON DUPLICATE KEY UPDATE status = 'Shipped'
+        """), {
+            "order_id": order_id,
+            "vendor_id": vendor_id,
+            "variant_id": variant_id
+        })
+
+    connection.commit()
+    overall_status = sync_order_status(connection, order_id)
+    return True, None, overall_status
 
 
 # ====
@@ -752,12 +858,23 @@ def get_vendor_products(connection, vendor_id):
 
 def get_vendor_orders(connection, vendor_id):
     query = text("""
-        SELECT o.order_id, p.title, oi.quantity, oi.item_status
+        SELECT 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            oi.variant_id,
+            oi.quantity,
+            oi.item_status,
+            p.title,
+            pv.color,
+            pv.size
         FROM order_items oi
         JOIN orders o ON oi.order_id = o.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE p.vendor_id = :vendor_id
+        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
 
