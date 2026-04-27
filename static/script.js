@@ -13,6 +13,18 @@ function toggleEdit(id) {
     }
 }
 
+// Password
+
+function togglePassword(inputId) {
+    const pwInput = document.getElementById(inputId);
+    if (pwInput.type === "password") {
+        pwInput.type = "text";
+    } else {
+        pwInput.type = "password";
+    }
+}
+
+
 // Account
 
 function togglePassword() {

@@ -11,7 +11,10 @@
             <input type="text" id="username_or_email" name="username_or_email" placeholder="johndoe123 or john@example.com" required>
 
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="••••••••" required>
+            <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="password" name="password" placeholder="••••••••" required style="width: 100%; padding-right: 30px;">
+                <span onclick="togglePassword('password')" style="cursor: pointer; position: absolute; right: 10px;"></span>
+            </div>
 
             <input type="submit" value="Log In">
         </form>
