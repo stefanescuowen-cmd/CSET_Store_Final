@@ -360,6 +360,10 @@ def get_user_name(connection, user_id):
     query = text("SELECT name FROM users WHERE user_id = :uid")
     return connection.execute(query, {"uid": user_id}).scalar()
 
+def get_user_addresses(connection, user_id):
+    query = text("SELECT * FROM addresses WHERE user_id = :uid")
+    return connection.execute(query, {"uid": user_id}).mappings().all()
+
 def get_return_title(connection, return_id):
     query = text("""
         SELECT p.title 

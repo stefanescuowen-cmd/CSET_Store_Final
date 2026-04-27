@@ -72,6 +72,12 @@ INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES
 (2, 3, 1),
 (3, 5, 2);
 
+-- ADDRESSES
+INSERT INTO addresses (user_id, receiver_name, contact_number, address_line1, address_line2, city, state, zip_code, address_type, is_default) VALUES
+(3, 'Alice Smith', '555-0101', '123 Maple Ave', 'Apt 4B', 'Lancaster', 'PA', '17603', 'Home', TRUE),
+(3, 'Alice Smith', '555-0102', 'Tech Hub Plaza', 'Suite 200', 'Philadelphia', 'PA', '19104', 'Office', FALSE),
+(4, 'Robert Miller', '555-0202', '456 Oak Lane', NULL, 'Lancaster', 'PA', '17601', 'Home', TRUE);
+
 -- ORDERS
 INSERT INTO orders (customer_id, order_status, total_price, ordered_at, delivered_at) VALUES
 (3, 'Confirmed', 120.50, NOW(), NULL),

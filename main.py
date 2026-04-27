@@ -2,7 +2,10 @@
 from datetime import datetime
 
 from flask import Flask, redirect, render_template, request, url_for, flash, session, jsonify
+from extensions import engine
 from sqlalchemy import create_engine, text
+from blueprints.customer import customer_bp
+from blueprints.auth import auth_bp
 
 # IMPORT MODELS
 import database as db
@@ -10,12 +13,17 @@ import database as db
 app = Flask(__name__)
 app.secret_key = "school_project_key"
 
+app.register_blueprint(customer_bp)
+app.register_blueprint(auth_bp)
+
 # ===================
 # DATABASE CONNECTION
 # ===================
 
 conn_str = "mysql://root:cset155@localhost/store_db"
 engine = create_engine(conn_str, echo=True)
+
+# app.register_blueprint(auth_bp)
 
 conn = engine.connect()
 
@@ -729,17 +737,18 @@ def checkout():
         return redirect(url_for("login"))
 
     customer_id = session["user_id"]
+    
+    addresses = db.get_user_addresses(conn, customer_id)
+    if not addresses:
+        flash("Please add a shipping address before checking out.", "info")
+        return redirect(url_for("manage_addresses")) 
 
-    # get cart items (reuses your existing function)
     cart_items = db.get_cart_items(conn, customer_id)
-
     if not cart_items:
         flash("Your cart is empty.", "error")
         return redirect(url_for("cart"))
 
     total = 0
-
-    # calculate total safely
     for item in cart_items:
         price = item.get("discount_price") or item.get("price")
         total += price * item["quantity"]
@@ -748,6 +757,7 @@ def checkout():
         "checkout.html",
         items=cart_items,
         total=total,
+        addresses=addresses
     )
 
 

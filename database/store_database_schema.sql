@@ -175,3 +175,19 @@ CREATE TABLE wishlist_items (
     FOREIGN KEY (wishlist_id) REFERENCES wishlists(wishlist_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
+
+-- ADDRESS
+CREATE TABLE addresses (
+    address_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    receiver_name VARCHAR(100) NOT NULL,
+    contact_number VARCHAR(20) NOT NULL,
+    address_line1 VARCHAR(255) NOT NULL,
+    address_line2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    address_type ENUM('Home', 'Office') DEFAULT 'Home',
+    is_default BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
