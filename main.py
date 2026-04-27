@@ -1,11 +1,10 @@
 # Imports
 from datetime import datetime
 
-from flask import Flask, redirect, render_template, request, url_for, flash, session, jsonify
+from flask import Flask, redirect, render_template, request, url_for, flash, session
 from extensions import engine
 from sqlalchemy import create_engine, text
 from blueprints.customer import customer_bp
-from blueprints.auth import auth_bp
 
 # IMPORT MODELS
 import database as db
@@ -14,7 +13,6 @@ app = Flask(__name__)
 app.secret_key = "school_project_key"
 
 app.register_blueprint(customer_bp)
-app.register_blueprint(auth_bp)
 
 # ===================
 # DATABASE CONNECTION
@@ -22,8 +20,6 @@ app.register_blueprint(auth_bp)
 
 conn_str = "mysql://root:cset155@localhost/store_db"
 engine = create_engine(conn_str, echo=True)
-
-# app.register_blueprint(auth_bp)
 
 conn = engine.connect()
 
@@ -96,10 +92,12 @@ def signup():
 def login():
     
     if request.method == "POST":
+        print("Login attempt with data:", request.form)
         username_or_email = request.form.get("username_or_email")
         password = request.form.get("password")
 
         user = db.verify_user(conn, username_or_email, password)
+
 
         if user:
             session["user_id"] = user.user_id
