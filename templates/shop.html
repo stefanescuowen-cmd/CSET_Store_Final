@@ -25,6 +25,15 @@
         {% endfor %}
     </select>
 
+    <select name="size">
+        <option value="">All Sizes</option>
+        {% for size in sizes %}
+            <option value="{{ size }}" {% if args.size == size %}selected{% endif %}>
+                {{ size }}
+            </option>
+        {% endfor %}
+    </select>
+
     <select name="category">
         <option value="">All Categories</option>
         {% for cat in categories %}
@@ -42,7 +51,7 @@
     
     <button type="submit">Apply Search & Filters</button>
     
-    {% if args.search or args.vendor or args.color or args.availability %}
+    {% if args.search or args.vendor or args.color or args.size or args.availability %}
         <a href="/shop">
             <button type="button">Clear All</button>
         </a>
