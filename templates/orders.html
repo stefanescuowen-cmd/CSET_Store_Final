@@ -10,6 +10,8 @@
 {% if orders %}
     {% for order in orders %}
         <div class="order-container" style="border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
+            
+            {# HEADER SECTION - ADMIN BUTTONS REMOVED #}
             <div class="order-header" style="background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center; color: black;">
                 <div>
                     <strong>Order #{{ order.order_id }}</strong> | 
@@ -17,20 +19,10 @@
                     <span>Total: <strong>${{ order.total_price }}</strong></span> |
                     <span>Date: {{ order.ordered_at.strftime('%Y-%m-%d') }}</span>
                 </div>
-
-                {# ADMIN GLOBAL ACTIONS #}
-                {% if session['role'] == 'admin' and order.order_status == 'Pending' %}
-                <div style="display: flex; gap: 5px;">
-                    <form action="{{ url_for('approve_order', order_id=order.order_id) }}" method="POST">
-                        <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Approve Order</button>
-                    </form>
-                    <form action="{{ url_for('reject_order', order_id=order.order_id) }}" method="POST">
-                        <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Reject Order</button>
-                    </form>
-                </div>
-                {% endif %}
+                {# The div for Admin actions has been deleted entirely #}
             </div>
 
+            {# ITEMS TABLE #}
             <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
                 <thead>
                     <tr style="text-align: left; border-bottom: 1px solid #ddd;">
@@ -49,27 +41,49 @@
                         <td>{{ item.quantity }}</td>
                         <td>{{ item.item_status }}</td>
                         <td>
-                            {# VENDOR ITEM ACTION #}
-                            {% if session['role'] == 'vendor' and item.item_status == 'Pending' %}
-                            <form action="{{ url_for('vendor_confirm_order_item') }}" method="POST">
-                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
-                                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
-                                    Confirm Shipment
-                                </button>
-                            </form>
+                            {# VENDOR LOGIC #}
+                            {% if session['role'] == 'vendor' %}
+                                {# Ensure comparison works by casting to int #}
+                                {% if item.vendor_id|int == session['user_id']|int %}
+                                    {% if item.item_status == 'Pending' %}
+                                        <div style="display: flex; gap: 5px;">
+                                            <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
+                                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                                                <input type="hidden" name="status" value="Confirmed">
+                                                <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Confirm Item</button>
+                                            </form>
 
-                            {# CUSTOMER ITEM ACTION #}
+                                            <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
+                                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                                <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                                                <input type="hidden" name="status" value="Denied">
+                                                <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Deny Item</button>
+                                            </form>
+                                        </div>
+                                    {% elif item.item_status == 'Confirmed' %}
+                                        <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
+                                            <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                            <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+                                            <input type="hidden" name="status" value="Shipped">
+                                            <button type="submit" style="background-color: #008CBA; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Ship Item</button>
+                                        </form>
+                                    {% else %}
+                                        <span style="color: #28a745; font-weight: bold;">{{ item.item_status }} ✓</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span style="color: #999;">Other Vendor's Item</span>
+                                {% endif %}
+
+                            {# CUSTOMER LOGIC #}
                             {% elif session['role'] == 'customer' %}
-                            <a href="/my-returns">
-                                <button type="button">
-                                    Request Return
-                                </button>
-                            </a>
+                                <a href="/my-returns">
+                                    <button type="button" style="background-color: #ff4747; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;">Request Return</button>
+                                </a>
 
-                            {# FALLBACK #}
+                            {# ADMIN / OTHER #}
                             {% else %}
-                            <span style="color: #666;">No actions available</span>
+                                <span style="color: #666;">No actions available</span>
                             {% endif %}
                         </td>
                     </tr>

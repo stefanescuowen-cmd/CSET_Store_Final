@@ -423,6 +423,7 @@ def get_order_items(connection, order_id):
             oi.quantity, 
             oi.item_status, 
             p.title, 
+            p.vendor_id,
             pv.size, 
             pv.color
         FROM order_items oi
