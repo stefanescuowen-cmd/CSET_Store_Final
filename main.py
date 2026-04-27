@@ -1,7 +1,7 @@
 # Imports
 from datetime import datetime
 
-from flask import Flask, redirect, render_template, request, url_for, flash, session
+from flask import Flask, redirect, render_template, request, url_for, flash, session, jsonify
 from sqlalchemy import create_engine, text
 
 # IMPORT MODELS
@@ -156,7 +156,7 @@ def admin_dashboard():
 # PRODUCT MANAGEMENT
 # ========================
 
-@app.route("/manage-products/") 
+@app.route("/admin/manage-products/") 
 def manage_products():
     user_id = session.get("user_id")
     role = get_user_role(conn, user_id)
@@ -326,16 +326,22 @@ def orders_page():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    customer_id = session["user_id"]
+    user_id = session["user_id"]
+    role = session.get("role")
 
     with engine.connect() as conn:
-        orders_raw = db.get_orders(conn, customer_id)
-        if get_user_role(conn, session["user_id"]) == "admin":
+        if role == "admin":
             orders_raw = db.get_all_orders(conn)
+        elif role == "vendor":
+            # You need this specific function to only show the vendor's items!
+            orders_raw = db.get_vendor_orders(conn, user_id)
+        else:
+            orders_raw = db.get_orders(conn, user_id)
 
         orders = []
         for order in orders_raw:
             order_dict = dict(order)
+            # Fetch the items for this specific order
             order_dict['order_items_list'] = db.get_order_items(conn, order_dict['order_id'])
             orders.append(order_dict)
 
@@ -343,27 +349,14 @@ def orders_page():
 
 
 # ===================
-# ADMIN ORDER ACTIONS
+# ADMIN APPROVE ORDER
 # ===================
 
 @app.route("/admin/orders/<int:order_id>/approve", methods=["POST"])
 def approve_order(order_id):
-    flash("Admins can view orders, but vendors must confirm their own items.", "error")
-    if session.get("role") != "admin":
-        return "Unauthorized", 403
-
-    with engine.connect() as conn:
-        # Update the status to 'Confirmed'
-        conn.execute(text("""
-            UPDATE orders 
-            SET order_status = 'Confirmed' 
-            WHERE order_id = :id
-        """), {"id": order_id})
-        
-        conn.commit()
-
+    # ... (code logic)
     flash(f"Order #{order_id} has been Approved.", "success")
-    return redirect(url_for("admin_dashboard"))
+    return redirect(url_for("orders_page"))
 
 
 # ==================
@@ -372,8 +365,9 @@ def approve_order(order_id):
 
 @app.route("/admin/orders/<int:order_id>/reject", methods=["POST"])
 def reject_order(order_id):
-    flash("Admins can view orders, but vendors must update their own items.", "error")
-    return redirect(url_for("admin_dashboard"))
+    # ... (code logic)
+    flash(f"Order #{order_id} has been Rejected.", "danger")
+    return redirect(url_for("orders_page"))
   
 
 # ==================
@@ -409,30 +403,23 @@ def vendor_dashboard():
         flash('You need to log in as a vendor!', 'error')
         return redirect(url_for("login"))
 
-    if get_user_role(conn, session["user_id"]) != "vendor":
-        flash('Only vendors can access this page!', 'error')
-        return redirect(url_for('index'))
+    with engine.connect() as conn:
+        if get_user_role(conn, session["user_id"]) != "vendor":
+            flash('Only vendors can access this page!', 'error')
+            return redirect(url_for('index'))
 
-    vendor_id = session["user_id"]
+        vendor_id = session["user_id"]
 
-    products = db.get_vendor_products(conn, vendor_id)
-    order_items = db.get_vendor_orders(conn, vendor_id)
-    grouped_orders = {}
+        products = db.get_vendor_products(conn, vendor_id)
+        orders_raw = db.get_vendor_orders(conn, vendor_id)
 
-    for item in order_items:
-        order_id = item["order_id"]
-        if order_id not in grouped_orders:
-            grouped_orders[order_id] = {
-                "order_id": order_id,
-                "customer_id": item["customer_id"],
-                "order_status": item["order_status"],
-                "ordered_at": item["ordered_at"],
-                "items": []
-            }
-
-        grouped_orders[order_id]["items"].append(item)
-
-    orders = list(grouped_orders.values())
+        orders = []
+        for order in orders_raw:
+            order_dict = dict(order)
+            
+            order_dict['items'] = db.get_order_items(conn, order_dict['order_id'])
+            
+            orders.append(order_dict)
 
     return render_template(
         "vendor.html",
@@ -442,42 +429,43 @@ def vendor_dashboard():
 
 
 # ====================
-# VENDOR APPROVE ORDER
+# VENDOR STATUS UPDATE
 # ====================
 
-@app.route("/vendor/orders")
-def vendor_orders():
-    return redirect(url_for("vendor_dashboard"))
-
-
-# ====================
-# VENDOR CONFIRM ORDER
-# ====================
-
-@app.route("/vendor/orders/item-status", methods=["POST"])
+@app.route("/vendor/update_item_status", methods=["POST"])
 def vendor_update_order_item_status():
     if session.get("role") != "vendor":
         return "Unauthorized", 403
 
-    order_id = int(request.form.get("order_id"))
-    variant_id = int(request.form.get("variant_id"))
+    vendor_id = session.get("user_id")
+    order_id = request.form.get("order_id")
+    variant_id = request.form.get("variant_id")
     new_status = request.form.get("status")
-    vendor_id = session["user_id"]
 
-    success, message, overall_status = db.update_vendor_order_item_status(
-        conn, order_id, variant_id, vendor_id, new_status
-    )
+    with engine.connect() as conn:
 
-    if not success:
-        flash(message, "error")
-        return redirect(url_for("vendor_dashboard"))
+        check_ownership = conn.execute(text("""
+            SELECT p.vendor_id 
+            FROM products p
+            JOIN product_variants v ON p.product_id = v.product_id
+            WHERE v.variant_id = :v_id
+        """), {"v_id": variant_id}).fetchone()
 
-    action_label = "confirmed" if new_status == "Confirmed" else "shipped"
-    flash(
-        f"Order #{order_id} item was {action_label}. Overall order status is now {overall_status}.",
-        "success"
-    )
-    return redirect(url_for("vendor_dashboard"))
+        if not check_ownership or check_ownership[0] != vendor_id:
+            flash("Error: You do not have permission to update this item.", "danger")
+            return redirect(url_for("orders_page"))
+
+        conn.execute(text("""
+            UPDATE order_items 
+            SET item_status = :status 
+            WHERE order_id = :order_id AND variant_id = :variant_id
+        """), {"status": new_status, "order_id": order_id, "variant_id": variant_id})
+        conn.commit()
+
+    flash_type = "success" if new_status != "Denied" else "warning"
+    flash(f"Item status updated to {new_status}!", flash_type)
+    
+    return redirect(url_for("orders_page"))
 
 # =========
 # SHOP PAGE
