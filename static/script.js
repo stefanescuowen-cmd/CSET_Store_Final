@@ -13,6 +13,39 @@ function toggleEdit(id) {
     }
 }
 
+// Account
+
+function togglePassword() {
+    const pwInput = document.getElementById("new_password");
+    pwInput.type = pwInput.type === "password" ? "text" : "password";
+}
+
+function enablePasswordEdit() {
+    console.log("Edit button clicked!");
+    const pwInput = document.getElementById("new_password");
+    
+    if (!pwInput) {
+        console.error("Could not find the new_password input!");
+        return;
+    }
+
+    pwInput.readOnly = false;
+    pwInput.disabled = false;
+    
+    pwInput.value = ""; 
+    pwInput.placeholder = "Type new password...";
+    
+    pwInput.style.backgroundColor = "#ffffff";
+    pwInput.style.border = "2px solid #007bff";
+    
+    setTimeout(() => {
+        pwInput.focus();
+    }, 10);
+    
+    document.getElementById("update-btn").style.display = "inline-block";
+    document.getElementById("edit-btn").style.display = "none";
+}
+
 // Product
 
 function updateVariant(selectElement) {

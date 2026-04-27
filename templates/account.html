@@ -3,63 +3,63 @@
 
 <h1>My Account</h1>
 
-<!-- ================= -->
-<!-- PROFILE (ALL USERS) -->
-<!-- ================= -->
 <h2>Profile</h2>
-
 <p><strong>Name:</strong> {{ user.name }}</p>
 <p><strong>Email:</strong> {{ user.email }}</p>
 <p><strong>Username:</strong> {{ user.username }}</p>
 
+<div class="account-section">
+    <h2>Security</h2>
+    <form action="{{ url_for('update_password') }}" method="POST">
+        
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label for="current_password">Current Password:</label><br>
+            <input type="password" id="current_password" name="current_password" required>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 15px; position: relative;">
+            <label for="new_password">New Password:</label><br>
+            <input 
+                type="password" 
+                id="new_password" 
+                name="new_password" 
+                placeholder="••••••••" 
+                readonly
+                style="color:black;"
+            >
+            <span onclick="togglePassword()" style="cursor: pointer; position: absolute; margin-left: -25px; margin-top: 5px;" title="Toggle Visibility"></span>
+        </div>
+
+        <button type="button" id="edit-btn" onclick="enablePasswordEdit()">Edit Password</button>
+        <button type="submit" id="update-btn" style="display:none;">Save New Password</button>
+    </form>
+</div>
+
+    <button type="button" id="edit-btn" onclick="enablePasswordEdit()">Edit Password</button>
+    <button type="submit" id="update-btn" style="display:none;">Save New Password</button>
+</form>
+
 <hr>
 
-<!-- ================= -->
-<!-- CUSTOMER SECTION -->
-<!-- ================= -->
 {% if role == "customer" %}
-
-<h2>Customer Quick Actions</h2>
-
-<ul>
-    <li><a href="/customer">My Dashboard</a></li>
-    <li><a href="/cart">Cart</a></li>
-    <li><a href="/wishlist">Wishlist</a></li>
-    <li><a href="/checkout">Checkout</a></li>
-</ul>
-
-<hr>
-
-{% endif %}
-
-<!-- ================= -->
-<!-- VENDOR SECTION -->
-<!-- ================= -->
-{% if role == "vendor" %}
-
-<h2>Vendor Tools</h2>
-
-<ul>
-    <li><a href="/vendor">Vendor Dashboard</a></li>
-</ul>
-
-<hr>
-
-{% endif %}
-
-<!-- ================= -->
-<!-- ADMIN SECTION -->
-<!-- ================= -->
-{% if role == "admin" %}
-
-<h2>Admin Tools</h2>
-
-<ul>
-    <li><a href="/admin">Admin Dashboard</a></li>
-</ul>
-
-<hr>
-
+    <h2>Customer Quick Actions</h2>
+    <ul>
+        <li><a href="/customer">My Dashboard</a></li>
+        <li><a href="/cart">Cart</a></li>
+        <li><a href="/wishlist">Wishlist</a></li>
+        <li><a href="/checkout">Checkout</a></li>
+    </ul>
+{% elif role == "vendor" %}
+    <h2>Vendor Tools</h2>
+    <ul>
+        <li><a href="/vendor">Vendor Dashboard</a></li>
+        <li><a href="{{ url_for('manage_products') }}">Manage Your Products</a></li>
+    </ul>
+{% elif role == "admin" %}
+    <h2>Admin Tools</h2>
+    <ul>
+        <li><a href="/admin">Admin Dashboard</a></li>
+    </ul>
 {% endif %}
 
 {% endblock %}
