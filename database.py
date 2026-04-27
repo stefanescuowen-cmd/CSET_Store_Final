@@ -733,6 +733,10 @@ def get_unique_categories(connection):
     query = text("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
     return [row[0] for row in connection.execute(query).fetchall()]
 
+def get_unique_sizes(connection):
+    query = text("SELECT DISTINCT size FROM product_variants WHERE size IS NOT NULL AND size != ''")
+    result = connection.execute(query).fetchall()
+    return [row[0] for row in result]
 
 # =======
 # RETURNS

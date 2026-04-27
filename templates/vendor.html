@@ -16,7 +16,7 @@
             - ${{ product.price }}
         </p>
     {% endfor %}
-    <a href="/manage-products">
+    <a href="{{ url_for('manage_products') }}">
         <button type="button">Manage Your Products</button>
     </a>
 {% else %}

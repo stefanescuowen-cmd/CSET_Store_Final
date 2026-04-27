@@ -477,9 +477,9 @@ def shop():
         "search": request.args.get("search", ""),
         "vendor": request.args.get("vendor", ""),
         "color": request.args.get("color", ""),
-        "size": request.args.get("size", ""),
+        "size": request.args.get("size", ""), # This is now captured
         "availability": request.args.get("availability", ""),
-        "category": request.args.get("category", "") # Don't forget this!
+        "category": request.args.get("category", "")
     }
 
     products = db.get_filtered_products(conn, **args)
@@ -487,16 +487,13 @@ def shop():
     now = datetime.now()
     for p in products:
         if p.get('discount_deadline'):
-            # Calculate time remaining
             deadline = p['discount_deadline']
             if deadline > now:
                 delta = deadline - now
-                # Store days and hours to show in template
                 p['days_left'] = delta.days
                 p['hours_left'] = delta.seconds // 3600
-                p['mins_left'] = (delta.seconds // 60) % 60 # New: Minutes calculation
+                p['mins_left'] = (delta.seconds // 60) % 60
             else:
-                # Deadline passed: tell template to hide the discount
                 p['discount_price'] = None
                 
     images = db.get_product_images(conn)
@@ -505,6 +502,7 @@ def shop():
     colors = db.get_unique_colors(conn)
     categories = db.get_unique_categories(conn)
     vendors = db.get_all_vendors(conn)
+    sizes = db.get_unique_sizes(conn) # ADD THIS LINE
 
     image_map = {}
     for img in images:
@@ -517,7 +515,8 @@ def shop():
         args=args,
         colors=colors,
         categories=categories,
-        vendors=vendors
+        vendors=vendors,
+        sizes=sizes
     )
 
 
