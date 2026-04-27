@@ -8,6 +8,25 @@
 
 <form method="POST" action="/place-order">
 
+    <div class="address-section" style="background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3>Shipping Address</h3>
+        
+        <label for="address_id">Select a saved address:</label><br>
+        <select name="address_id" id="address_id" required style="width: 100%; padding: 8px; margin-top: 5px;">
+            {% for addr in addresses %}
+                <option value="{{ addr.address_id }}" {% if addr.is_default %}selected{% endif %}>
+                    [{{ addr.address_type }}] {{ addr.receiver_name }} - {{ addr.address_line1 }}, {{ addr.city }}
+                </option>
+            {% endfor %}
+        </select>
+        
+        <p style="margin-top: 10px; font-size: 0.9em;">
+            <a href="{{ url_for('manage_addresses') }}">+ Add or edit addresses</a>
+        </p>
+    </div>
+
+<form method="POST" action="/place-order">
+
     <!-- PAYMENT -->
     <h3>Payment Method</h3>
 
