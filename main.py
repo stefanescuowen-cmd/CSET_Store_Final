@@ -881,6 +881,30 @@ def account():
         role=role
     )
 
+from werkzeug.security import generate_password_hash, check_password_hash
+
+@app.route("/update-password", methods=["POST"])
+def update_password():
+    user_id = session.get("user_id")
+    current_pw = request.form.get("current_password")
+    new_pw = request.form.get("new_password")
+
+    with engine.connect() as conn:
+        # 1. Fetch the user's current hashed password
+        user = conn.execute(text("SELECT password FROM users WHERE user_id = :id"), {"id": user_id}).fetchone()
+
+        # 2. Verify current password
+        if user and check_password_hash(user[0], current_pw):
+            # 3. Hash and Update
+            hashed_pw = generate_password_hash(new_pw)
+            conn.execute(text("UPDATE users SET password = :pw WHERE user_id = :id"), 
+                         {"pw": hashed_pw, "id": user_id})
+            conn.commit()
+            flash("Password updated successfully!", "success")
+        else:
+            flash("Current password incorrect.", "danger")
+
+    return redirect(url_for("account_page"))
 
 # =====================
 # CUSTOMER RETURN ROUTE
