@@ -2,10 +2,10 @@
 from datetime import datetime
 
 from flask import Flask, redirect, render_template, request, url_for, flash, session, jsonify
+from extensions import engine
 from sqlalchemy import create_engine, text
-
-# from blueprints.customer import customer_bp
-# app.register_blueprint(customer_bp)
+from blueprints.customer import customer_bp
+from blueprints.auth import auth_bp
 
 # IMPORT MODELS
 import database as db
@@ -13,12 +13,17 @@ import database as db
 app = Flask(__name__)
 app.secret_key = "school_project_key"
 
+app.register_blueprint(customer_bp)
+app.register_blueprint(auth_bp)
+
 # ===================
 # DATABASE CONNECTION
 # ===================
 
 conn_str = "mysql://root:cset155@localhost/store_db"
 engine = create_engine(conn_str, echo=True)
+
+# app.register_blueprint(auth_bp)
 
 conn = engine.connect()
 
