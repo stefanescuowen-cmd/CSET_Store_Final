@@ -252,6 +252,7 @@ a{
 .dangerZone p a{animation: DANGER 1s linear infinite;}
 .dangerZone p {text-align: center;}
 .dangerZone input{left: 50%; transform: translate(-50%); position: relative; max-width: 500px; background-color: rgb(125, 0, 0); color: white; outline: 2px solid;}
+.showPwBtn{position: absolute; margin-left: -50px; margin-top: 15px; cursor: pointer; color: var(--accent-color); font-size: 14px; font-weight: 600;}
 
 /* ID */
 
@@ -281,16 +282,3 @@ option:disabled{display: none;}
 
     article{margin-top: 275px;}
 }
-
-/* old css
-.form-container {
-    background-color: var(--header-bg-dark);
-    padding: 40px;
-    border-radius: 20px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    margin: auto;
-}
-
-*/

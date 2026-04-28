@@ -15,7 +15,7 @@ function toggleEdit(id) {
 
 // Password
 
-function togglePassword(inputId) {
+function toggleLoginPassword(inputId) {
     const pwInput = document.getElementById(inputId);
     if (pwInput.type === "password") {
         pwInput.type = "text";
@@ -34,25 +34,16 @@ function togglePassword() {
 
 function enablePasswordEdit() {
     console.log("Edit button clicked!");
-    const pwInput = document.getElementById("new_password");
+    const pwInput = document.getElementById("newPwField");
+    const oldPwInput = document.getElementById("oldPwField");
     
     if (!pwInput) {
         console.error("Could not find the new_password input!");
         return;
     }
 
-    pwInput.readOnly = false;
-    pwInput.disabled = false;
-    
-    pwInput.value = ""; 
-    pwInput.placeholder = "Type new password...";
-    
-    pwInput.style.backgroundColor = "#ffffff";
-    pwInput.style.border = "2px solid #007bff";
-    
-    setTimeout(() => {
-        pwInput.focus();
-    }, 10);
+    pwInput.style.display = "block";
+    oldPwInput.style.display = "block";
     
     document.getElementById("update-btn").style.display = "inline-block";
     document.getElementById("edit-btn").style.display = "none";

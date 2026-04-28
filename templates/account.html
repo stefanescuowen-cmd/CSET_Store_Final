@@ -12,32 +12,26 @@
     <h2>Security</h2>
     <form action="{{ url_for('update_password') }}" method="POST">
         
-        <div class="form-group" style="margin-bottom: 15px;">
+        <div id="oldPwField" style="display:none" class="form-group">
             <label for="current_password">Current Password:</label><br>
             <input type="password" id="current_password" name="current_password" required>
         </div>
         
-        <div class="form-group" style="margin-bottom: 15px; position: relative;">
+        <div id="newPwField" style="display:none" class="form-group">
             <label for="new_password">New Password:</label><br>
             <input 
                 type="password" 
                 id="new_password" 
                 name="new_password" 
-                placeholder="••••••••" 
-                readonly
-                style="color:black;"
+                placeholder="••••••••"
             >
-            <span onclick="togglePassword()" style="cursor: pointer; position: absolute; margin-left: -25px; margin-top: 5px;" title="Toggle Visibility"></span>
+            <span class="showPwBtn" onclick="togglePassword()" title="Toggle Visibility">Show</span>
         </div>
 
         <button type="button" id="edit-btn" onclick="enablePasswordEdit()">Edit Password</button>
         <button type="submit" id="update-btn" style="display:none;">Save New Password</button>
     </form>
 </div>
-
-    <button type="button" id="edit-btn" onclick="enablePasswordEdit()">Edit Password</button>
-    <button type="submit" id="update-btn" style="display:none;">Save New Password</button>
-</form>
 
 <hr>
 

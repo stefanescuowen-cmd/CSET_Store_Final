@@ -1,7 +1,9 @@
 from datetime import datetime
+
 from flask import Flask, redirect, render_template, request, url_for, flash, session
-from sqlalchemy import create_engine, text
 from extensions import engine
+from sqlalchemy import create_engine, text
+from blueprints.customer import customer_bp
 
 # IMPORT MODELS
 import database as db
@@ -9,11 +11,14 @@ import database as db
 app = Flask(__name__)
 app.secret_key = "school_project_key"
 
+app.register_blueprint(customer_bp)
+
 # ===================
 # DATABASE CONNECTION
 # ===================
 conn_str = "mysql://root:cset155@localhost/store_db"
 engine = create_engine(conn_str, echo=True)
+
 conn = engine.connect()
 
 # ==================
@@ -85,10 +90,12 @@ def signup():
 def login():
     
     if request.method == "POST":
+        print("Login attempt with data:", request.form)
         username_or_email = request.form.get("username_or_email")
         password = request.form.get("password")
 
         user = db.verify_user(conn, username_or_email, password)
+
 
         if user:
             session["user_id"] = user.user_id
@@ -880,30 +887,28 @@ def account():
         role=role
     )
 
-from werkzeug.security import generate_password_hash, check_password_hash
+# @app.route("/update-password", methods=["POST"])
+# def update_password():
+#     user_id = session.get("user_id")
+#     current_pw = request.form.get("current_password")
+#     new_pw = request.form.get("new_password")
 
-@app.route("/update-password", methods=["POST"])
-def update_password():
-    user_id = session.get("user_id")
-    current_pw = request.form.get("current_password")
-    new_pw = request.form.get("new_password")
+#     with engine.connect() as conn:
+#         # 1. Fetch the user's current hashed password
+#         user = conn.execute(text("SELECT password FROM users WHERE user_id = :id"), {"id": user_id}).fetchone()
 
-    with engine.connect() as conn:
-        # 1. Fetch the user's current hashed password
-        user = conn.execute(text("SELECT password FROM users WHERE user_id = :id"), {"id": user_id}).fetchone()
+#         # 2. Verify current password
+#         if user and check_password_hash(user[0], current_pw):
+#             # 3. Hash and Update
+#             hashed_pw = generate_password_hash(new_pw)
+#             conn.execute(text("UPDATE users SET password = :pw WHERE user_id = :id"), 
+#                          {"pw": hashed_pw, "id": user_id})
+#             conn.commit()
+#             flash("Password updated successfully!", "success")
+#         else:
+#             flash("Current password incorrect.", "error")
 
-        # 2. Verify current password
-        if user and check_password_hash(user[0], current_pw):
-            # 3. Hash and Update
-            hashed_pw = generate_password_hash(new_pw)
-            conn.execute(text("UPDATE users SET password = :pw WHERE user_id = :id"), 
-                         {"pw": hashed_pw, "id": user_id})
-            conn.commit()
-            flash("Password updated successfully!", "success")
-        else:
-            flash("Current password incorrect.", "danger")
-
-    return redirect(url_for("account_page"))
+#     return redirect(url_for("account"))
 
 # =====================
 # CUSTOMER RETURN ROUTE
