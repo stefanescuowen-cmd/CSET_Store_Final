@@ -1,86 +1,99 @@
 {% extends "base.html" %}
 {% block body %}
 
-<h1>My Account</h1>
+<div>
+    <h1>My Account</h1>
 
-<h2>Profile</h2>
-<p><strong>Role:</strong> {{ role.capitalize() }}</p>
-<p><strong>ID:</strong> {{ user.user_id }}</p>
+    <!-- PROFILE -->
+    <h2>Profile</h2>
+    <p><strong>Role:</strong> {{ role.capitalize() }}</p>
+    <p><strong>ID:</strong> {{ user.user_id }}</p>
 
-<p><strong>Name:</strong> {{ user.name }}</p>
-<p><strong>Email:</strong> {{ user.email }}</p>
-<p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Name:</strong> {{ user.name }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Username:</strong> {{ user.username }}</p>
 
-<div class="account-section">
-    <h2>Security</h2>
+    <!-- SECURITY -->
+    <div class="account-section">
+        <h2>Security</h2>
 
-    <button id="details-edit-btn" onclick="toggleForm('detailsUpdateForm', 'details-edit-btn', 'Details')">Edit Details</button>
+        <button id="details-edit-btn" onclick="toggleForm('detailsUpdateForm', 'details-edit-btn', 'Details')">
+            Edit Details
+        </button>
 
-    <button id="pw-edit-btn" onclick="toggleForm('pwUpdateForm', 'pw-edit-btn', 'Password')">Edit Password</button>
+        <button id="pw-edit-btn" onclick="toggleForm('pwUpdateForm', 'pw-edit-btn', 'Password')">
+            Edit Password
+        </button>
 
-    <form id="detailsUpdateForm" action="{{ url_for('update_user_details') }}" method="POST" style = "display: none;">
-        <div class="form-group">
-            <label for="name">Name:</label><br>
-            <input type="text" id="name" name="name" value="{{ user.name }}" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" value="{{ user.email }}" required>
-        </div>
+        <form id="detailsUpdateForm" action="{{ url_for('update_user_details') }}" method="POST" style="display: none;">
+            <div class="form-group">
+                <label>Name:</label><br>
+                <input type="text" name="name" value="{{ user.name }}" required>
+            </div>
 
-        <div class="form-group">
-            <label for="username">Username:</label><br>
-            <input type="text" id="username" name="username" value="{{ user.username }}" required>
-        </div>
+            <div class="form-group">
+                <label>Email:</label><br>
+                <input type="email" name="email" value="{{ user.email }}" required>
+            </div>
 
-        <button type="submit" id="update-details-btn">Save Changes</button>
-    </form>
+            <div class="form-group">
+                <label>Username:</label><br>
+                <input type="text" name="username" value="{{ user.username }}" required>
+            </div>
 
+            <button type="submit">Save Changes</button>
+        </form>
 
-    <form id="pwUpdateForm" action="{{ url_for('update_password') }}" method="POST" style = "display: none;">
-        
-        <div id="oldPwField" class="form-group">
-            <label for="current_password">Current Password:</label><br>
-            <input type="password" id="current_password" name="current_password" required>
-        </div>
-        
-        <div id="newPwField" class="form-group">
-            <label for="new_password">New Password:</label><br>
-            <input 
-                type="password" 
-                id="new_password" 
-                name="new_password" 
-                placeholder="••••••••"
-            >
-            <span class="showPwBtn" onclick="togglePassword()" title="Toggle Visibility">Show</span>
-        </div>
+        <form id="pwUpdateForm" action="{{ url_for('update_password') }}" method="POST" style="display: none;">
+            <div class="form-group">
+                <label>Current Password:</label><br>
+                <input type="password" name="current_password" required>
+            </div>
 
-        <button type="submit" id="update-btn" >Save New Password</button>
-    </form>
-</div>
+            <div class="form-group">
+                <label>New Password:</label><br>
+                <input type="password" id="new_password" name="new_password">
+                <span class="showPwBtn" onclick="togglePassword()">Show</span>
+            </div>
 
-<hr>
+            <button type="submit">Save New Password</button>
+        </form>
+    </div>
 
-{% if role == "customer" %}
+    <hr>
+
+    <!-- CUSTOMER -->
+    {% if role == "customer" %}
     <h2>Customer Quick Actions</h2>
-    <ul>
-        <li><a href="/customer">My Dashboard</a></li>
-        <li><a href="/cart">Cart</a></li>
-        <li><a href="/wishlist">Wishlist</a></li>
-        <li><a href="/checkout">Checkout</a></li>
-    </ul>
-{% elif role == "vendor" %}
+    <div class="formContainerOut">
+        <ul class="QuickLinksHolder">
+            <li><a class="QuickLinks" href="/customer">My Dashboard</a></li>
+            <li><a class="QuickLinks" href="/cart">Cart</a></li>
+            <li><a class="QuickLinks" href="/wishlist">Wishlist</a></li>
+            <li><a class="QuickLinks" href="/checkout">Checkout</a></li>
+        </ul>
+    </div>
+
+    <!-- VENDOR -->
+    {% elif role == "vendor" %}
     <h2>Vendor Tools</h2>
-    <ul>
-        <li><a href="/vendor">Vendor Dashboard</a></li>
-        <li><a href="{{ url_for('manage_products') }}">Manage Your Products</a></li>
-    </ul>
-{% elif role == "admin" %}
+    <div class="formContainerOut">
+        <ul class="QuickLinksHolder">
+            <li><a class="QuickLinks" href="/vendor">Vendor Dashboard</a></li>
+            <li><a class="QuickLinks" href="{{ url_for('manage_products') }}">Manage Your Products</a></li>
+        </ul>
+    </div>
+
+    <!-- ADMIN -->
+    {% elif role == "admin" %}
     <h2>Admin Tools</h2>
-    <ul>
-        <li><a href="/admin">Admin Dashboard</a></li>
-    </ul>
-{% endif %}
+    <div class="formContainerOut">
+        <ul class="QuickLinksHolder">
+            <li><a class="QuickLinks" href="/admin">Admin Dashboard</a></li>
+        </ul>
+    </div>
+    {% endif %}
+
+</div>
 
 {% endblock %}
