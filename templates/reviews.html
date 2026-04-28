@@ -4,7 +4,7 @@
 <div class="reviews-page">
 <div class="reviews-header" style="margin-bottom: 20px;">
     <h1>
-        {% if product and product.title != 'All Products' %}
+        {% if product and product_id %}
             Reviews for {{ product.title }}
         {% else %}
             All Product Reviews
@@ -17,9 +17,15 @@
 </div>
 
 <form action="{{ url_for('reviews_page') }}" method="GET" class="filter-bar">
-    {% if product_id %}
-    <input type="hidden" name="product_id" value="{{ product_id }}">
-    {% endif %}
+    <label for="product_id">View Product:</label>
+    <select name="product_id" id="product_id">
+        <option value="">All Products</option>
+        {% for p in all_products %}
+            <option value="{{ p.product_id }}" {% if product_id|int == p.product_id|int %}selected{% endif %}>
+                {{ p.title }}
+            </option>
+        {% endfor %}
+    </select>
     
     <label for="rating">Filter by Stars:</label>
     <select name="rating" id="rating">
@@ -37,7 +43,7 @@
     </select>
 
     <button type="submit">Apply</button>
-    <a href="{{ url_for('reviews_page', product_id=product_id) if product_id else url_for('reviews_page') }}">
+    <a href="{{ url_for('reviews_page') }}">
         <button type="button">Clear Filters</button>
     </a>
 </form>
@@ -47,7 +53,7 @@
 <div class="reviews-container">
     {% for review in reviews %}
         <div class="review-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;">
-            <small>Product: {{ review.product_name}}</small><br>
+            <small>Product: {{ review.product_name }}</small><br>
             <strong>{{ review.reviewer_name }}</strong> 
             <span style="color: #f39c12;">
                 {% for i in range(review.rating) %}★{% endfor %}
@@ -83,7 +89,7 @@
         <button type="submit">Submit Review</button>
     </form>
 {% elif session.get("role") == "customer" %}
-    <p><em>Please select a specific product from the <a href="{{ url_for('shop') }}">shop</a> to leave a review.</em></p>
+    <p><em>Please select a specific product from the dropdown above to leave a review.</em></p>
 {% endif %}
 </div>
 {% endblock %}
