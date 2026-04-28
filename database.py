@@ -29,22 +29,25 @@ def get_all_orders(connection):
     result = connection.execute(query)
     return result.mappings().all()
 
-def get_all_reviews(connection):
-    query = text("""
-        SELECT 
-            r.review_id,
-            r.rating,
-            r.description,
-            r.date,
-            u.name,
-            p.title
-        FROM reviews r
-        JOIN users u ON r.customer_id = u.user_id
-        JOIN products p ON r.product_id = p.product_id
-        ORDER BY r.review_id DESC
-    """)
-    return connection.execute(query).mappings().all()
 
+# ======
+# PASSWORDS AND USER INFO
+# ======
+
+def get_user_by_id(connection, user_id):
+    query = text("SELECT * FROM users WHERE user_id = :user_id")
+    result = connection.execute(query, {"user_id": user_id}).mappings().first()
+    return result
+
+def update_user_password(connection, user_id, new_password):
+    query = text("UPDATE users SET password = :password WHERE user_id = :user_id")
+    connection.execute(query, {"password": new_password, "user_id": user_id})
+    connection.commit()
+
+def update_user_details(connection, user_id, name=None, email=None, username=None):
+    query = text("UPDATE users SET name = :name, email = :email, username = :username WHERE user_id = :user_id")
+    connection.execute(query, {"name": name, "email": email, "username": username, "user_id": user_id})
+    connection.commit()
 
 # ======
 # VENDOR
@@ -54,33 +57,137 @@ def get_vendor_orders(connection, vendor_id):
     query = text("""
         SELECT 
             o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
             oi.variant_id,
             oi.quantity,
             oi.item_status,
-            p.title
+            p.title,
+            pv.color,
+            pv.size
         FROM order_items oi
         JOIN orders o ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE p.vendor_id = :vendor_id
-        ORDER BY o.order_id DESC
+        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
     """)
     result = connection.execute(query, {"vendor_id": vendor_id})
     return result.mappings().all()
 
 
-def confirm_vendor_item(connection, order_id, vendor_id, variant_id):
+def confirm_vendor_item(connection, order_id, variant_id):
+    # Update the status of the specific item
     query = text("""
-        INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
-        VALUES (:order_id, :vendor_id, :variant_id, 'Confirmed')
-        ON DUPLICATE KEY UPDATE status = 'Confirmed'
+        UPDATE order_items 
+        SET item_status = 'Confirmed' 
+        WHERE order_id = :oid AND variant_id = :vid
     """)
-    connection.execute(query, {
-        "order_id": order_id,
-        "vendor_id": vendor_id,
-        "variant_id": variant_id
+    connection.execute(query, {"oid": order_id, "vid": variant_id})
+
+    connection.commit()
+
+
+def sync_order_status(connection, order_id):
+    statuses = connection.execute(text("""
+        SELECT item_status
+        FROM order_items
+        WHERE order_id = :order_id
+    """), {"order_id": order_id}).scalars().all()
+
+    if not statuses:
+        return None
+
+    if all(status == "Cancelled" for status in statuses):
+        new_status = "Cancelled"
+    else:
+        active_statuses = [status for status in statuses if status != "Cancelled"]
+        milestones = [
+            "Pending",
+            "Confirmed",
+            "Handed to delivery partner",
+            "Shipped",
+            "Delivered"
+        ]
+        ranking = {status: index for index, status in enumerate(milestones)}
+
+        lowest_rank = min(ranking.get(status, 0) for status in active_statuses) if active_statuses else 0
+        new_status = milestones[lowest_rank]
+
+    connection.execute(text("""
+        UPDATE orders
+        SET order_status = :status
+        WHERE order_id = :order_id
+    """), {
+        "status": new_status,
+        "order_id": order_id
     })
     connection.commit()
+    return new_status
+
+
+def update_vendor_order_item_status(connection, order_id, variant_id, vendor_id, new_status):
+    item = connection.execute(text("""
+        SELECT oi.item_status
+        FROM order_items oi
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE oi.order_id = :order_id
+          AND oi.variant_id = :variant_id
+          AND p.vendor_id = :vendor_id
+    """), {
+        "order_id": order_id,
+        "variant_id": variant_id,
+        "vendor_id": vendor_id
+    }).mappings().first()
+
+    if not item:
+        return False, "Order item not found.", None
+
+    current_status = item["item_status"]
+    allowed_transitions = {
+        "Pending": "Confirmed",
+        "Confirmed": "Shipped"
+    }
+
+    if allowed_transitions.get(current_status) != new_status:
+        return False, f"Item cannot move from {current_status} to {new_status}.", None
+
+    connection.execute(text("""
+        UPDATE order_items
+        SET item_status = :status
+        WHERE order_id = :order_id AND variant_id = :variant_id
+    """), {
+        "status": new_status,
+        "order_id": order_id,
+        "variant_id": variant_id
+    })
+
+    if new_status == "Confirmed":
+        connection.execute(text("""
+            INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
+            VALUES (:order_id, :vendor_id, :variant_id, 'Confirmed')
+            ON DUPLICATE KEY UPDATE status = 'Confirmed'
+        """), {
+            "order_id": order_id,
+            "vendor_id": vendor_id,
+            "variant_id": variant_id
+        })
+    elif new_status == "Shipped":
+        connection.execute(text("""
+            INSERT INTO order_confirmations (order_id, vendor_id, variant_id, status)
+            VALUES (:order_id, :vendor_id, :variant_id, 'Shipped')
+            ON DUPLICATE KEY UPDATE status = 'Shipped'
+        """), {
+            "order_id": order_id,
+            "vendor_id": vendor_id,
+            "variant_id": variant_id
+        })
+
+    connection.commit()
+    overall_status = sync_order_status(connection, order_id)
+    return True, None, overall_status
 
 
 # ====
@@ -156,35 +263,165 @@ def remove_from_cart(connection, cart_id, variant_id):
     })
     connection.commit()
 
-# ====
-# CHAT
-# ====
 
-def send_message(connection, customer_id, vendor_id, admin_id, text_msg):
+# ======
+# CHAT
+# ======
+
+def get_chat_history(connection, customer_id=None, vendor_id=None, admin_id=None):
+    """Fetches messages for a specific user role."""
+    query_str = "SELECT * FROM chats WHERE 1=1"
+    params = {}
+
+    if customer_id:
+        query_str += " AND customer_id = :customer_id"
+        params["customer_id"] = customer_id
+    if vendor_id:
+        query_str += " AND vendor_id = :vendor_id"
+        params["vendor_id"] = vendor_id
+    if admin_id:
+        query_str += " AND admin_id = :admin_id"
+        params["admin_id"] = admin_id
+
+    query_str += " ORDER BY timestamp ASC"
+    
+    result = connection.execute(text(query_str), params)
+    return result.mappings().all()
+
+def send_chat_message(connection, sender_id, customer_id, text_content, vendor_id=None, admin_id=None, return_id=None):
+    """Inserts a new message into the database."""
     query = text("""
-        INSERT INTO chats (customer_id, vendor_id, admin_id, text)
-        VALUES (:customer_id, :vendor_id, :admin_id, :text)
+        INSERT INTO chats (sender_id, customer_id, vendor_id, admin_id, return_id, text)
+        VALUES (:sender_id, :customer_id, :vendor_id, :admin_id, :return_id, :text)
     """)
     connection.execute(query, {
+        "sender_id": sender_id,
         "customer_id": customer_id,
         "vendor_id": vendor_id,
         "admin_id": admin_id,
-        "text": text_msg
+        "return_id": return_id,
+        "text": text_content
     })
     connection.commit()
 
+def get_chat_list(connection, user_id, role):
+    #Join users table to get names for everyone
+    query_str = """
+        SELECT
+            c.customer_id, cu.name as customer_name,
+            c.vendor_id, vu.name as vendor_name,
+            MAX(c.admin_id) as admin_id, 
+            MAX(au.name) as admin_name,
+            MAX(c.return_id) as return_id
+        FROM chats c
+        JOIN users cu ON c.customer_id = cu.user_id
+        LEFT JOIN users vu ON c.vendor_id = vu.user_id
+        LEFT JOIN users au ON c.admin_id = au.user_id
+    """
 
-def get_messages_by_customer(connection, customer_id):
-    query = text("SELECT * FROM chats WHERE customer_id = :customer_id")
-    result = connection.execute(query, {"customer_id": customer_id})
-    return result.mappings().all()
+    if role == 'customer':
+        query_str += " WHERE c.customer_id = :uid"
+    elif role == 'vendor':
+        query_str += " WHERE c.vendor_id = :uid"
+    
+    # GROUP BY ensures we don't get duplicates in the sidebar
+    query_str += " GROUP BY c.customer_id, c.vendor_id, c.admin_id, c.return_id"
+
+    return connection.execute(text(query_str), {"uid": user_id}).mappings().all()
+
+def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=None, return_id=None):
+    base_query = """
+        SELECT 
+            c.*, 
+            u.name as sender_name
+        FROM chats c
+        JOIN users u ON c.sender_id = u.user_id
+        WHERE c.customer_id = :cid
+    """
+
+    params = {"cid": customer_id}
+
+    if return_id:
+        base_query += " AND c.return_id = :rid"
+        params["rid"] = return_id
+    elif vendor_id:
+        base_query += " AND c.vendor_id = :vid AND c.return_id IS NULL"
+        params["vid"] = vendor_id
+    else:
+        base_query += " AND c.admin_id = :aid AND c.vendor_id IS NULL AND c.return_id IS NULL"
+        params["aid"] = admin_id
+
+    base_query += " ORDER BY c.timestamp ASC"
+
+    return connection.execute(text(base_query), params).mappings().all()
+                
+
+def get_all_vendors(connection):
+    return connection.execute(text("SELECT vendor_id as id, name FROM vendors JOIN users ON vendor_id = user_id")).mappings().all()
+
+def get_all_admins(connection):
+    return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()
+
+def get_all_customers(connection):
+    return connection.execute(text("SELECT customer_id as id, name FROM customers JOIN users ON customer_id = user_id")).mappings().all()
+
+def get_vendor_customers(connection, vendor_id):
+    query = text("""
+        SELECT DISTINCT o.customer_id as id, u.name
+        FROM order_items oi
+        JOIN products p ON oi.variant_id = (SELECT variant_id FROM product_variants pv WHERE pv.product_id = p.product_id LIMIT 1)
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN users u ON o.customer_id = u.user_id
+        WHERE p.vendor_id = :vid
+    """)
+    return connection.execute(query, {"vid": vendor_id}).mappings().all()
+
+def get_user_name(connection, user_id):
+    query = text("SELECT name FROM users WHERE user_id = :uid")
+    return connection.execute(query, {"uid": user_id}).scalar()
+
+def get_user_addresses(connection, user_id):
+    query = text("SELECT * FROM addresses WHERE user_id = :uid")
+    return connection.execute(query, {"uid": user_id}).mappings().all()
+
+def get_return_title(connection, return_id):
+    query = text("""
+        SELECT p.title 
+        FROM returns r
+        JOIN product_variants pv ON r.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE r.return_id = :rid
+    """)
+    return connection.execute(query, {"rid": return_id}).scalar()
+
+# ======
+# ADRESS
+# ======
+
+def add_address(connection, user_id, data):
+    query = text("""
+        INSERT INTO addresses (user_id, receiver_name, contact_number, address_line1, address_line2, city, state, zip_code, address_type, is_default)
+        VALUES (:uid, :name, :phone, :l1, :l2, :city, :state, :zip, :type, :default)
+    """)
+    connection.execute(query, {
+        "uid": user_id, "name": data['name'], "phone": data['phone'],
+        "l1": data['l1'], "l2": data['l2'], "city": data['city'],
+        "state": data['state'], "zip": data['zip'], "type": data['type'],
+        "default": data.get('default', False)
+    })
+    connection.commit()
+
+def delete_address(connection, address_id, user_id):
+    query = text("DELETE FROM addresses WHERE address_id = :aid AND user_id = :uid")
+    connection.execute(query, {"aid": address_id, "uid": user_id})
+    connection.commit()
 
 
 # ======
 # ORDERS
 # ======
 
-def create_order(connection, customer_id):
+def create_order(connection, customer_id, total_price=None):
     query = text("""
         INSERT INTO orders (customer_id, order_status)
         VALUES (:customer_id, 'Pending')
@@ -209,14 +446,38 @@ def add_order_item(connection, order_id, variant_id, quantity):
 
 def get_orders(connection, customer_id):
     query = text("""
-        SELECT o.order_id, p.title, oi.quantity, o.order_status
+        SELECT o.order_id, 
+               SUM(COALESCE(p.discount_price, p.price) * oi.quantity) as total_price,
+               o.ordered_at,
+               o.order_status,
+               GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE o.customer_id = :customer_id
+        GROUP BY o.order_id, o.ordered_at, o.order_status
+        ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
+    return result.mappings().all()
+
+def get_order_items(connection, order_id):
+    query = text("""
+        SELECT 
+            oi.variant_id, 
+            oi.quantity, 
+            oi.item_status, 
+            p.title, 
+            p.vendor_id,
+            pv.size, 
+            pv.color
+        FROM order_items oi
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE oi.order_id = :order_id
+    """)
+    result = connection.execute(query, {"order_id": order_id})
     return result.mappings().all()
 
 
@@ -224,20 +485,39 @@ def get_orders(connection, customer_id):
 # PRODUCTS
 # ========
 
-def add_new_product(connection, vendor_id, title, description, price, discount_price, discount_end, variants):    
+def add_new_product(connection, vendor_id, title, description, price, 
+                    discount_price, discount_end, variants, images, category, warranty): 
+    
+    # 2. Add 'warranty_period' (or whatever your SQL column is) to the query
     query = text("""
-        INSERT INTO products (vendor_id, title, description, price, discount_price, discount_deadline)
-        VALUES (:vendor_id, :title, :description, :price, :discount_price, :discount_end)
+        INSERT INTO products (vendor_id, title, description, price, 
+                             discount_price, discount_deadline, category, warranty_period)
+        VALUES (:vendor_id, :title, :description, :price, 
+                :discount_price, :discount_deadline, :category, :warranty)
     """)
+    
     result = connection.execute(query, {
         "vendor_id": vendor_id,
         "title": title,
         "description": description,
         "price": price,
         "discount_price": discount_price,
-        "discount_end": discount_end
+        "discount_deadline": discount_end,
+        "category": category,
+        "warranty": warranty
     })
     product_id = result.lastrowid
+
+    if images:
+        img_query = text("""
+            INSERT INTO product_images (product_id, image_url) 
+            VALUES (:product_id, :image_url)
+        """)
+        for url in images:
+            connection.execute(img_query, {
+                "product_id": product_id,
+                "image_url": url
+            })
 
     for variant in variants:
         variant_query = text("""
@@ -255,41 +535,58 @@ def add_new_product(connection, vendor_id, title, description, price, discount_p
     return product_id
 
 def get_all_products(connection):
+    # 1. DEFINE the query variable first
     query = text("""
         SELECT 
-            p.product_id, p.title, p.description, p.price, p.discount_price,
-            GROUP_CONCAT(v.variant_id) as v_ids,
-            GROUP_CONCAT(v.size) as v_sizes,
-            GROUP_CONCAT(v.color) as v_colors,
-            GROUP_CONCAT(v.stock) as v_stocks
+            p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
+            AVG(r.rating) as avg_rating,
+            COUNT(r.review_id) as review_count,
+            GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
+            GROUP_CONCAT(DISTINCT v.size) as v_sizes,
+            GROUP_CONCAT(DISTINCT v.color) as v_colors,
+            GROUP_CONCAT(DISTINCT v.stock) as v_stocks
         FROM products p
-        JOIN product_variants v ON p.product_id = v.product_id
+        LEFT JOIN product_variants v ON p.product_id = v.product_id
+        LEFT JOIN reviews r ON r.product_id = p.product_id 
         GROUP BY p.product_id
     """)
+    
+    # 2. EXECUTE the query (This is where your error was likely triggered)
     result = connection.execute(query).mappings().all()
 
     products = []
     for row in result:
         item = dict(row)
         item['variants'] = []
-        ids = str(item['v_ids']).split(',')
-        sizes = str(item['v_sizes']).split(',')
-        colors = str(item['v_colors']).split(',')
-        stocks = str(item['v_stocks']).split(',')
+        
+        if item.get('v_ids'):
+            # Convert Group_Concat strings into lists
+            ids = str(item['v_ids']).split(',')
+            sizes = str(item['v_sizes']).split(',')
+            colors = str(item['v_colors']).split(',')
+            stocks = str(item['v_stocks']).split(',')
 
-        for i in range(len(ids)):
-            item['variants'].append({
-                "id": ids[i],
-                "size": sizes[i],
-                "color": colors[i],
-                "stock": stocks[i]
-            })
+            for i in range(len(ids)):
+                item['variants'].append({
+                    "id": ids[i],
+                    "size": sizes[i] if i < len(sizes) else "N/A",
+                    "color": colors[i] if i < len(colors) else "N/A",
+                    # The int() here fixes the template addition error
+                    "stock": int(stocks[i]) if i < len(stocks) else 0
+                })
+        
         products.append(item)
     return products
 
 def get_product_images(connection):
     query = text("SELECT * FROM product_images")
     result = connection.execute(query)
+    return result.mappings().all()
+
+
+def get_product_images_by_id(connection, product_id):
+    query = text("SELECT image_url FROM product_images WHERE product_id = :product_id")
+    result = connection.execute(query, {"product_id": product_id})
     return result.mappings().all()
 
 
@@ -333,15 +630,84 @@ def search_products(connection, term):
         products.append(item)
     return products
 
+def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
+    sql = """
+        SELECT 
+            p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
+            u.name as vendor_name,
+            AVG(r.rating) as avg_rating,
+            GROUP_CONCAT(v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size) as v_sizes,
+            GROUP_CONCAT(v.color) as v_colors,
+            GROUP_CONCAT(v.stock) as v_stocks
+        FROM products p
+        JOIN product_variants v ON p.product_id = v.product_id
+        JOIN users u ON p.vendor_id = u.user_id
+        LEFT JOIN reviews r ON p.product_id = r.product_id
+        WHERE 1=1
+    """
+    params = {}
 
+    if search:
+        sql += " AND (p.title LIKE :search OR p.description LIKE :search)"
+        params['search'] = f"%{search}%"
 
-def update_product(connection, product_id, title, description, price, discount_price, stock):
+    if category:
+        sql += " AND p.category = :category"
+        params['category'] = category
+
+    if vendor:
+        sql += " AND u.name LIKE :vendor"
+        params['vendor'] = f"%{vendor}%"
+
+    if color:
+        sql += " AND v.color = :color"
+        params['color'] = color
+
+    if size:
+        sql += " AND v.size = :size"
+        params['size'] = size
+
+    # Handle Availability (In Stock vs Out of Stock)
+    if availability == "in_stock":
+        sql += " AND v.stock > 0"
+    elif availability == "out_of_stock":
+        sql += " AND v.stock = 0"
+
+    sql += " GROUP BY p.product_id"
+    
+    raw_results = connection.execute(text(sql), params).mappings().all()
+    
+    products = []
+    for row in raw_results:
+        item = dict(row)
+        item['variants'] = []
+        if item.get('v_ids'):
+            ids = str(item['v_ids']).split(',')
+            sizes = str(item['v_sizes']).split(',')
+            colors = str(item['v_colors']).split(',')
+            stocks = str(item['v_stocks']).split(',')
+            for i in range(len(ids)):
+                item['variants'].append({
+                    "id": ids[i],
+                    "size": sizes[i],
+                    "color": colors[i],
+                    "stock": int(stocks[i])
+                })
+        products.append(item)
+    return products
+
+def update_product(connection, product_id, vendor_id, title, description, price, discount_price, discount_end=None, category=None, warranty=None):
     query = text("""
         UPDATE products 
         SET title = :title, 
             description = :description,
             price = :price, 
-            discount_price = :discount_price
+            discount_price = :discount_price,
+            discount_deadline = :discount_end,
+            category = :category,
+            warranty_period = :warranty,
+            vendor_id = :vendor_id
         WHERE product_id = :product_id
     """)
     connection.execute(query, {
@@ -349,20 +715,55 @@ def update_product(connection, product_id, title, description, price, discount_p
         "description": description,
         "price": price,
         "discount_price": discount_price,
-        "product_id": product_id
-    })
-
-    stock_query = text("""
-        UPDATE product_variants
-        SET stock = :stock
-        WHERE product_id = :product_id
-    """)
-    connection.execute(stock_query, {
-        "stock": stock,
-        "product_id": product_id
+        "product_id": product_id,
+        "discount_end": discount_end,
+        "category": category,
+        "warranty": warranty,
+        "vendor_id": vendor_id
     })
 
     connection.commit()
+
+def update_variants(connection, variant_ids, colors, sizes, stocks):
+    for i in range(len(variant_ids)):
+        query = text("""
+            UPDATE product_variants
+            SET color = :color, size = :size, stock = :stock
+            WHERE variant_id = :variant_id
+        """)
+        connection.execute(query, {
+            "color": colors[i],
+            "size": sizes[i],
+            "stock": stocks[i],
+            "variant_id": variant_ids[i]
+        })
+    connection.commit()
+
+def update_product_images(connection, product_id, image_urls):
+    # 1. Delete existing images for the product
+    delete_query = text("DELETE FROM product_images WHERE product_id = :product_id")
+    connection.execute(delete_query, {"product_id": product_id})
+
+    # 2. Insert new images
+    insert_query = text("""
+        INSERT INTO product_images (product_id, image_url)
+        VALUES (:product_id, :image_url)
+    """)
+
+    for url in image_urls:
+        connection.execute(insert_query, {
+            "product_id": product_id,
+            "image_url": url
+        })
+
+    connection.commit()
+
+
+def get_product_variants(connection, product_id):
+    query = text("SELECT * FROM product_variants WHERE product_id = :product_id")
+    result = connection.execute(query, {"product_id": product_id})
+    return result.mappings().all()
+
 
 def delete_product(connection, product_id):
     query = text("DELETE FROM products WHERE product_id = :product_id")
@@ -370,40 +771,66 @@ def delete_product(connection, product_id):
     connection.commit()
 
 
+def get_unique_colors(connection):
+    query = text("SELECT DISTINCT color FROM product_variants WHERE color IS NOT NULL")
+    return [row[0] for row in connection.execute(query).fetchall()]
+
+def get_unique_categories(connection):
+    query = text("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
+    return [row[0] for row in connection.execute(query).fetchall()]
+
+def get_unique_sizes(connection):
+    query = text("SELECT DISTINCT size FROM product_variants WHERE size IS NOT NULL AND size != ''")
+    result = connection.execute(query).fetchall()
+    return [row[0] for row in result]
+
 # =======
 # RETURNS
 # =======
 
-def create_return(connection, title, description, demand, customer_id, order_id, variant_id):
+def create_return_request(connection, customer_id, order_id, variant_id, title, description, demand):
     query = text("""
-        INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id)
-        VALUES (:title, :description, :demand, 'Pending', :customer_id, :order_id, :variant_id)
+        INSERT INTO returns (customer_id, order_id, variant_id, title, description, demand, status)
+        VALUES (:customer_id, :order_id, :variant_id, :title, :description, :demand, 'Pending')
     """)
     connection.execute(query, {
-        "title": title,
-        "description": description,
-        "demand": demand,
         "customer_id": customer_id,
         "order_id": order_id,
-        "variant_id": variant_id
+        "variant_id": variant_id,
+        "title": title,
+        "description": description,
+        "demand": demand
     })
     connection.commit()
 
-
-def get_returns(connection, customer_id):
-    query = text("SELECT * FROM returns WHERE customer_id = :customer_id")
-    result = connection.execute(query, {"customer_id": customer_id})
-    return result.mappings().all()
-
-def get_all_returns(connection):
-    query = text("SELECT * FROM returns")
-    result = connection.execute(query)
-    return result.mappings().all()
+def get_customer_returns(connection, customer_id):
+    query = text("""
+        SELECT r.*, p.title as product_title 
+        FROM returns r
+        JOIN product_variants pv ON r.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE r.customer_id = :customer_id
+        ORDER BY r.date DESC
+    """)
+    return connection.execute(query, {"customer_id": customer_id}).mappings().all()
 
 def get_all_pending_returns(connection):
-    query = text("SELECT * FROM returns WHERE status = 'Pending'")
-    result = connection.execute(query)
-    return result.mappings().all()
+    query = text("""
+        SELECT r.*, u.name as customer_name, p.title as product_title
+        FROM returns r
+        JOIN users u ON r.customer_id = u.user_id
+        JOIN product_variants pv ON r.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        ORDER BY r.date DESC
+    """)
+    return connection.execute(query).mappings().all()
+
+get_all_returns_admin = get_all_pending_returns
+
+def update_return_status(connection, return_id, new_status):
+    query = text("UPDATE returns SET status = :status WHERE return_id = :id")
+    connection.execute(query, {"status": new_status, "id": return_id})
+    connection.commit()
 
 
 # =======
@@ -412,30 +839,63 @@ def get_all_pending_returns(connection):
 
 def add_review(connection, variant_id, customer_id, rating, description):
     query = text("""
-        INSERT INTO reviews (variant_id, customer_id, rating, description)
-        VALUES (:variant_id, :customer_id, :rating, :description)
+        INSERT INTO reviews (product_id, customer_id, rating, description)
+        VALUES (:v_id, :c_id, :rate, :desc)
     """)
     connection.execute(query, {
-        "variant_id": variant_id,
-        "customer_id": customer_id,
-        "rating": rating,
-        "description": description
+        "v_id": variant_id,    # This is the data from Python
+        "c_id": customer_id,
+        "rate": rating,
+        "desc": description
     })
     connection.commit()
 
 
-def get_reviews_for_product(connection, variant_id):
+def get_reviews_for_product(connection, product_id):
+    """
+    Fetches reviews for a specific product.
+    Using 'product_id' as defined in your reviews table schema.
+    """
     query = text("""
         SELECT 
             r.rating,
             r.description,
             u.name,
-            r.variant_id
+            r.product_id  -- Changed from r.variant_id
         FROM reviews r
         JOIN users u ON r.customer_id = u.user_id
-        WHERE r.variant_id = :variant_id
+        WHERE r.product_id = :product_id  -- Changed from r.variant_id
     """)
-    return connection.execute(query, {"variant_id": variant_id}).mappings().all()
+    # Ensure we use the correct key in the parameter dictionary
+    return connection.execute(query, {"product_id": product_id}).mappings().all()
+
+def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
+    sql = """
+        SELECT r.*, p.title AS product_name, u.name AS reviewer_name
+        FROM reviews r
+        JOIN product_variants v ON r.product_id = v.variant_id -- Fixed: r.product_id
+        JOIN products p ON v.product_id = p.product_id
+        JOIN users u ON r.customer_id = u.user_id
+        WHERE 1=1
+    """
+    params = {}
+
+    if product_id:
+        sql += " AND p.product_id = :p_id"
+        params["p_id"] = product_id
+    
+    if filter_rating:
+        sql += " AND r.rating = :rating"
+        params["rating"] = filter_rating
+
+    if sort_by == 'date':
+        sql += " ORDER BY r.date DESC"
+    elif sort_by == 'rating_high':
+        sql += " ORDER BY r.rating DESC"
+    elif sort_by == 'rating_low':
+        sql += " ORDER BY r.rating ASC"
+    
+    return connection.execute(text(sql), params).mappings().all()
 
 # ======
 # VENDOR
@@ -449,15 +909,49 @@ def get_vendor_products(connection, vendor_id):
 
 def get_vendor_orders(connection, vendor_id):
     query = text("""
-        SELECT o.order_id, p.title, oi.quantity, oi.item_status
+        SELECT 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            oi.variant_id,
+            oi.quantity,
+            oi.item_status,
+            p.title,
+            pv.color,
+            pv.size
         FROM order_items oi
         JOIN orders o ON oi.order_id = o.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE p.vendor_id = :vendor_id
+        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
 
+def get_products_by_vendor(connection, vendor_id):
+    """
+    Fetches only the products belonging to a specific vendor.
+    Used for the Portappliances vendor dashboard.
+    """
+    query = text("""
+        SELECT 
+            p.product_id, 
+            p.title, 
+            p.description, 
+            p.warranty_period,
+            p.price, 
+            p.discount_price,
+            p.discount_deadline,
+            p.vendor_id
+        FROM products p
+        WHERE p.vendor_id = :vendor_id
+    """)
+    
+    # Executing the query with the vendor_id parameter for security
+    result = connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
+    
+    return result
 
 # ========
 # WISHLIST

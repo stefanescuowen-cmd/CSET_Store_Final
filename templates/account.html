@@ -1,22 +1,69 @@
 {% extends "base.html" %}
 {% block body %}
+
 <div>
     <h1>My Account</h1>
 
-    <!-- ================= -->
-    <!-- PROFILE (ALL USERS) -->
-    <!-- ================= -->
+    <!-- PROFILE -->
     <h2>Profile</h2>
+    <p><strong>Role:</strong> {{ role.capitalize() }}</p>
+    <p><strong>ID:</strong> {{ user.user_id }}</p>
 
     <p><strong>Name:</strong> {{ user.name }}</p>
     <p><strong>Email:</strong> {{ user.email }}</p>
     <p><strong>Username:</strong> {{ user.username }}</p>
 
-    <!-- ================= -->
-    <!-- CUSTOMER SECTION -->
-    <!-- ================= -->
-    {% if role == "customer" %}
+    <!-- SECURITY -->
+    <div class="account-section">
+        <h2>Security</h2>
+
+        <button id="details-edit-btn" onclick="toggleForm('detailsUpdateForm', 'details-edit-btn', 'Details')">
+            Edit Details
+        </button>
+
+        <button id="pw-edit-btn" onclick="toggleForm('pwUpdateForm', 'pw-edit-btn', 'Password')">
+            Edit Password
+        </button>
+
+        <form id="detailsUpdateForm" action="{{ url_for('update_user_details') }}" method="POST" style="display: none;">
+            <div class="form-group">
+                <label>Name:</label><br>
+                <input type="text" name="name" value="{{ user.name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label><br>
+                <input type="email" name="email" value="{{ user.email }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Username:</label><br>
+                <input type="text" name="username" value="{{ user.username }}" required>
+            </div>
+
+            <button type="submit">Save Changes</button>
+        </form>
+
+        <form id="pwUpdateForm" action="{{ url_for('update_password') }}" method="POST" style="display: none;">
+            <div class="form-group">
+                <label>Current Password:</label><br>
+                <input type="password" name="current_password" required>
+            </div>
+
+            <div class="form-group">
+                <label>New Password:</label><br>
+                <input type="password" id="new_password" name="new_password">
+                <span class="showPwBtn" onclick="togglePassword()">Show</span>
+            </div>
+
+            <button type="submit">Save New Password</button>
+        </form>
+    </div>
+
     <hr>
+
+    <!-- CUSTOMER -->
+    {% if role == "customer" %}
     <h2>Customer Quick Actions</h2>
     <div class="formContainerOut">
         <ul class="QuickLinksHolder">
@@ -26,33 +73,27 @@
             <li><a class="QuickLinks" href="/checkout">Checkout</a></li>
         </ul>
     </div>
-    {% endif %}
 
-    <!-- ================= -->
-    <!-- VENDOR SECTION -->
-    <!-- ================= -->
-    {% if role == "vendor" %}
-    <hr>
+    <!-- VENDOR -->
+    {% elif role == "vendor" %}
     <h2>Vendor Tools</h2>
     <div class="formContainerOut">
         <ul class="QuickLinksHolder">
             <li><a class="QuickLinks" href="/vendor">Vendor Dashboard</a></li>
+            <li><a class="QuickLinks" href="{{ url_for('manage_products') }}">Manage Your Products</a></li>
         </ul>
     </div>
-    {% endif %}
 
-    <!-- ================= -->
-    <!-- ADMIN SECTION -->
-    <!-- ================= -->
-    {% if role == "admin" %}
-    <hr>
+    <!-- ADMIN -->
+    {% elif role == "admin" %}
     <h2>Admin Tools</h2>
     <div class="formContainerOut">
         <ul class="QuickLinksHolder">
             <li><a class="QuickLinks" href="/admin">Admin Dashboard</a></li>
-            <li><a class="QuickLinks" href="/admin">Admin Dashboard</a></li>
         </ul>
     </div>
     {% endif %}
+
 </div>
+
 {% endblock %}

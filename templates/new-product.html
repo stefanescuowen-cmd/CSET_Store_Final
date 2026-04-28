@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<h1>{% if is_edit %}Edit Product{% else %}Add New Product{% endif %}</h1>
+
+<div class="form-container">
+    <form method="POST" action="{% if is_edit %}{{ url_for('edit_product', product_id=product.product_id) }}{% else %}{{ url_for('new_product') }}{% endif %}">
+        
+        {% if role == "admin" %}
+            <label for="vendor-id">Select Vendor:</label><br>
+            <select id="vendor-id" name="vendor-id" required>
+                <option value="">-- Select Vendor --</option>
+                {% for v in vendors %}
+                    <option value="{{ v.id }}" {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
+                        {{ v.name }}
+                    </option>
+                {% endfor %}
+            </select><br><br>
+        {% endif %}
+
+        <label for="title">Title:</label><br>
+        <input type="text" id="title" name="title" value="{{ product.title if is_edit else '' }}" required><br><br>
+
+        <label for="category">Category:</label><br>
+        <input type="text" id="category" name="category" value="{{ product.category if is_edit else '' }}" required><br><br>
+
+        <label for="warranty">Warranty Period (months):</label><br>
+        <input type="number" id="warranty" name="warranty" value="{{ product.warranty_period if is_edit else '12' }}" required><br><br>
+
+        <h3>Images</h3>
+        <div id="images-container">
+            {% if is_edit and images %}
+                {% for img in images %}
+                    {% if loop.first %}
+                        <div class="image-group">
+                            <label for="image">Primary Image URL:</label>
+                            <input type="text" name="image" value="{{ img.image_url }}" required>
+                        </div>
+                    {% else %}
+                        <div class="image-group">   
+                            <br>
+                            <label for="image">Image URL:</label>
+                            <input type="text" name="image" value="{{ img.image_url }}" required>
+                            <button type="button" onclick="removeImage(this)">Remove</button>
+
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div class="image-group">
+                    <input type="text" name="image" required>
+                </div>
+            {% endif %}
+            
+        </div>
+        <button type="button" onclick="addImage()">Add Image</button><br><br>
+
+        <label for="description">Description:</label><br>
+        <textarea id="description" name="description" required>{{ product.description if is_edit else '' }}</textarea><br><br>
+
+        <label for="price">Price:</label><br>
+        <input type="number" id="price" name="price" step="0.01" min="0" value="{{ product.price if is_edit else '' }}" required><br><br>
+
+        <label for="discount_price">Discount Price (optional):</label><br>
+        <input type="number" id="discount_price" name="discount_price" step="0.01" min="0" value="{{ product.discount_price if is_edit else '' }}"><br><br>
+
+        <label for="discount_end">Discount End Date (optional):</label><br>
+        <input type="datetime-local" id="discount_end" name="discount_end" 
+            value="{{ product.discount_deadline.strftime('%Y-%m-%dT%H:%M') if is_edit and product.discount_deadline else '' }}">
+
+        <h3>Variants</h3>
+        <div id="variants-container">
+            {% if is_edit and variants %}
+                {% for v in variants %}
+                <div class="variant-group">
+                    <input type="hidden" name="variant_id[]" value="{{ v.id }}">
+                    <label>Color:</label> <input type="text" name="variant_color[]" value="{{ v.color }}" required>
+                    <label>Size:</label> <input type="text" name="variant_size[]" value="{{ v.size }}" required>
+                    <label>Stock:</label> <input type="number" name="variant_stock[]" value="{{ v.stock }}" min="0" required>
+                    <button type="button" onclick="removeVariant(this)">Remove</button>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="variant-group">
+                    <label>Color:</label> <input type="text" name="variant_color[]" required>
+                    <label>Size:</label> <input type="text" name="variant_size[]" required>
+                    <label>Stock:</label> <input type="number" name="variant_stock[]" min="0" required>
+                    <button type="button" onclick="removeVariant(this)">Remove</button>
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="button" onclick="addVariant()">Add Variant</button><br><br>
+
+        <button type="submit">{% if is_edit %}Save Changes{% else %}Add Product{% endif %}</button>
+    </form>
+</div>
+
+{% endblock %}

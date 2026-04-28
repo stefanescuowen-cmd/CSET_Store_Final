@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container">
+    <h1>My Return Requests</h1>
+
+    <section class="return-form">
+        <h3>Submit a New Complaint</h3>
+        <form action="/submit-return" method="POST">
+            <div class="form-group">
+                <label>Title:</label>
+                <input type="text" name="title" required placeholder="e.g., Screen flickering">
+            </div>
+            
+            <div class="form-group">
+                <label>Order ID:</label>
+                <select name="order_id" id="order_id" onchange="filterVariantsByOrder()" required>
+                    <option value="" disabled selected>-- Select Order --</option>
+                    {% for order in orders %}
+                        <option value="{{ order.order_id }}">Order #{{ order.order_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" id="variant-select-group" style="display:none;" >
+                <label>Select Product from Order:</label>
+                <select name="variant_id" id="variant_id" required>
+                    <option value="" disabled selected>-- Select Order First --</option>
+                    {% for order in orders %}
+                        {% for item in order.order_items_list %}
+                            <option value="{{ item.variant_id }}" data-order-id="{{ order.order_id }}">
+                                {{ item.title }} ({{ item.color }} / {{ item.size }})
+                            </option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Customer’s Demand:</label>
+                <select name="demand" required>
+                    <option value="Return">Return</option>
+                    <option value="Refund">Refund</option>
+                    <option value="Warranty">Warranty Claim</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Description:</label>
+                <textarea name="description" required placeholder="Describe the issue in detail..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Complaint</button>
+        </form>
+    </section>
+
+    <hr>
+
+    <section class="return-list">
+        <h3>Request History</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Title</th>
+                    <th>Demand</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in returns %}
+                <tr>
+                    <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ r.product_title }}</td>
+                    <td>{{ r.title }}</td>
+                    <td><strong>{{ r.demand }}</strong></td>
+                    <td>
+                        <span class="status-badge {{ r.status|lower }}">
+                            {{ r.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<style>
+    .status-badge { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+    .pending { background: #fff3cd; color: #856404; }
+    .confirmed { background: #d1ecf1; color: #0c5460; }
+    .processing { background: #cfe2ff; color: #084298; }
+    .complete { background: #d4edda; color: #155724; }
+    .rejected { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}

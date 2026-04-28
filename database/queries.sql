@@ -128,9 +128,9 @@ SET @new_order_id = LAST_INSERT_ID();
 INSERT INTO order_items (order_id, variant_id, quantity, item_status)
 VALUES (@new_order_id, 1, 2, 'Pending');
 
--- Confirm order dynamically
-INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status)
-VALUES (1, 1, 8, 'Confirmed');
+-- -- Confirm order dynamically
+-- INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status)
+-- VALUES (1, 1, 8, 'Confirmed');
 
 -- Update order status dynamically
 UPDATE orders o
@@ -216,12 +216,12 @@ WHERE r.order_id IS NOT NULL
 -- ===========
 
 -- Send message dynamically
-INSERT INTO chats (customer_id, vendor_id, admin_id, return_id, text, image, timestamp)
+INSERT INTO chats (sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp)
 VALUES
-(5, 9, NULL, NULL, 'My monitor arrived damaged.', NULL, NOW()),
-(5, NULL, 1, NULL, 'I need help with return process.', NULL, NOW()),
-(3, 8, NULL, 1, 'Is the laptop still in stock?', NULL, NOW()),
-(4, 10, NULL, NULL, 'When will my order ship?', NULL, NOW());
+(5, 5, 9, NULL, NULL, 'My monitor arrived damaged.', NULL, NOW()),
+(5, 5, NULL, 1, NULL, 'I need help with return process.', NULL, NOW()),
+(3, 3, 8, NULL, 1, 'Is the laptop still in stock?', NULL, NOW()),
+(4, 4, 10, NULL, NULL, 'When will my order ship?', NULL, NOW());
 
 -- Get messages dynamically
 SELECT * FROM chats WHERE vendor_id = 8;

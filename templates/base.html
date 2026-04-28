@@ -5,12 +5,13 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Perfect Purchase</title>
             <link rel="stylesheet" type="text/css" href="/static/style.css">
+            <link rel="icon" type="image/x-icon" href="/static/images/perfect-purchase-logo-transparent.png">
         </head>
     <body>
         <header>
             <div id="HeadLight">
                 <div id="HeadImg">
-                    <img src="../static/images/perfect-purchase-logo-transparent.png" alt="Perfect Purchase Logo">
+                    <img src="/static/images/perfect-purchase-logo-transparent.png" alt="Perfect Purchase Logo">
                 </div>
                 <div id="HeadText">
                     <h1><a>P</a>erfect <a>P</a>urchase</h1>
@@ -29,7 +30,7 @@
                             <li><a href="/cart">Cart</a></li>
                             <li><a href="/wishlist">Wishlist</a></li>
                             <li><a href="/orders">Orders</a></li>
-                            <li><a href="/returns">Returns</a></li>
+                            <li><a href="/my-returns">Returns</a></li>
                             <li><a href="/customer">Customer Dashboard</a></li>
                         {% endif %}
 
@@ -41,12 +42,13 @@
                         <!-- ADMIN NAV -->
                         {% if session.get("role") == "admin" %}
                             <li><a href="/admin">Admin Dashboard</a></li>
+                            <li><a href="/admin-returns">Manage Returns</a></li>
                         {% endif %}
 
                         <!-- ADMIN AND VENDOR NAV -->
                         {% if session.get("role") in ["admin", "vendor"] %}
-                            <li><a href="/add-product">Add Product</a></li>
-                            <li><a href="/manage-products">Manage Products</a></li>
+                            <li><a href="{{ url_for('new_product') }}">Add Product</a></li>
+                            <li><a href="{{ url_for('manage_products') }}">Manage Products</a></li>
                             <li><a href="/orders">View Orders</a></li>
                         {% endif %}
 

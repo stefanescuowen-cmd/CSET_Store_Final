@@ -1,6 +1,141 @@
 {% extends "base.html" %}
+
 {% block body %}
-<h1>Chat</h1>
-<p>Here you can view and manage your chats.</p>
+
+<h1>Messages</h1>
+
+<div style="display: flex; height: 80vh;">
+    <div style="width: 25%; border-right: 1px solid #ddd; padding: 10px;">
+        <h3>My Chats</h3>
+        <a href="/chat?new_chat=true">
+            <button type="button">+ New Chat</button>
+        </a>
+
+        <hr>
+        <ul>
+            {% for chat in sidebar_chats %}
+                <li>
+                    <a href="/chat?cid={{ chat.customer_id }}&vid={{ chat.vendor_id or '' }}&aid={{ chat.admin_id or '' }}&rid={{ chat.return_id or '' }}">
+                        <button type="button" style="width: 100%; text-align: left; margin-bottom: 5px;">
+                            {% if session['role'] == 'customer' %}
+                                {% if chat.return_id %}
+                                    Return #{{ chat.return_id }} (Support)
+                                {% elif chat.vendor_id %}
+                                    {{ chat.vendor_name }} ({{ chat.vendor_id }})
+                                {% else %}
+                                    Support
+                                {% endif %}
+                            {% elif session['role'] == 'vendor' %}
+                                {{ chat.customer_name }} ({{ chat.customer_id }})
+                            {% else %}
+                                {# Admin View #}
+                                {{ chat.customer_name }} ({{ chat.customer_id }})
+                                {% if chat.return_id %}
+                                    & Return #{{ chat.return_id }}
+                                {% else %}
+                                    & {{ chat.vendor_name if chat.vendor_id else 'Support' }}
+                                {% endif %}
+                            {% endif %}
+                        </button>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div style="width: 75%; padding: 20px; display: flex; flex-direction: column;">
+        {% if is_new %}
+            <h3>Start a New Chat</h3>
+            <form method="POST" action="/send_message">
+                {% if session['role'] != 'customer' %}
+                    <label>Select Customer:</label>
+                    <select name="cid" required>
+                        {% for r in recipients %}
+                            <option value="{{ r.id }}">{{ r.name }} (ID {{ r.id }})</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="vid" value="{{ session['user_id'] if session['role'] == 'vendor' else '' }}">
+                    <input type="hidden" name="aid" value="{{ session['user_id'] if session['role'] == 'admin' else '' }}">
+                {% else %}
+                    <label>Reason for contact:</label>
+                    <select name="reason" id="reason" onchange="toggleRecipients()">
+                        <option value="question">General Question (Vendor)</option>
+                        <option value="return">Return/Support (Admin)</option>
+                    </select>
+
+                    <div id="vendor_select">
+                        <label>Select Vendor:</label>
+                        <select name="vid_choice">
+                            {% for r in recipients %}
+                                <option value="{{ r.id }}">{{ r.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="admin_select" style="display: none;">
+                        <label>Select Admin:</label>
+                        <select name="aid_choice">
+                            {% for a in admins %}
+                                <option value="{{ a.id }}">{{ a.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="return_select" style="display: none;">
+                        <label>Select Return:</label>
+                        <select name="return_choice">
+                            {% for re in returns %}
+                                <option value="{{ re.return_id }}">{{ re.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="cid" value="{{ session['user_id'] }}">
+
+                   
+                {% endif %}
+
+                <br><br>
+                <label>First Message:</label>
+                <textarea name="message" style="width: 100%; height: 100px;" placeholder="Type your message here..." required></textarea>
+                <br>
+                <button type="submit">Send Message</button>
+            </form>
+    
+        {% elif curr_cid %}
+            <h3>Chat Details:</h3>
+            <p><strong>Customer:</strong> {{ cname }} (ID {{ curr_cid }})</p>
+            {% if curr_vid %}
+                <p><strong>Vendor:</strong> {{ vname }} (ID {{ curr_vid }})</p>
+            {% endif %}
+            {% if curr_aid %}
+                <p><strong>Admin:</strong> {{ aname }} (ID {{ curr_aid }})</p>
+            {% endif %}
+            {% if curr_rid %}
+                <p><strong>Related Return:</strong> {{ rname }} (ID {{ curr_rid }})</p>
+            {% endif %}
+
+            <div style= "overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;">
+                {% for msg in history %}
+                    <div style="margin-bottom: 10px;">
+                        <strong>{{msg.sender_name}} ({{ msg.sender_id }}):</strong> {{ msg.text }}
+                        <div style="font-size: 0.7em; color: gray;">{{ msg.timestamp }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <form method="POST" action="/send_message">
+                <input type="hidden" name="cid" value="{{ curr_cid }}">
+                <input type="hidden" name="vid" value="{{ curr_vid }}">
+                <input type="hidden" name="aid" value="{{ curr_aid }}">
+                <input type="hidden" name="rid" value="{{ curr_rid }}">
+                <input type="text" name="message" style="width: 80%;" placeholder="Say something..." required>
+                <button type="submit">Send</button>
+            </form>
+        {% else %}
+            <p>Select a chat from the sidebar or start a new one to start messaging.</p>
+        {% endif %}
+    </div>
+</div>
 
 {% endblock %}

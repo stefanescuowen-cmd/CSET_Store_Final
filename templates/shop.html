@@ -4,18 +4,56 @@
 
 <h1>Shop</h1>
 
-<form method="GET" action="/shop">
-    <input type="text" name="search"
-        {% if search_query %} value="{{ search_query }}" 
-        {% else %} placeholder="Search products..." 
-        {% endif %}
-        value="{{ search_query if search_query }}">
+<form method="GET" action="/shop" class="filter-bar">
+    <input type="text" name="search" placeholder="Search products..." value="{{ args.search or '' }}">
+    
+    <select name="vendor">
+        <option value="">All Vendors</option>
+        {% for v in vendors %}
+            <option value="{{ v.name }}" {% if args.vendor == v.name %}selected{% endif %}>
+                {{ v.name }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <select name="color">
+        <option value="">All Colors</option>
+        {% for color in colors %}
+            <option value="{{ color }}" {% if args.color == color %}selected{% endif %}>
+                {{ color }}
+            </option>
+        {% endfor %}
+    </select>
 
-    <button type="submit">Search</button>
+    <select name="size">
+        <option value="">All Sizes</option>
+        {% for size in sizes %}
+            <option value="{{ size }}" {% if args.size == size %}selected{% endif %}>
+                {{ size }}
+            </option>
+        {% endfor %}
+    </select>
 
-    {% if search_term %}
+    <select name="category">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+            <option value="{{ cat }}" {% if args.category == cat %}selected{% endif %}>
+                {{ cat }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <select name="availability">
+        <option value="">Any Availability</option>
+        <option value="in_stock" {% if args.availability == 'in_stock' %}selected{% endif %}>In Stock</option>
+        <option value="out_of_stock" {% if args.availability == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+    </select>
+    
+    <button type="submit">Apply Search & Filters</button>
+    
+    {% if args.search or args.vendor or args.color or args.size or args.availability %}
         <a href="/shop">
-            <button type="button">Clear</button>
+            <button type="button">Clear All</button>
         </a>
     {% endif %}
 </form>
@@ -31,11 +69,10 @@
             {% if images %}
                 <img 
                     id="main-img-{{ product.product_id }}"
-                    src="{{ images[0] }}">
+                    src="{{ images[0] }}"
+                    onclick="openLightbox(this.src)">
             {% else %}
-                <div>
-                    No image
-                </div>
+                <div>No image</div>
             {% endif %}
         </div>
 
@@ -48,11 +85,27 @@
         </div>
 
         <p>{{ product.description }}</p>
+
+        <div class="review-link" style="margin-bottom: 10px;">
+            <a href="{{ url_for('reviews_page', product_id=product.product_id) }}" style="color: #007bff; text-decoration: none; font-weight: bold;">
+                ★ View Reviews
+            </a>
+        </div>
+
         {% if product.discount_price %}
             <p>
                 <del>${{ product.price }}</del> 
                 <strong style="color: green;">${{ product.discount_price }}</strong>
             </p>
+            
+            {% if product.days_left is defined %}
+                <div class="countdown-timer" style="font-size: 0.85em; color: #d9534f; font-weight: bold; margin-bottom: 10px;">
+                    ⏳ Sale ends in: 
+                    {% if product.days_left > 0 %}{{ product.days_left }}d {% endif %}
+                    {% if product.hours_left > 0 or product.days_left > 0 %}{{ product.hours_left }}h {% endif %}
+                    {{ product.mins_left }}m
+                </div>
+            {% endif %}
         {% else %}
             <p>${{ product.price }}</p>
         {% endif %}
@@ -66,46 +119,34 @@
             {% endfor %}
         </select>
 
-        <p>Stock: <span id="stock-{{ product.product_id }}">{{ product.variants[0].stock }}</span></p>
-
-        {% if session.get("user_id") %}
-
-    <!-- LOGGED IN: NORMAL FUNCTIONALITY -->
-
-    <form action="/add-to-cart" method="POST">
-        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
-        
-        <input id="qty-{{ product.product_id }}" type="number"
-               name="quantity"
-               value="1"
-               min="1"
-               max="{{ product.variants[0].stock }}">
-               
-        <button type="submit">Add to Cart</button>
-    </form>
-
-    <form action="/add-to-wishlist" method="POST">
-        <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id }}">
-        <button type="submit">Add to Wishlist</button>
-    </form>
-
-{% else %}
-
-    <div>
-        <p>
-            You need an account to purchase or save items.
+        <p>Stock: 
+            <span id="stock-{{ product.product_id }}">
+                {% if product.variants and product.variants|length > 0 %}
+                    {{ product.variants[0].stock }}
+                {% else %}
+                    Out of Stock
+                {% endif %}
+            </span>
         </p>
 
-        <a href="/login">
-            <button type="button">Login</button>
-        </a>
+        {% if session.get("user_id") %}
+            <form action="/add-to-cart" method="POST">
+                <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}">
+                <button type="submit">Add to Cart</button>
+            </form>
 
-        <a href="/signup">
-            <button type="button">Sign Up</button>
-        </a>
-    </div>
-
-{% endif %}
+            <form action="/add-to-wishlist" method="POST">
+                <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                <button type="submit">Add to Wishlist</button>
+            </form>
+        {% else %}
+            <div>
+                <p>You need an account to purchase or save items.</p>
+                <a href="/login"><button type="button">Login</button></a>
+                <a href="/signup"><button type="button">Sign Up</button></a>
+            </div>
+        {% endif %}
 
     </div>
 {% endfor %}
@@ -114,5 +155,9 @@
 {% if products|length == 0 %}
     <p>No products found.</p>
 {% endif %}
+
+<div id="lightbox" onclick="closeLightbox()" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); cursor:pointer; align-items:center; justify-content:center;">
+    <img id="lightbox-img" src="" style="max-width:90%; max-height:90%; border: 3px solid #fff; border-radius: 10px;">
+</div>
 
 {% endblock %}
