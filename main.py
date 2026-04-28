@@ -913,6 +913,22 @@ def update_password():
     flash("Password updated successfully!", "success")
     return redirect(url_for("account"))
 
+@app.route("/update-user-details", methods=["POST"])
+def update_user_details():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Please log in to update your details.", "error")
+        return redirect(url_for("login"))
+
+    name = request.form.get("name")
+    email = request.form.get("email")
+    username = request.form.get("username")
+
+    db.update_user_details(conn, user_id, name, email, username)
+
+    flash("Details updated successfully!", "success")
+    return redirect(url_for("account"))
+
 
 # =====================
 # CUSTOMER RETURN ROUTE
