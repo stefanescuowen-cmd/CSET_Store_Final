@@ -32,21 +32,28 @@ function togglePassword() {
     pwInput.type = pwInput.type === "password" ? "text" : "password";
 }
 
-function enablePasswordEdit() {
-    console.log("Edit button clicked!");
-    const pwInput = document.getElementById("newPwField");
-    const oldPwInput = document.getElementById("oldPwField");
+function toggleForm(formId, buttonId, formName) {
+    console.log("Button clicked!");
+    const thisForm = document.getElementById(formId);
+    const editBtn = document.getElementById(buttonId);
     
-    if (!pwInput) {
-        console.error("Could not find the new_password input!");
+    if (!thisForm) {
+        console.error("Could not find the form!");
         return;
     }
 
-    pwInput.style.display = "block";
-    oldPwInput.style.display = "block";
-    
-    document.getElementById("update-btn").style.display = "inline-block";
-    document.getElementById("edit-btn").style.display = "none";
+    if (!editBtn) {
+        console.error("Could not find the button!");
+        return;
+    }
+
+    if (thisForm.style.display === "block") {
+        thisForm.style.display = "none";
+    } else {
+        thisForm.style.display = "block";
+    }
+
+    editBtn.textContent = editBtn.textContent === "Cancel" ? "Edit " + formName : "Cancel";
 }
 
 // Product

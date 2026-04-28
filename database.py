@@ -31,7 +31,7 @@ def get_all_orders(connection):
 
 
 # ======
-# PASSWORDS
+# PASSWORDS AND USER INFO
 # ======
 
 def get_user_by_id(connection, user_id):
@@ -42,6 +42,11 @@ def get_user_by_id(connection, user_id):
 def update_user_password(connection, user_id, new_password):
     query = text("UPDATE users SET password = :password WHERE user_id = :user_id")
     connection.execute(query, {"password": new_password, "user_id": user_id})
+    connection.commit()
+
+def update_user_details(connection, user_id, name=None, email=None, username=None):
+    query = text("UPDATE users SET name = :name, email = :email, username = :username WHERE user_id = :user_id")
+    connection.execute(query, {"name": name, "email": email, "username": username, "user_id": user_id})
     connection.commit()
 
 # ======
