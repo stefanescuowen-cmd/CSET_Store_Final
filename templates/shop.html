@@ -51,7 +51,7 @@
     
     <button type="submit">Apply Search & Filters</button>
     
-    {% if args.search or args.vendor or args.color or args.size or args.availability %}
+    {% if args.search or args.vendor or args.color or args.size or args.availability or args.category %}
         <a href="/shop">
             <button type="button">Clear All</button>
         </a>
@@ -84,7 +84,11 @@
             {% endfor %}
         </div>
 
-        <p>{{ product.description }}</p>
+        <p>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+
+        <div class="warranty-badge" style="color: #28a745; font-weight: bold; font-size: 0.9em; margin-bottom: 10px;">
+            🛡️ {{ product.warranty_period if product.warranty_period else '12' }}-Month Warranty
+        </div>
 
         <div class="review-link" style="margin-bottom: 10px;">
             <a href="{{ url_for('reviews_page', product_id=product.product_id) }}" style="color: #007bff; text-decoration: none; font-weight: bold;">

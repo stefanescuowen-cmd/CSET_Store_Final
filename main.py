@@ -487,7 +487,7 @@ def shop():
         image_map.setdefault(img["product_id"], []).append(img["image_url"])
         
     return render_template(
-        "shop.html", 
+        "shop.html",
         products=products, 
         image_map=image_map, 
         args=args,

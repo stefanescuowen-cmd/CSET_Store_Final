@@ -150,6 +150,31 @@ function removeImage(btn) {
     btn.parentElement.remove();
 }
 
+// Cart
+
+function checkStock(input) {
+    
+    const maxStock = parseInt(input.dataset.stock);
+    const variantId = input.id.split('-')[1];
+    const updateBtn = document.getElementById('btn-' + variantId);
+    const val = parseInt(input.value);
+
+    if (val > maxStock) {
+        input.style.borderColor = "red";
+        input.style.backgroundColor = "#ffcccc";
+        updateBtn.disabled = true;
+        updateBtn.innerText = "Too High";
+    } else if (val < 1 || isNaN(val)) {
+        updateBtn.disabled = true;
+        input.style.borderColor = "red";
+    } else {
+        input.style.borderColor = "";
+        input.style.backgroundColor = "white";
+        updateBtn.disabled = false;
+        updateBtn.innerText = "Update";
+    }
+}
+
 // Checkout
 
 function showPayment(method) {
