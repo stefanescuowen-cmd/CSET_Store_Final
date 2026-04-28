@@ -778,28 +778,35 @@ def account():
         role=role
     )
 
-# @app.route("/update-password", methods=["POST"])
-# def update_password():
-#     user_id = session.get("user_id")
-#     current_pw = request.form.get("current_password")
-#     new_pw = request.form.get("new_password")
+@app.route("/update-password", methods=["POST"])
+def update_password():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Please log in to update your password.", "error")
+        return redirect(url_for("login"))
+    
+    current_pw = request.form.get("current_password")
+    new_pw = request.form.get("new_password")
 
-#     with engine.connect() as conn:
-#         # 1. Fetch the user's current hashed password
-#         user = conn.execute(text("SELECT password FROM users WHERE user_id = :id"), {"id": user_id}).fetchone()
+    user = db.get_user_by_id(conn, user_id)
 
-#         # 2. Verify current password
-#         if user and check_password_hash(user[0], current_pw):
-#             # 3. Hash and Update
-#             hashed_pw = generate_password_hash(new_pw)
-#             conn.execute(text("UPDATE users SET password = :pw WHERE user_id = :id"), 
-#                          {"pw": hashed_pw, "id": user_id})
-#             conn.commit()
-#             flash("Password updated successfully!", "success")
-#         else:
-#             flash("Current password incorrect.", "error")
+    if user['password'] != current_pw:
+        flash("Current password is incorrect.", "error")
+        return redirect(url_for("account"))
+    
+    if not new_pw or len(new_pw) < 4:
+        flash("New password must be at least 4 characters long.", "error")
+        return redirect(url_for("account"))
+    
+    if new_pw == current_pw:
+        flash("New password cannot be the same as the current password.", "error")
+        return redirect(url_for("account"))
+    
+    db.update_user_password(conn, user_id, new_pw)
 
-#     return redirect(url_for("account"))
+    flash("Password updated successfully!", "success")
+    return redirect(url_for("account"))
+
 
 # =====================
 # CUSTOMER RETURN ROUTE

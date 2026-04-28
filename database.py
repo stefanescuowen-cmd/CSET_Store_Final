@@ -29,6 +29,21 @@ def get_all_orders(connection):
     result = connection.execute(query)
     return result.mappings().all()
 
+
+# ======
+# PASSWORDS
+# ======
+
+def get_user_by_id(connection, user_id):
+    query = text("SELECT * FROM users WHERE user_id = :user_id")
+    result = connection.execute(query, {"user_id": user_id}).mappings().first()
+    return result
+
+def update_user_password(connection, user_id, new_password):
+    query = text("UPDATE users SET password = :password WHERE user_id = :user_id")
+    connection.execute(query, {"password": new_password, "user_id": user_id})
+    connection.commit()
+
 # ======
 # VENDOR
 # ======
