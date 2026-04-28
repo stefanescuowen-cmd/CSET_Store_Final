@@ -52,7 +52,10 @@
 {% endfor %}
 </div>
 
-<a href="/admin/product/new">
+<a href="/admin/manage-products">
+    <button type="button">Manage Products</button>
+</a>
+<a href="/new-product">
     <button type="button">Add New Product</button>
 </a>
 
@@ -63,48 +66,38 @@
     <p>No pending returns.</p>
 {% else %}
 <div class="return-grid">
-    {% for return in returns %}
-
-        <div class="return-card">
-            <p>Order ID: {{ return.order_id }}</p>
-            <p>Product: {{ return.title }}</p>
-            <p>Reason: {{ return.description }}</p>
-            <p>Return Request: {{ return.demand }}</p>
-            <p>Status: {{ return.status }}</p>
-            <!-- Add buttons to approve/reject returns -->
-            <form action="/admin/returns/{{ return.return_id }}/approve" method="POST">
-                <button type="submit">Approve</button>
-            </form>
-            <form action="/admin/returns/{{ return.return_id }}/reject" method="POST">
-                <button type="submit">Reject</button>
-            </form>
-        </div>
-    {% endfor %}
+{% for return in returns %}
+    <div class="return-card">
+        <p>
+            <strong>Return #{{ return.return_id }}</strong><br>
+            Customer ID: {{ return.customer_id }}<br>
+            Status: <strong id="status-{{ return.return_id }}">{{ return.status }}</strong>
+        </p>
+    </div>
+{% endfor %}
 </div>
+
+<a href="/admin-returns">
+    <button type="button">Manage Returns</button>
+</a>
 {% endif %}
 
 <h2>Orders Management</h2>
 
+<div class="return-grid">
 {% for order in orders %}
-    <div class="return-card">
+    <div class="return-card" id="order-card-{{ order.order_id }}">
 
         <p>
-            Order #{{ order.order_id }}<br>
+            <strong>Order #{{ order.order_id }}</strong><br>
             Customer ID: {{ order.customer_id }}<br>
             Product: {{ order.title }}<br>
             Qty: {{ order.quantity }}<br>
-            Status: {{ order.order_status }}
+            Status: <span class="order-status">{{ order.order_status }}</span>
         </p>
-
-        <form method="POST" action="/admin/orders/{{ order.order_id }}/approve">
-            <button type="submit">Approve</button>
-        </form>
-
-        <form method="POST" action="/admin/orders/{{ order.order_id }}/reject">
-            <button type="submit">Reject</button>
-        </form>
 
     </div>
 {% endfor %}
+</div>
 
 {% endblock %}

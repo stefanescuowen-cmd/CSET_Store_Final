@@ -32,6 +32,7 @@ CREATE TABLE products (
     product_id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
+    category VARCHAR(100) NOT NULL,
     warranty_period INT NOT NULL DEFAULT 12, -- in months
     price DECIMAL(10,2) NOT NULL,
     discount_price DECIMAL(10,2),
@@ -44,7 +45,7 @@ CREATE TABLE products (
 CREATE TABLE product_images (
     image_id INT PRIMARY KEY AUTO_INCREMENT,
     product_id INT NOT NULL,
-    image_url VARCHAR(255) NOT NULL,
+    image_url TEXT NOT NULL,
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 
@@ -73,26 +74,29 @@ CREATE TABLE cart_items (
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
--- ORDERS
+-- Create Orders with the total_price column
 CREATE TABLE orders (
     order_id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT NOT NULL,
-    order_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled') NOT NULL,
+    order_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled', 'Denied') NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     ordered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     delivered_at DATETIME,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
+-- Create Order Items
 CREATE TABLE order_items (
     order_id INT NOT NULL,
     variant_id INT NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
-    item_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled') NOT NULL,
+    item_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled', 'Denied') NOT NULL,
     PRIMARY KEY (order_id, variant_id),
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
 );
 
+-- Create Order Confirmations
 CREATE TABLE order_confirmations (
     order_id INT,
     vendor_id INT,
@@ -138,6 +142,7 @@ CREATE TABLE returns (
 -- CHAT
 CREATE TABLE chats (
     chat_id INT PRIMARY KEY AUTO_INCREMENT,
+    sender_id INT NOT NULL,
     customer_id INT NOT NULL,
     vendor_id INT,
     admin_id INT,
@@ -151,7 +156,8 @@ CREATE TABLE chats (
     FOREIGN KEY (return_id) REFERENCES returns(return_id) ON DELETE CASCADE,
     CHECK (
         (vendor_id IS NOT NULL AND admin_id IS NULL) OR
-        (vendor_id IS NULL AND admin_id IS NOT NULL)
+        (vendor_id IS NULL AND admin_id IS NOT NULL) OR
+        (vendor_id IS NOT NULL AND admin_id IS NOT NULL)
     )
 );
 
@@ -168,4 +174,20 @@ CREATE TABLE wishlist_items (
     PRIMARY KEY (wishlist_id, variant_id),
     FOREIGN KEY (wishlist_id) REFERENCES wishlists(wishlist_id) ON DELETE CASCADE,
     FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE
+);
+
+-- ADDRESS
+CREATE TABLE addresses (
+    address_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    receiver_name VARCHAR(100) NOT NULL,
+    contact_number VARCHAR(20) NOT NULL,
+    address_line1 VARCHAR(255) NOT NULL,
+    address_line2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    address_type ENUM('Home', 'Office') DEFAULT 'Home',
+    is_default BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );

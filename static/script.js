@@ -13,6 +13,49 @@ function toggleEdit(id) {
     }
 }
 
+// Password
+
+function toggleLoginPassword(inputId) {
+    const pwInput = document.getElementById(inputId);
+    if (pwInput.type === "password") {
+        pwInput.type = "text";
+    } else {
+        pwInput.type = "password";
+    }
+}
+
+
+// Account
+
+function togglePassword() {
+    const pwInput = document.getElementById("new_password");
+    pwInput.type = pwInput.type === "password" ? "text" : "password";
+}
+
+function toggleForm(formId, buttonId, formName) {
+    console.log("Button clicked!");
+    const thisForm = document.getElementById(formId);
+    const editBtn = document.getElementById(buttonId);
+    
+    if (!thisForm) {
+        console.error("Could not find the form!");
+        return;
+    }
+
+    if (!editBtn) {
+        console.error("Could not find the button!");
+        return;
+    }
+
+    if (thisForm.style.display === "block") {
+        thisForm.style.display = "none";
+    } else {
+        thisForm.style.display = "block";
+    }
+
+    editBtn.textContent = editBtn.textContent === "Cancel" ? "Edit " + formName : "Cancel";
+}
+
 // Product
 
 function updateVariant(selectElement) {
@@ -54,6 +97,59 @@ function setMainImage(productId, imageUrl) {
     }
 }
 
+function openLightbox(imgSrc) {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    lightboxImg.src = imgSrc;
+    lightbox.style.display = 'flex';
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+}
+
+// Add product
+function addVariant() {
+    const container = document.getElementById('variants-container');
+    const variantGroup = document.createElement('div');
+    variantGroup.className = 'variant-group';
+    variantGroup.innerHTML = `
+        <label>Color:</label>
+        <input type="text" name="variant_color[]" required>
+
+        <label>Size:</label>
+        <input type="text" name="variant_size[]" required>
+
+        <label>Stock:</label>
+        <input type="number" name="variant_stock[]" min="0" required>
+
+        <button type="button" onclick="removeVariant(this)">Remove</button>
+    `;
+    container.appendChild(variantGroup);
+}
+
+function removeVariant(btn) {
+    btn.parentElement.remove();
+}
+
+function addImage() {
+    const container = document.getElementById('images-container');
+    const imageGroup = document.createElement('div');
+    imageGroup.className = 'image-group';
+    imageGroup.innerHTML = `
+        <br>
+        <label for="image">Image URL:</label>
+        <input type="text" id="image" name="image" required>
+        <button type="button" onclick="removeImage(this)">Remove</button>
+    `;
+
+    container.appendChild(imageGroup);
+}
+
+function removeImage(btn) {
+    btn.parentElement.remove();
+}
+
 // Checkout
 
 function showPayment(method) {
@@ -70,4 +166,40 @@ function showPayment(method) {
     else if (method === "cod") {
         document.getElementById("cod-form").style.display = "block";
     }
+}
+
+// Chat
+
+function toggleRecipients() {
+    var reason = document.getElementById('reason').value;
+    document.getElementById('vendor_select').style.display = reason === 'question' ? 'block' : 'none';
+    document.getElementById('admin_select').style.display = reason === 'return' ? 'block' : 'none';
+    document.getElementById('return_select').style.display = reason === 'return' ? 'block' : 'none';
+}
+
+
+// Returns
+function filterVariantsByOrder() {
+    const orderSelect = document.getElementById('order_id');
+    const variantSelect = document.getElementById('variant_id');
+    const selectedOrderId = orderSelect.value;
+    const variantOptions = variantSelect.querySelectorAll('option');
+
+    document.getElementById('variant-select-group').style.display = "inline";
+
+    // Reset the product selection
+    variantSelect.value = "";
+
+    variantOptions.forEach(option => {
+        // Skip the placeholder option
+        if (!option.getAttribute('data-order-id')) return;
+
+        if (option.getAttribute('data-order-id') === selectedOrderId) {
+            option.style.display = "block";
+            option.disabled = false;
+        } else {
+            option.style.display = "none";
+            option.disabled = true;
+        }
+    });
 }

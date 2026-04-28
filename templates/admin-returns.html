@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container">
+    <h1>Admin: Manage Returns</h1>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Issue</th>
+                <th>Demand</th>
+                <th>Current Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in returns %}
+            <tr>
+                <td>{{ r.customer_name }}</td>
+                <td>{{ r.product_title }}</td>
+                <td>
+                    <strong>{{ r.title }}</strong><br>
+                    <small>{{ r.description }}</small>
+                </td>
+                <td>{{ r.demand }}</td>
+                <td>{{ r.status }}</td>
+                <td>
+                    <form action="{{ url_for('admin_update_return', return_id=r.return_id) }}" method="POST">
+                        {% if r.status == 'Pending' %}
+                            <button name="status" value="Confirmed" class="btn btn-success btn-sm">Confirm</button>
+                            <button name="status" value="Rejected" class="btn btn-danger btn-sm">Reject</button>
+                        
+                        {% elif r.status == 'Confirmed' %}
+                            <button name="status" value="Processing" class="btn btn-info btn-sm">Start Processing</button>
+                        
+                        {% elif r.status == 'Processing' %}
+                            <button name="status" value="Complete" class="btn btn-primary btn-sm">Mark Complete</button>
+                        
+                        {% else %}
+                            <span class="text-muted">No actions</span>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
