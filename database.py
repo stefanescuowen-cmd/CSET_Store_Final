@@ -30,9 +30,9 @@ def get_all_orders(connection):
     return result.mappings().all()
 
 
-# ======
+# =======================
 # PASSWORDS AND USER INFO
-# ======
+# =======================
 
 def get_user_by_id(connection, user_id):
     query = text("SELECT * FROM users WHERE user_id = :user_id")
@@ -201,11 +201,19 @@ def get_variant_stock(connection, variant_id):
 
 def get_cart_items(connection, customer_id):
     query = text("""
-        SELECT p.title, p.price, p.discount_price, ci.quantity, pv.variant_id, pv.stock
-        FROM carts c
-        JOIN cart_items ci ON c.cart_id = ci.cart_id
-        JOIN product_variants pv ON ci.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
+        SELECT 
+            p.title, 
+            p.price, 
+            p.discount_price, 
+            v.color,
+            v.size,
+            v.stock,
+            ci.quantity, 
+            ci.variant_id
+        FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.cart_id
+        JOIN product_variants v ON ci.variant_id = v.variant_id
+        JOIN products p ON v.product_id = p.product_id
         WHERE c.customer_id = :customer_id
     """)
     result = connection.execute(query, {"customer_id": customer_id})
@@ -632,20 +640,26 @@ def search_products(connection, term):
 
 def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
     sql = """
-        SELECT 
-            p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
-            u.name as vendor_name,
-            AVG(r.rating) as avg_rating,
-            GROUP_CONCAT(v.variant_id) as v_ids,
-            GROUP_CONCAT(v.size) as v_sizes,
-            GROUP_CONCAT(v.color) as v_colors,
-            GROUP_CONCAT(v.stock) as v_stocks
-        FROM products p
-        JOIN product_variants v ON p.product_id = v.product_id
-        JOIN users u ON p.vendor_id = u.user_id
-        LEFT JOIN reviews r ON p.product_id = r.product_id
-        WHERE 1=1
-    """
+    SELECT 
+        p.product_id, 
+        p.title, 
+        p.description, 
+        p.price, 
+        p.discount_price, 
+        p.discount_deadline,  -- Added comma here
+        p.warranty_period,    -- Fixed spelling to match your INSERT function
+        u.name as vendor_name,
+        AVG(r.rating) as avg_rating,
+        GROUP_CONCAT(v.variant_id) as v_ids,
+        GROUP_CONCAT(v.size) as v_sizes,
+        GROUP_CONCAT(v.color) as v_colors,
+        GROUP_CONCAT(v.stock) as v_stocks
+    FROM products p
+    JOIN product_variants v ON p.product_id = v.product_id
+    JOIN users u ON p.vendor_id = u.user_id
+    LEFT JOIN reviews r ON p.product_id = r.product_id
+    WHERE 1=1
+"""
     params = {}
 
     if search:

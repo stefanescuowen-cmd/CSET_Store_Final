@@ -33,13 +33,14 @@ CREATE TABLE products (
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     category VARCHAR(100) NOT NULL,
-    warranty_period INT NOT NULL DEFAULT 12, -- in months
+    warranty_period INT NOT NULL DEFAULT 12, 
     price DECIMAL(10,2) NOT NULL,
     discount_price DECIMAL(10,2),
     discount_deadline DATETIME,
     vendor_id INT NOT NULL,
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE CASCADE,
-    CHECK (discount_price IS NULL OR discount_price < price)
+    CHECK (discount_price IS NULL OR discount_price < price),
+    FULLTEXT(title, description) 
 );
 
 CREATE TABLE product_images (

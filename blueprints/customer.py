@@ -204,3 +204,38 @@ def orders_page():
     with engine.connect() as conn:
         orders = db.get_user_orders(conn, customer_id)
         return render_template("orders.html", orders=orders)
+    
+
+@customer_bp.route("/add-to-cart", methods=["POST"])
+def add_to_cart():
+    customer_id = session.get("user_id")
+    variant_id = request.form.get("variant_id") # Selected from a dropdown on details page
+    quantity = int(request.form.get("quantity", 1))
+
+    with engine.connect() as conn:
+        # 1. Check if this specific variant is already in the user's cart
+        check_query = text("""
+            SELECT quantity FROM cart_items ci
+            JOIN carts c ON ci.cart_id = c.cart_id
+            WHERE c.customer_id = :uid AND ci.variant_id = :vid
+        """)
+        existing_item = conn.execute(check_query, {"uid": customer_id, "vid": variant_id}).fetchone()
+
+        if existing_item:
+            # 2. If it exists, update the quantity
+            new_qty = existing_item[0] + quantity
+            conn.execute(text("""
+                UPDATE cart_items SET quantity = :qty 
+                WHERE variant_id = :vid AND cart_id = (SELECT cart_id FROM carts WHERE customer_id = :uid)
+            """), {"qty": new_qty, "vid": variant_id, "uid": customer_id})
+        else:
+            # 3. If it's a new color/size combo, insert a new row
+            conn.execute(text("""
+                INSERT INTO cart_items (cart_id, variant_id, quantity)
+                VALUES ((SELECT cart_id FROM carts WHERE customer_id = :uid), :vid, :qty)
+            """), {"uid": customer_id, "vid": variant_id, "qty": quantity})
+        
+        conn.commit()
+    
+    flash("Added to cart!", "success")
+    return redirect(url_for("customer.cart"))
