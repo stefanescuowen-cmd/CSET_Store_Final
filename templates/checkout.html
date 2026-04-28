@@ -8,11 +8,11 @@
 
 <form method="POST" action="/place-order">
 
-    <div class="address-section" style="background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+    <div class="address-section">
         <h3>Shipping Address</h3>
         
         <label for="address_id">Select a saved address:</label><br>
-        <select name="address_id" id="address_id" required style="width: 100%; padding: 8px; margin-top: 5px;">
+        <select name="address_id" id="address_id" required">
             {% for addr in addresses %}
                 <option value="{{ addr.address_id }}" {% if addr.is_default %}selected{% endif %}>
                     [{{ addr.address_type }}] {{ addr.receiver_name }} - {{ addr.address_line1 }}, {{ addr.city }}
@@ -20,8 +20,8 @@
             {% endfor %}
         </select>
         
-        <p style="margin-top: 10px; font-size: 0.9em;">
-            <a href="{{ url_for('manage_addresses') }}">+ Add or edit addresses</a>
+        <p>
+            <a href="{{ url_for('customer.manage_addresses') }}">+ Add or edit addresses</a>
         </p>
     </div>
 
@@ -50,7 +50,7 @@
 
     <!-- CARD FORM -->
 
-    <div id="card-form" style="display:none;">
+    <div id="card-form">
         <h3>Card Details</h3>
 
         <input type="text" name="card_name" placeholder="Name on Card"><br><br>
@@ -61,7 +61,7 @@
 
     <!-- PAYPAL FORM -->
 
-    <div id="paypal-form" style="display:none;">
+    <div id="paypal-form">
         <h3>PayPal Email</h3>
         <input type="email" name="paypal_email" placeholder="Enter PayPal Email">
         <p>You'll be redirected after placing order.</p>
@@ -70,7 +70,7 @@
 
     <!-- COD INFO -->
 
-    <div id="cod-form" style="display:none;">
+    <div id="cod-form">
         <h3>Cash on Delivery</h3>
         <p>You will pay when your order arrives.</p>
     </div>

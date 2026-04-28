@@ -165,6 +165,36 @@ def edit_address(id):
         return render_template("edit_address.html", address=result)
     
 
+@customer_bp.route("/delete-address/<int:id>", methods=["POST"])
+def delete_address(id):
+    if not session.get("user_id"):
+        return redirect(url_for("auth.login"))
+        
+    customer_id = session["user_id"]
+    
+    with engine.connect() as conn:
+        # Delete only if the address belongs to the logged-in user
+        conn.execute(text("DELETE FROM addresses WHERE address_id = :aid AND user_id = :uid"), 
+                     {"aid": id, "uid": customer_id})
+        conn.commit()
+        
+    flash("Address deleted successfully.", "success")
+    return redirect(url_for("customer.manage_addresses"))
+
+
+@customer_bp.route("/set-default-address/<int:id>", methods=["POST"])
+def set_default_address(id):
+    customer_id = session["user_id"]
+    with engine.connect() as conn:
+        # Reset all to 0
+        conn.execute(text("UPDATE addresses SET is_default = 0 WHERE user_id = :uid"), {"uid": customer_id})
+        # Set selected to 1
+        conn.execute(text("UPDATE addresses SET is_default = 1 WHERE address_id = :aid AND user_id = :uid"), 
+                     {"aid": id, "uid": customer_id})
+        conn.commit()
+    return redirect(url_for("customer.manage_addresses"))
+
+
 @customer_bp.route("/orders")
 def orders_page():
     if not session.get("user_id"):
