@@ -3,15 +3,12 @@ from datetime import datetime
 from flask import Flask, redirect, render_template, request, url_for, flash, session
 from extensions import engine
 from sqlalchemy import create_engine, text
-from blueprints.customer import customer_bp
 
 # IMPORT MODELS
 import database as db
 
 app = Flask(__name__)
 app.secret_key = "school_project_key"
-
-app.register_blueprint(customer_bp)
 
 # ===================
 # DATABASE CONNECTION
