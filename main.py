@@ -347,28 +347,6 @@ def orders_page():
             orders.append(order_dict)
 
     return render_template("orders.html", orders=orders)
-
-
-# ===================
-# ADMIN APPROVE ORDER
-# ===================
-
-@app.route("/admin/orders/<int:order_id>/approve", methods=["POST"])
-def approve_order(order_id):
-    # ... (code logic)
-    flash(f"Order #{order_id} has been Approved.", "success")
-    return redirect(url_for("orders_page"))
-
-
-# ==================
-# ADMIN REJECT ORDER
-# ==================
-
-@app.route("/admin/orders/<int:order_id>/reject", methods=["POST"])
-def reject_order(order_id):
-    # ... (code logic)
-    flash(f"Order #{order_id} has been Rejected.", "danger")
-    return redirect(url_for("orders_page"))
   
 
 # ==================
@@ -392,7 +370,6 @@ def customer_dashboard():
         orders=orders,
         wishlist=wishlist
     )
-
 
 # ================
 # VENDOR DASHBOARD
@@ -610,9 +587,9 @@ def add_cart():
 
 
 
-# ============================
+# ====================
 # UPDATE CART QUANTITY
-# ============================
+# ====================
 
 @app.route("/update-cart-quantity", methods=["POST"])
 def update_cart_quantity():
@@ -717,89 +694,6 @@ def wishlist():
 
     items = db.get_wishlist(conn, session["user_id"])
     return render_template("wishlist.html", items=items)
-
-
-# ==============
-# CHECKOUT ROUTE
-# ==============
-
-@app.route("/checkout", methods=["POST", "GET"])
-def checkout():
-    if not session.get("user_id"):
-        flash("Please log in to checkout.", "error")
-        return redirect(url_for("login"))
-
-    customer_id = session["user_id"]
-    
-    addresses = db.get_user_addresses(conn, customer_id)
-    if not addresses:
-        flash("Please add a shipping address before checking out.", "info")
-        return redirect(url_for("manage_addresses")) 
-
-    cart_items = db.get_cart_items(conn, customer_id)
-    if not cart_items:
-        flash("Your cart is empty.", "error")
-        return redirect(url_for("cart"))
-
-    total = 0
-    for item in cart_items:
-        price = item.get("discount_price") or item.get("price")
-        total += price * item["quantity"]
-
-    return render_template(
-        "checkout.html",
-        items=cart_items,
-        total=total,
-        addresses=addresses
-    )
-
-
-# ===========
-# PLACE ORDER
-# ===========
-
-@app.route("/place-order", methods=["POST"])
-def place_order():
-    if session.get("role") != "customer":
-        return "Unauthorized", 403
-
-    customer_id = session["user_id"]
-    
-    with engine.connect() as conn:
-        # Get items to process order
-        cart_items = db.get_cart_items(conn, customer_id)
-
-        if not cart_items:
-            flash("Cart is empty.", "error")
-            return redirect(url_for("cart"))
-
-        # 1. Calculate Total Price
-        total_price = 0
-        for item in cart_items:
-            # Fallback to standard price if discount is not set
-            price = item.get("discount_price") or item.get("price")
-            total_price += price * item["quantity"]
-
-        # 2. Create the order record (now includes total_price)
-        order_id = db.create_order(conn, customer_id, total_price)
-
-        # 3. Add individual items to the order_items table
-        for item in cart_items:
-            db.add_order_item(conn, order_id, item["variant_id"], item["quantity"])
-
-        # 4. Clear the cart
-        # Subquery finds the user's specific cart_id
-        conn.execute(text("""
-            DELETE FROM cart_items 
-            WHERE cart_id = (SELECT cart_id FROM carts WHERE customer_id = :cid)
-        """), {"cid": customer_id})
-        
-        # 5. Commit all changes at once
-        conn.commit()
-
-    flash("Order placed successfully! Pending vendor confirmation.", "success")
-    return redirect(url_for("orders_page"))
-
 
 # ===========
 # ADD PRODUCT
