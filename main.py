@@ -1,4 +1,3 @@
-# Imports
 from datetime import datetime
 
 from flask import Flask, redirect, render_template, request, url_for, flash, session
@@ -17,7 +16,6 @@ app.register_blueprint(customer_bp)
 # ===================
 # DATABASE CONNECTION
 # ===================
-
 conn_str = "mysql://root:cset155@localhost/store_db"
 engine = create_engine(conn_str, echo=True)
 
@@ -1205,6 +1203,15 @@ def danger():
 
     return redirect(url_for('index'))
 
+
+# ===================
+# REGISTER BLUEPRINTS
+# ===================
+from blueprints.customer import customer_bp
+from blueprints.auth import auth_bp
+
+app.register_blueprint(customer_bp)
+app.register_blueprint(auth_bp)
 
 # =======
 # RUN APP
