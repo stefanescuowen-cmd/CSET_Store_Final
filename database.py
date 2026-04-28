@@ -374,6 +374,28 @@ def get_return_title(connection, return_id):
     """)
     return connection.execute(query, {"rid": return_id}).scalar()
 
+# ======
+# ADRESS
+# ======
+
+def add_address(connection, user_id, data):
+    query = text("""
+        INSERT INTO addresses (user_id, receiver_name, contact_number, address_line1, address_line2, city, state, zip_code, address_type, is_default)
+        VALUES (:uid, :name, :phone, :l1, :l2, :city, :state, :zip, :type, :default)
+    """)
+    connection.execute(query, {
+        "uid": user_id, "name": data['name'], "phone": data['phone'],
+        "l1": data['l1'], "l2": data['l2'], "city": data['city'],
+        "state": data['state'], "zip": data['zip'], "type": data['type'],
+        "default": data.get('default', False)
+    })
+    connection.commit()
+
+def delete_address(connection, address_id, user_id):
+    query = text("DELETE FROM addresses WHERE address_id = :aid AND user_id = :uid")
+    connection.execute(query, {"aid": address_id, "uid": user_id})
+    connection.commit()
+
 
 # ======
 # ORDERS
