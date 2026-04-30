@@ -8,6 +8,7 @@
 </h1>
 
 {% if orders %}
+    <div class="OrderFlexBox">
     {% for order in orders %}
         <div class="order-container">
             
@@ -36,7 +37,7 @@
                 <tbody>
                     {% for item in order.order_items_list %}
                     <tr>
-                        <td id="product-title"><strong>{{ item.title }}</strong></td>
+                        <td class="product-title"><strong>{{ item.title }}</strong></td>
                         <td>{{ item.color }} / {{ item.size }}</td>
                         <td>{{ item.quantity }}</td>
                         <td>{{ item.item_status }}</td>
@@ -51,14 +52,14 @@
                                                 <input type="hidden" name="order_id" value="{{ order.order_id }}">
                                                 <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                                                 <input type="hidden" name="status" value="Confirmed">
-                                                <button id="confirm-order" type="submit">Confirm Item</button>
+                                                <button class="confirm-order" type="submit">Confirm Item</button>
                                             </form>
 
                                             <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
                                                 <input type="hidden" name="order_id" value="{{ order.order_id }}">
                                                 <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                                                 <input type="hidden" name="status" value="Denied">
-                                                <button id="deny-order" type="submit">Deny Item</button>
+                                                <button class="deny-order" type="submit">Deny Item</button>
                                             </form>
                                         </div>
                                     {% elif item.item_status == 'Confirmed' %}
@@ -66,24 +67,24 @@
                                             <input type="hidden" name="order_id" value="{{ order.order_id }}">
                                             <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                                             <input type="hidden" name="status" value="Shipped">
-                                            <button id="ship-item" type="submit">Ship Item</button>
+                                            <button class="ship-item" type="submit">Ship Item</button>
                                         </form>
                                     {% else %}
-                                        <span id="checkmark">{{ item.item_status }} ✓</span>
+                                        <span class="checkmarkthing">{{ item.item_status }} ✓</span>
                                     {% endif %}
                                 {% else %}
-                                    <span id="other-items">Other Vendor's Item</span>
+                                    <span class="other-items">Other Vendor's Item</span>
                                 {% endif %}
 
                             {# CUSTOMER LOGIC #}
                             {% elif session['role'] == 'customer' %}
                                 <a href="/my-returns">
-                                    <button id="request-return" type="button">Request Return</button>
+                                    <button class="request-return" type="button">Request Return</button>
                                 </a>
 
                             {# ADMIN / OTHER #}
                             {% else %}
-                                <span id="admin-orders">No actions available</span>
+                                <span class="admin-orders">No actions available</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -92,6 +93,7 @@
             </table>
         </div>
     {% endfor %}
+    </div>
 {% else %}
     <p>No orders found.</p>
 {% endif %}

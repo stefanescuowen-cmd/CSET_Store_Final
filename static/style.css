@@ -282,11 +282,20 @@ a{
 .countdown-timer{font-size: 0.85em; color: #d9534f; font-weight: bold; margin-bottom: 10px;}
 .reviews-link{color: #007bff; text-decoration: none; font-weight: bold;}
 .vendor-page{margin-bottom: 1rem;}
-.order-container{border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px;}
-.order-header{background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center; color: black;}
+.order-container{border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px; width: calc(50% - 52px); margin: 10px;}
+.order-header{background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center; color: black; border-radius: 8px 8px 0px 0px;}
 .orders-table{width: 100%; border-collapse: collapse; margin-top: 10px;}
 .orders-table tr{text-align: left; border-bottom: 1px solid #ddd;}
 .order-dropdown{display: flex; gap: 5px;}
+.product-title{padding: 10px 0;}
+.confirm-order{background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+.deny-order{background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+.request-return{background-color: #ff4747; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;}
+.admin-orders{color: #666;}
+.ship-item{background-color: #008CBA; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+.checkmark{color: #28a745; font-weight: bold;}
+.other-items{color: #999;}
+.OrderFlexBox{display: flex; flex-wrap: wrap;}
 
 
 
@@ -298,14 +307,7 @@ a{
 #return_select{display: none;}
 #lightbox{display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); cursor:pointer; align-items:center; justify-content:center;}
 #lightbox-img{max-width:90%; max-height:90%; border: 3px solid #fff; border-radius: 10px;}
-#confirm-order{background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
-#deny-order{background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
-#request-return{background-color: #ff4747; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;}
-#admin-orders{color: #666;}
-#product-title{padding: 10px 0;}
-#ship-item{background-color: #008CBA; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
-#checkmark{color: #28a745; font-weight: bold;}
-#other-items{color: #999;}
+
 
 
 /* Psudo */
@@ -339,4 +341,6 @@ option:disabled{display: none;}
     header #HeadLinks{margin: 0; width: calc(100% - 20px); display: block; position: relative; left: 50%; transform: translate(-50%);}
 
     article{margin-top: 275px;}
+
+    .order-container{width: calc(100% - 52px);}
 }
