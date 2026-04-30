@@ -86,12 +86,12 @@
 
         <p>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
 
-        <div class="warranty-badge" style="color: #28a745; font-weight: bold; font-size: 0.9em; margin-bottom: 10px;">
+        <div class="warranty-badge">
             🛡️ {{ product.warranty_period if product.warranty_period else '12' }}-Month Warranty
         </div>
 
-        <div class="review-link" style="margin-bottom: 10px;">
-            <a href="{{ url_for('reviews_page', product_id=product.product_id) }}" style="color: #007bff; text-decoration: none; font-weight: bold;">
+        <div class="review-link">
+            <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}">
                 ★ View Reviews
             </a>
         </div>
@@ -103,7 +103,7 @@
             </p>
             
             {% if product.days_left is defined %}
-                <div class="countdown-timer" style="font-size: 0.85em; color: #d9534f; font-weight: bold; margin-bottom: 10px;">
+                <div class="countdown-timer">
                     ⏳ Sale ends in: 
                     {% if product.days_left > 0 %}{{ product.days_left }}d {% endif %}
                     {% if product.hours_left > 0 or product.days_left > 0 %}{{ product.hours_left }}h {% endif %}

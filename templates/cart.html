@@ -5,9 +5,9 @@
 <h1>Your Cart</h1>
 
 {% if items %}
-    <table style="width:100%; text-align: left; border-collapse: collapse;">
+    <table class="cart-table">
         <thead>
-            <tr style="border-bottom: 1px solid #ccc;">
+            <tr>
                 <th>Product</th>
                 <th>Price</th>
                 <th>Quantity</th>
@@ -18,10 +18,10 @@
         <tbody>
             {% for item in items %}
                 {% set active_price = item.discount_price if item.discount_price else item.price %}
-                <tr style="border-bottom: 1px solid #eee;">
+                <tr>
                     <td>
                         <strong>{{ item.title }}</strong><br>
-                        <span style="font-size: 0.85em;">
+                        <span>
                             Option: {{ item.color }} - {{ item.size }}
                         </span>
                     </td>
@@ -54,10 +54,10 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 20px; text-align: right;">
+    <div class="cart-alignment">
         <h2>Total: ${{ grand_total }}</h2>
         <form action="{{ url_for('customer.checkout') }}" method="POST">
-            <button type="submit" style="padding: 10px 20px; background-color: green; color: white; border: none; cursor: pointer;">
+            <button class="cart-btn" type="submit">
                 Proceed to Checkout
             </button>
         </form>

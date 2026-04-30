@@ -18,7 +18,7 @@
 
     <button id="pw-edit-btn" onclick="toggleForm('pwUpdateForm', 'pw-edit-btn', 'Password')">Edit Password</button>
 
-    <form id="detailsUpdateForm" action="{{ url_for('update_user_details') }}" method="POST" style = "display: none;">
+    <form id="detailsUpdateForm" action="{{ url_for('update_user_details') }}">
         <div class="form-group">
             <label for="name">Name:</label><br>
             <input type="text" id="name" name="name" value="{{ user.name }}" required>
@@ -38,7 +38,7 @@
     </form>
 
 
-    <form id="pwUpdateForm" action="{{ url_for('update_password') }}" method="POST" style = "display: none;">
+    <form id="pwUpdateForm" action="{{ url_for('update_password') }}" method="POST">
         
         <div id="oldPwField" class="form-group">
             <label for="current_password">Current Password:</label><br>
