@@ -27,7 +27,7 @@
                 
                 <button class="ProductButton" type="button" onclick="toggleEdit('{{ product.product_id }}')">Edit</button>
                 
-                <form action="/admin/product/{{ product.product_id }}/delete" method="POST" style="display:inline;">
+                <form action="/admin/product/{{ product.product_id }}/delete" method="POST">
                     <button class="WarningButton ProductButton" type="submit" onclick="return confirm('Delete this item?')">Delete</button>
                 </form>
             </div>
@@ -35,7 +35,7 @@
             <form class="formEdit" id="edit-form-{{ product.product_id }}" 
                 action="/admin/product/{{ product.product_id }}/edit" 
                 method="POST" 
-                style="display: none;">
+                >
                 
                 <input placeholder="Product Name" type="text" name="title" value="{{ product.title }}" required><br>
                 <textarea placeholder="Description" name="description">{{ product.description }}</textarea><br>
@@ -44,7 +44,7 @@
                 <input type="number" name="stock" value="{{ product.stock }}" placeholder="Stock" required><br>
                 
                 <button class="ProductButton" type="submit">Save Changes</button>
-                <button class="ProductButton" style="display: inline;" class="Cancel" type="button" onclick="toggleEdit('{{ product.product_id }}')">Cancel</button>
+                <button class="ProductButton" class="Cancel" type="button" onclick="toggleEdit('{{ product.product_id }}')">Cancel</button>
             </form>
 
         </div>

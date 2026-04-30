@@ -4,8 +4,8 @@
 
 <h1>Messages</h1>
 
-<div style="display: flex; height: 80vh;">
-    <div style="width: 25%; border-right: 1px solid #ddd; padding: 10px;">
+<div class="chat-page">
+    <div class="chat-border">
         <h3>My Chats</h3>
         <a href="/chat?new_chat=true">
             <button type="button">+ New Chat</button>
@@ -16,7 +16,7 @@
             {% for chat in sidebar_chats %}
                 <li>
                     <a href="/chat?cid={{ chat.customer_id }}&vid={{ chat.vendor_id or '' }}&aid={{ chat.admin_id or '' }}&rid={{ chat.return_id or '' }}">
-                        <button type="button" style="width: 100%; text-align: left; margin-bottom: 5px;">
+                        <button class="chat-btn" type="button">
                             {% if session['role'] == 'customer' %}
                                 {% if chat.return_id %}
                                     Return #{{ chat.return_id }} (Support)
@@ -43,7 +43,7 @@
         </ul>
     </div>
 
-    <div style="width: 75%; padding: 20px; display: flex; flex-direction: column;">
+    <div class="chat-box">
         {% if is_new %}
             <h3>Start a New Chat</h3>
             <form method="POST" action="/send_message">
@@ -72,7 +72,7 @@
                         </select>
                     </div>
 
-                    <div id="admin_select" style="display: none;">
+                    <div id="admin_select">
                         <label>Select Admin:</label>
                         <select name="aid_choice">
                             {% for a in admins %}
@@ -81,7 +81,7 @@
                         </select>
                     </div>
 
-                    <div id="return_select" style="display: none;">
+                    <div id="return_select">
                         <label>Select Return:</label>
                         <select name="return_choice">
                             {% for re in returns %}
@@ -97,7 +97,7 @@
 
                 <br><br>
                 <label>First Message:</label>
-                <textarea name="message" style="width: 100%; height: 100px;" placeholder="Type your message here..." required></textarea>
+                <textarea name="message" placeholder="Type your message here..." required></textarea>
                 <br>
                 <button type="submit">Send Message</button>
             </form>
@@ -115,11 +115,11 @@
                 <p><strong>Related Return:</strong> {{ rname }} (ID {{ curr_rid }})</p>
             {% endif %}
 
-            <div style= "overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;">
+            <div class="message-box">
                 {% for msg in history %}
-                    <div style="margin-bottom: 10px;">
+                    <div>
                         <strong>{{msg.sender_name}} ({{ msg.sender_id }}):</strong> {{ msg.text }}
-                        <div style="font-size: 0.7em; color: gray;">{{ msg.timestamp }}</div>
+                        <div class="msg-timestamp">{{ msg.timestamp }}</div>
                     </div>
                 {% endfor %}
             </div>
@@ -129,7 +129,7 @@
                 <input type="hidden" name="vid" value="{{ curr_vid }}">
                 <input type="hidden" name="aid" value="{{ curr_aid }}">
                 <input type="hidden" name="rid" value="{{ curr_rid }}">
-                <input type="text" name="message" style="width: 80%;" placeholder="Say something..." required>
+                <input type="text" name="message" placeholder="Say something..." required>
                 <button type="submit">Send</button>
             </form>
         {% else %}
