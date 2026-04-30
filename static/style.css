@@ -262,9 +262,53 @@ a{
 .QuickLinksHolder li:first-child{margin-left: 0; width: 20%;}
 .QuickLinks{position: relative; transition: 0.25s; text-decoration: none; color: var(--accent-color); font-weight: 100; font-size: 20px; display: block; height: 20px;}
 .showPwBtn{position: absolute; margin-left: -50px; margin-top: 15px; cursor: pointer; color: var(--accent-color); font-size: 14px; font-weight: 600;}
+.cart-table{width:100%; text-align: left; border-collapse: collapse;}
+.cart-table tr{border-bottom: 1px solid #ccc;}
+.cart-alignment{margin-top: 20px; text-align: right;}
+.cart-btn{padding: 10px 20px; background-color: green; color: white; border: none; cursor: pointer;}
+.chat-page{display: flex; height: 80vh;}
+.chat-border{width: 25%; border-right: 1px solid #ddd; padding: 10px;}
+.chat-btn{width: 100%; text-align: left; margin-bottom: 5px;}
+.chat-box{width: 75%; padding: 20px; display: flex; flex-direction: column;}
+.message-box{overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;}
+.msg-timestamp{font-size: 0.7em; color: gray;}
+.reviews-header{margin-bottom: 20px;}
+.review-card{border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;}
+.star-color{color:#f39c12;}
+.review-box{width: 100%; height: 100px;}
+.warrenty-badge{color: #28a745; font-weight: bold; font-size: 0.9em; margin-bottom: 10px;}
+.review-link{margin-bottom: 10px;}
+.reviews-margin{margin-bottom: 10px;}
+.countdown-timer{font-size: 0.85em; color: #d9534f; font-weight: bold; margin-bottom: 10px;}
+.reviews-link{color: #007bff; text-decoration: none; font-weight: bold;}
+.vendor-page{margin-bottom: 1rem;}
+.order-container{border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px; width: calc(50% - 52px); margin: 10px;}
+.order-header{background: #f4f4f4; padding: 10px; margin: -15px -15px 15px -15px; display: flex; justify-content: space-between; align-items: center; color: black; border-radius: 8px 8px 0px 0px;}
+.orders-table{width: 100%; border-collapse: collapse; margin-top: 10px;}
+.orders-table tr{text-align: left; border-bottom: 1px solid #ddd;}
+.order-dropdown{display: flex; gap: 5px;}
+.product-title{padding: 10px 0;}
+.confirm-order{background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+.deny-order{background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+.request-return{background-color: #ff4747; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;}
+.admin-orders{color: #666;}
+.ship-item{background-color: #008CBA; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+.checkmark{color: #28a745; font-weight: bold;}
+.other-items{color: #999;}
+.OrderFlexBox{display: flex; flex-wrap: wrap;}
+
+
 
 /* ID */
 #Wolfy{color: black;}
+#detailsUpdateForm{display: none;}
+#pwUpdateForm{display: none;}
+#admin_select{display: none;}
+#return_select{display: none;}
+#lightbox{display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); cursor:pointer; align-items:center; justify-content:center;}
+#lightbox-img{max-width:90%; max-height:90%; border: 3px solid #fff; border-radius: 10px;}
+
+
 
 /* Psudo */
 input:focus, select:focus, select:active{border-color: var(--accent-color); outline: none;}
@@ -297,4 +341,6 @@ option:disabled{display: none;}
     header #HeadLinks{margin: 0; width: calc(100% - 20px); display: block; position: relative; left: 50%; transform: translate(-50%);}
 
     article{margin-top: 275px;}
+
+    .order-container{width: calc(100% - 52px);}
 }
