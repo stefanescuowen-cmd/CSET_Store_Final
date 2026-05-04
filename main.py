@@ -936,31 +936,25 @@ def reviews_page():
 
 @app.route("/add-review", methods=["POST"])
 def add_review_route():
-    # ... existing session/auth checks ...
-
     product_id = request.form.get("product_id")
     rating = request.form.get("rating", type=int)
     comment = request.form.get("comment")
 
-    with engine.connect() as connection:
-        # Find a variant to attach the review to
-        variant = connection.execute(
-            text("SELECT variant_id FROM product_variants WHERE product_id = :id LIMIT 1"),
-            {"id": product_id}
-        ).mappings().first()
+    if not product_id or not rating:
+        flash("Invalid review data.", "error")
+        return redirect(url_for("shop"))
 
-        if variant:
-            db.add_review(
-                connection=connection, 
-                variant_id=variant['variant_id'],
-                customer_id=session["user_id"], 
-                rating=rating, 
-                description=comment
-            )
-            connection.commit() # Don't forget to commit!
-            flash("Review submitted!", "success")
-        else:
-            flash("Error: Product variant not found.", "error")
+    with engine.connect() as connection:
+        # Directly call add_review using product_id
+        db.add_review(
+            connection=connection, 
+            product_id=product_id, # Updated parameter name
+            customer_id=session["user_id"], 
+            rating=rating, 
+            description=comment
+        )
+        connection.commit()
+        flash("Review submitted!", "success")
     
     return redirect(url_for("reviews_page", product_id=product_id))
 

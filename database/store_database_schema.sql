@@ -119,7 +119,7 @@ CREATE TABLE reviews (
     image TEXT,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (product_id, customer_id),
-    FOREIGN KEY (product_id) REFERENCES product_variants(variant_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 

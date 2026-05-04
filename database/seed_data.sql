@@ -116,17 +116,25 @@ INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status) VALUES
 
 -- REVIEWS
 INSERT INTO reviews (product_id, customer_id, rating, description, image, date) VALUES
-(5, 5, 5, 'Amazing monitor, very clear display!', 'img1.jpg', NOW()),
-(6, 5, 4, 'Good phone but battery could be better.', 'img2.jpg', NOW()),
-(8, 3, 3, 'Tablet is okay for the price.', 'img4.jpg', NOW());
+(4, 5, 5, 'Amazing monitor, very clear display!', 'img1.jpg', NOW()),
+(5, 5, 4, 'Good phone but battery could be better.', 'img2.jpg', NOW()),
+(7, 3, 3, 'Tablet is okay for the price.', 'img4.jpg', NOW());
 
 -- RETURNS
+
 INSERT INTO returns (title, description, demand, status, customer_id, order_id, variant_id, images)
 VALUES 
-('Damaged item', 'Screen cracked', 'Return', 'Pending', 3, 1, 1, 'img_damaged.jpg'),
-('Battery issue', 'Stopped working', 'Warranty', 'Processing', 5, 3, 4, 'img_warranty.jpg'),
-('Wrong item', 'Received wrong product', 'Refund', 'Pending', 4, 4, 2, 'img_refund.jpg'),
-('Monitor not working', 'Monitor arrived damaged', 'Return', 'Pending', 5, 3, 4, 'img_monitor.jpg');
+-- Laptop (Variant 1)
+('Damaged Laptop', 'Screen flickers on arrival', 'Return', 'Pending', 3, 1, 1, 'img_damaged.jpg'),
+
+-- Monitor (Variant 5) - Fixed from 4 to 5
+('Monitor Display', 'Dead pixels after one day', 'Warranty', 'Processing', 5, 3, 5, 'img_warranty.jpg'),
+
+-- Laptop 17-inch (Variant 2)
+('Wrong Size', 'Ordered 15-inch, received 17-inch', 'Refund', 'Pending', 4, 2, 2, 'img_refund.jpg'),
+
+-- Tablet (Variant 8) - Fixed from 7 to 8
+('Tablet Defective', 'Will not charge', 'Return', 'Pending', 3, 6, 8, 'img_tablet.jpg');
 
 -- CHATS
 INSERT INTO chats (sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp) VALUES

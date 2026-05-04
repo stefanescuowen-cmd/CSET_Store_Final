@@ -296,6 +296,8 @@ a{
 .checkmark{color: #28a745; font-weight: bold;}
 .other-items{color: #999;}
 .OrderFlexBox{display: flex; flex-wrap: wrap;}
+.back-to-link{color: #004341; text-decoration: none;}
+.review-count {font-size: 0.85em; color: var(--text-color); opacity: 0.8; margin-left: 5px;}
 
 
 
