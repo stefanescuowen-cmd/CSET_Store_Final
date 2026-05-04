@@ -543,32 +543,37 @@ def add_new_product(connection, vendor_id, title, description, price,
     return product_id
 
 def get_all_products(connection):
-    # 1. DEFINE the query variable first
     query = text("""
         SELECT 
             p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
-            AVG(r.rating) as avg_rating,
-            COUNT(r.review_id) as review_count,
+            COALESCE(sub_r.avg_rating, 0) as avg_rating,
+            COALESCE(sub_r.total_reviews, 0) as total_reviews,  -- Ensure this alias matches HTML
             GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
             GROUP_CONCAT(DISTINCT v.size) as v_sizes,
             GROUP_CONCAT(DISTINCT v.color) as v_colors,
             GROUP_CONCAT(DISTINCT v.stock) as v_stocks
         FROM products p
         LEFT JOIN product_variants v ON p.product_id = v.product_id
-        LEFT JOIN reviews r ON r.product_id = p.product_id 
+        LEFT JOIN (
+            SELECT product_id, AVG(rating) as avg_rating, COUNT(review_id) as total_reviews
+            FROM reviews
+            GROUP BY product_id
+        ) sub_r ON p.product_id = sub_r.product_id
         GROUP BY p.product_id
     """)
     
-    # 2. EXECUTE the query (This is where your error was likely triggered)
     result = connection.execute(query).mappings().all()
 
     products = []
     for row in result:
         item = dict(row)
-        item['variants'] = []
         
+        # FIX: Ensure these exist and are numbers even if the DB returns None
+        item['avg_rating'] = float(item.get('avg_rating') or 0)
+        item['total_reviews'] = int(item.get('total_reviews') or 0)
+        
+        item['variants'] = []
         if item.get('v_ids'):
-            # Convert Group_Concat strings into lists
             ids = str(item['v_ids']).split(',')
             sizes = str(item['v_sizes']).split(',')
             colors = str(item['v_colors']).split(',')
@@ -579,7 +584,6 @@ def get_all_products(connection):
                     "id": ids[i],
                     "size": sizes[i] if i < len(sizes) else "N/A",
                     "color": colors[i] if i < len(colors) else "N/A",
-                    # The int() here fixes the template addition error
                     "stock": int(stocks[i]) if i < len(stocks) else 0
                 })
         
@@ -646,20 +650,29 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
         p.description, 
         p.price, 
         p.discount_price, 
-        p.discount_deadline,  -- Added comma here
-        p.warranty_period,    -- Fixed spelling to match your INSERT function
+        p.discount_deadline,
+        p.warranty_period,
         u.name as vendor_name,
-        AVG(r.rating) as avg_rating,
-        GROUP_CONCAT(v.variant_id) as v_ids,
-        GROUP_CONCAT(v.size) as v_sizes,
-        GROUP_CONCAT(v.color) as v_colors,
-        GROUP_CONCAT(v.stock) as v_stocks
+        COALESCE(sub_r.avg_rating, 0) as avg_rating,
+        COALESCE(sub_r.total_reviews, 0) as total_reviews,
+        GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
+        GROUP_CONCAT(DISTINCT v.size) as v_sizes,
+        GROUP_CONCAT(DISTINCT v.color) as v_colors,
+        GROUP_CONCAT(DISTINCT v.stock) as v_stocks
     FROM products p
-    JOIN product_variants v ON p.product_id = v.product_id
     JOIN users u ON p.vendor_id = u.user_id
-    LEFT JOIN reviews r ON p.product_id = r.product_id
+    LEFT JOIN product_variants v ON p.product_id = v.product_id
+    LEFT JOIN (
+        SELECT 
+            product_id, 
+            AVG(rating) as avg_rating, 
+            COUNT(review_id) as total_reviews
+        FROM reviews
+        GROUP BY product_id
+    ) sub_r ON p.product_id = sub_r.product_id
     WHERE 1=1
-"""
+    """
+    
     params = {}
 
     if search:
@@ -682,7 +695,6 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
         sql += " AND v.size = :size"
         params['size'] = size
 
-    # Handle Availability (In Stock vs Out of Stock)
     if availability == "in_stock":
         sql += " AND v.stock > 0"
     elif availability == "out_of_stock":
@@ -695,20 +707,29 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     products = []
     for row in raw_results:
         item = dict(row)
+        
+        # Ensure ratings are floats and review counts are integers
+        # This prevents the "NoneType" round error in Jinja
+        item['avg_rating'] = float(item.get('avg_rating') or 0)
+        item['total_reviews'] = int(item.get('total_reviews') or 0)
+        
         item['variants'] = []
         if item.get('v_ids'):
             ids = str(item['v_ids']).split(',')
             sizes = str(item['v_sizes']).split(',')
             colors = str(item['v_colors']).split(',')
             stocks = str(item['v_stocks']).split(',')
+            
             for i in range(len(ids)):
                 item['variants'].append({
                     "id": ids[i],
-                    "size": sizes[i],
-                    "color": colors[i],
-                    "stock": int(stocks[i])
+                    "size": sizes[i] if i < len(sizes) else "N/A",
+                    "color": colors[i] if i < len(colors) else "N/A",
+                    "stock": int(stocks[i]) if i < len(stocks) else 0
                 })
+                
         products.append(item)
+        
     return products
 
 def update_product(connection, product_id, vendor_id, title, description, price, discount_price, discount_end=None, category=None, warranty=None):
@@ -851,57 +872,62 @@ def update_return_status(connection, return_id, new_status):
 # REVIEWS
 # =======
 
-def add_review(connection, variant_id, customer_id, rating, description):
+def add_review(connection, product_id, customer_id, rating, description):
+    """
+    Adds a review. Note: We use product_id now so reviews 
+    apply to all variants of the same item.
+    """
     query = text("""
         INSERT INTO reviews (product_id, customer_id, rating, description)
-        VALUES (:v_id, :c_id, :rate, :desc)
+        VALUES (:p_id, :c_id, :rate, :desc)
     """)
     connection.execute(query, {
-        "v_id": variant_id,    # This is the data from Python
+        "p_id": product_id,
         "c_id": customer_id,
         "rate": rating,
         "desc": description
     })
     connection.commit()
 
-
 def get_reviews_for_product(connection, product_id):
     """
-    Fetches reviews for a specific product.
-    Using 'product_id' as defined in your reviews table schema.
+    Fetches reviews for a specific product for display on the shop/product page.
     """
     query = text("""
         SELECT 
             r.rating,
             r.description,
             u.name,
-            r.product_id  -- Changed from r.variant_id
+            r.date
         FROM reviews r
         JOIN users u ON r.customer_id = u.user_id
-        WHERE r.product_id = :product_id  -- Changed from r.variant_id
+        WHERE r.product_id = :product_id
     """)
-    # Ensure we use the correct key in the parameter dictionary
     return connection.execute(query, {"product_id": product_id}).mappings().all()
 
 def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
+    """
+    Fetches reviews with filtering and sorting for the main reviews page.
+    """
+    # We simplified the JOINS because reviews now point directly to products
     sql = """
         SELECT r.*, p.title AS product_name, u.name AS reviewer_name
         FROM reviews r
-        JOIN product_variants v ON r.product_id = v.variant_id -- Fixed: r.product_id
-        JOIN products p ON v.product_id = p.product_id
+        JOIN products p ON r.product_id = p.product_id
         JOIN users u ON r.customer_id = u.user_id
         WHERE 1=1
     """
     params = {}
 
     if product_id:
-        sql += " AND p.product_id = :p_id"
+        sql += " AND r.product_id = :p_id"
         params["p_id"] = product_id
     
     if filter_rating:
         sql += " AND r.rating = :rating"
         params["rating"] = filter_rating
 
+    # Sorting Logic
     if sort_by == 'date':
         sql += " ORDER BY r.date DESC"
     elif sort_by == 'rating_high':
