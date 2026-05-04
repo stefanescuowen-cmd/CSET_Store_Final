@@ -110,8 +110,7 @@
                     {# The math now works because avg_rating is always at least 0.0 #}
                     {% set rating = (product.avg_rating or 0)|round|int %}
                     
-                    {% for i in range(rating) %}★{% endfor %}
-                    {% for i in range(5 - rating) %}☆{% endfor %}
+                    {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
                 </span>
                 <span class="review-count">
                     ({{ product.total_reviews }})
