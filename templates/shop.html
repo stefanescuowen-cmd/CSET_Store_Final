@@ -1,8 +1,22 @@
+<!-- This is technically the products page, but it serves as the main shop page for customers and the product search page for vendors/admins. The content is dynamically adjusted based on the user's role, showing appropriate headings, dashboard links, and product interactions. -->
+
 {% extends "base.html" %}
 
 {% block body %}
 
-<h1>Shop</h1>
+{# Dynamic Heading and Dashboard Links #}
+{% if session.get("role") in ['admin', 'vendor'] %}
+    <h1>Products</h1>
+    <div class="dashboard-return">
+        {% if session.get("role") == 'admin' %}
+            <button><a class="back-to-link" href="{{ url_for('admin_dashboard') }}">← Go Back to Admin Dashboard</a></button>
+        {% else %}
+            <button><a class="back-to-link" href="{{ url_for('vendor_dashboard') }}">← Go Back to Vendor Dashboard</a></button>
+        {% endif %}
+    </div>
+{% else %}
+    <h1>Shop</h1>
+{% endif %}
 
 <form method="GET" action="/shop" class="filter-bar">
     <input type="text" name="search" placeholder="Search products..." value="{{ args.search or '' }}">
@@ -72,7 +86,7 @@
                     src="{{ images[0] }}"
                     onclick="openLightbox(this.src)">
             {% else %}
-                <div>No image</div>
+                <div class="no-image">No image</div>
             {% endif %}
         </div>
 
@@ -99,7 +113,7 @@
         {% if product.discount_price %}
             <p>
                 <del>${{ product.price }}</del> 
-                <strong>${{ product.discount_price }}</strong>
+                <strong class="discount-price">${{ product.discount_price }}</strong>
             </p>
             
             {% if product.days_left is defined %}
@@ -133,19 +147,26 @@
             </span>
         </p>
 
+        {# User Role Logic #}
         {% if session.get("user_id") %}
-            <form action="/add-to-cart" method="POST">
-                <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
-                <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}">
-                <button type="submit">Add to Cart</button>
-            </form>
+            {% if session.get("role") == 'customer' %}
+                <form action="/add-to-cart" method="POST">
+                    <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                    <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}">
+                    <button type="submit">Add to Cart</button>
+                </form>
 
-            <form action="/add-to-wishlist" method="POST">
-                <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
-                <button type="submit">Add to Wishlist</button>
-            </form>
+                <form action="/add-to-wishlist" method="POST">
+                    <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                    <button type="submit">Add to Wishlist</button>
+                </form>
+            {% else %}
+                <div class="admin-notice">
+                    <p>Log in as a customer to purchase items.</p>
+                </div>
+            {% endif %}
         {% else %}
-            <div>
+            <div class="login-prompt">
                 <p>You need an account to purchase or save items.</p>
                 <a href="/login"><button type="button">Login</button></a>
                 <a href="/signup"><button type="button">Sign Up</button></a>
