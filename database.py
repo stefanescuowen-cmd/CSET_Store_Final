@@ -851,12 +851,19 @@ def get_customer_returns(connection, customer_id):
 
 def get_all_pending_returns(connection):
     query = text("""
-        SELECT r.*, u.name as customer_name, p.title as product_title
+        SELECT 
+            r.return_id,
+            r.status,
+            r.demand,
+            r.title AS return_issue_title,
+            r.description AS return_desc,
+            u.name as customer_name,
+            p.title as product_title
         FROM returns r
-        JOIN users u ON r.customer_id = u.user_id
-        JOIN product_variants pv ON r.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        ORDER BY r.date DESC
+        INNER JOIN product_variants pv ON r.variant_id = pv.variant_id
+        INNER JOIN products p ON pv.product_id = p.product_id
+        INNER JOIN users u ON r.customer_id = u.user_id
+        ORDER BY r.return_id DESC
     """)
     return connection.execute(query).mappings().all()
 
