@@ -56,8 +56,7 @@
             <small>Product: {{ review.product_name }}</small><br>
             <strong>{{ review.reviewer_name }}</strong> 
             <span class="star-color">
-                {% for i in range(review.rating) %}★{% endfor %}
-                {% for i in range(5 - review.rating) %}☆{% endfor %}
+                {% for i in range(review.rating) %}★{% endfor %}{% for i in range(5 - review.rating) %}☆{% endfor %}
             </span>
             <p>{{ review.description }}</p>
             {% if review.date %}
