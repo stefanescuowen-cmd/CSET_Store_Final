@@ -918,7 +918,14 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
     """
     # We simplified the JOINS because reviews now point directly to products
     sql = """
-        SELECT r.*, p.title AS product_name, u.name AS reviewer_name
+        SELECT 
+            r.review_id,
+            r.rating,
+            r.description,
+            r.date,
+            r.image AS review_image,
+            p.title AS product_name, 
+            u.name AS reviewer_name
         FROM reviews r
         JOIN products p ON r.product_id = p.product_id
         JOIN users u ON r.customer_id = u.user_id
