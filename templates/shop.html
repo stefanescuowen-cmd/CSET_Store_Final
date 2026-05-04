@@ -104,9 +104,17 @@
             🛡️ {{ product.warranty_period if product.warranty_period else '12' }}-Month Warranty
         </div>
 
-        <div class="review-link">
+        <div class="review-summary">
             <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}">
-                ★ View Reviews
+                <span class="star-color">
+                    {# The math now works because avg_rating is always at least 0.0 #}
+                    {% set rating = (product.avg_rating or 0)|round|int %}
+                    
+                    {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
+                </span>
+                <span class="review-count">
+                    ({{ product.total_reviews }})
+                </span>
             </a>
         </div>
 
