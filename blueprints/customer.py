@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Blueprint, render_template, session, request, redirect, url_for, flash
 from sqlalchemy import text
 from extensions import engine
@@ -12,7 +14,9 @@ def checkout():
         return redirect(url_for("login"))
 
     customer_id = session["user_id"]
-    total = 0
+    sub_total = 0
+    tax = 0
+    grand_total = 0
 
     with engine.connect() as conn:
         addresses = db.get_user_addresses(conn, customer_id)
@@ -28,13 +32,24 @@ def checkout():
             return redirect(url_for("cart"))
 
         for item in cart_items:
-            price = item.get("discount_price") or item.get("price")
-            total += float(price) * int(item["quantity"])
+            price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
+            sub_total += float(price) * int(item["quantity"])
+
+        tax = sub_total * 0.08  # Assuming 8% tax rate
+        grand_total = sub_total + tax
+
+        
+        sub_total = f"{sub_total:.2f}"
+        tax = f"{tax:.2f}"
+        
+        grand_total = f"{grand_total:.2f}"
 
         return render_template(
             "checkout.html",
             items=cart_items,
-            total=total,
+            sub_total=sub_total,
+            tax=tax,
+            grand_total=grand_total,
             addresses=addresses
         )
     
@@ -67,8 +82,13 @@ def place_order():
 
         total_price = 0
         for item in cart_items:
-            price = item.get("discount_price") or item.get("price")
+            price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
+
             total_price += float(price) * int(item["quantity"])
+
+        total_price *= 1.08
+        
+        print(f"Total Price with Tax: {total_price}")  # Add tax (8%)
 
         # Create order and clear cart...
         order_id = db.create_order(conn, customer_id, total_price)
