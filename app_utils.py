@@ -1,19 +1,28 @@
 from sqlalchemy import text
 
-
 def get_user_role(connection, user_id):
     if not user_id:
         return None
 
     result = connection.execute(
         text("""
-        SELECT
-            CASE
-                WHEN EXISTS (SELECT 1 FROM admins WHERE admin_id = :id) THEN 'admin'
-                WHEN EXISTS (SELECT 1 FROM vendors WHERE user_id = :id) THEN 'vendor'
-                WHEN EXISTS (SELECT 1 FROM customers WHERE customer_id = :id) THEN 'customer'
-                ELSE NULL
-            END AS role
+        SELECT 'admin' AS role
+        FROM admins
+        WHERE admin_id = :id
+
+        UNION ALL
+
+        SELECT 'vendor'
+        FROM vendors
+        WHERE user_id = :id
+
+        UNION ALL
+
+        SELECT 'customer'
+        FROM customers
+        WHERE customer_id = :id
+
+        LIMIT 1
         """),
         {"id": user_id}
     ).mappings().first()
