@@ -206,6 +206,7 @@ def get_cart_items(connection, customer_id):
             p.title, 
             p.price, 
             p.discount_price, 
+            p.discount_deadline,
             v.color,
             v.size,
             v.stock,
@@ -436,10 +437,10 @@ def delete_address(connection, address_id, user_id):
 
 def create_order(connection, customer_id, total_price=None):
     query = text("""
-        INSERT INTO orders (customer_id, order_status)
-        VALUES (:customer_id, 'Pending')
+        INSERT INTO orders (customer_id, order_status, total_price)
+        VALUES (:customer_id, 'Pending', :total_price)
     """)
-    result = connection.execute(query, {"customer_id": customer_id})
+    result = connection.execute(query, {"customer_id": customer_id, "total_price": total_price})
     connection.commit()
     return result.lastrowid
 

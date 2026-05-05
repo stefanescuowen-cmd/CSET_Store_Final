@@ -272,6 +272,10 @@ def edit_product(product_id):
         else:
             vendor_id = product.get('vendor_id')
 
+        if discount_price is not None and float(discount_price) >= price:
+            flash("Discount price must be less than the original price.", "error")
+            return redirect(url_for('edit_product', product_id=product_id))
+
         db.update_product(
             conn, product_id, vendor_id, title, description, price, 
             discount_price, discount_end, category, warranty
@@ -540,10 +544,13 @@ def cart():
 
     grand_total = 0
     for item in items:
-        price = item['discount_price'] if item['discount_price'] is not None else item['price']
+        price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
         grand_total += price * item['quantity']
 
-    return render_template("cart.html", items=items, grand_total=grand_total)
+    grand_total = f"{grand_total:.2f}"
+
+
+    return render_template("cart.html", items=items, grand_total=grand_total, now=datetime.now())
 
 
 # ===========
