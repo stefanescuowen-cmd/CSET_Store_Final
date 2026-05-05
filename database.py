@@ -954,7 +954,6 @@ def get_all_reviews(connection, product_id=None, sort_by='date_new', filter_rati
     if sort_by == 'date_oldest':
         sql += " ORDER BY date ASC"
     if sort_by == 'date_newest':
-    if sort_by == 'date_new':
         sql += " ORDER BY r.date DESC"
     elif sort_by == 'date_old':
         sql += " ORDER BY r.date ASC"
