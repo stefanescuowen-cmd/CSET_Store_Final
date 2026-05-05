@@ -20,20 +20,22 @@ INSERT INTO users (name, email, username, password) VALUES
 -- ROLES
 INSERT INTO admins VALUES (1), (2);
 INSERT INTO customers VALUES (3), (4), (5), (6), (7);
-INSERT INTO vendors VALUES (8), (9), (10);
+INSERT INTO vendors (user_id) VALUES (8), (9), (10);
 
 -- PRODUCTS
-INSERT INTO products (title, description, warranty_period, price, discount_price, discount_deadline, vendor_id, category) VALUES
-('Laptop', 'Gaming laptop with high-performance specs', 24, 1200, 1000, NULL, 8, 'Computers'),
-('Mouse', 'Wireless ergonomic mouse', 12, 50, 40, '2026-05-01', 8, 'Accessories'),
-('Keyboard', 'Mechanical RGB keyboard', 12, 100, NULL, NULL, 9, 'Accessories'),
-('Monitor', '4K UHD Monitor', 24, 400, 350, '2026-04-20', 9, 'Monitors'),
-('Phone', 'Latest flagship smartphone', 12, 800, NULL, NULL, 10, 'Phones'),
-('Headphones', 'Active noise-cancelling headphones', 12, 200, 150, NULL, 10, 'Audio'),
-('Tablet', '10-inch Android tablet', 12, 300, NULL, NULL, 8, 'Tablets'),
-('Camera', 'DSLR camera with 18-55mm lens', 24, 900, NULL, NULL, 9, 'Cameras'),
-('Speaker', 'Waterproof Bluetooth speaker', 12, 120, 90, '2026-04-25', 10, 'Audio'),
-('Watch', 'Smartwatch with heart rate monitor', 12, 250, NULL, NULL, 8, 'Wearables');
+INSERT INTO products 
+(title, description, warranty_period, price, discount_price, discount_deadline, vendor_id, category) 
+VALUES
+('Laptop', 'Gaming laptop with high-performance specs', 24, 1200, 1000, NULL, 1, 'Computers'),
+('Mouse', 'Wireless ergonomic mouse', 12, 50, 40, '2026-05-01', 1, 'Accessories'),
+('Keyboard', 'Mechanical RGB keyboard', 12, 100, NULL, NULL, 2, 'Accessories'),
+('Monitor', '4K UHD Monitor', 24, 400, 350, '2026-04-20', 2, 'Monitors'),
+('Phone', 'Latest flagship smartphone', 12, 800, NULL, NULL, 3, 'Phones'),
+('Headphones', 'Active noise-cancelling headphones', 12, 200, 150, NULL, 3, 'Audio'),
+('Tablet', '10-inch Android tablet', 12, 300, NULL, NULL, 1, 'Tablets'),
+('Camera', 'DSLR camera with 18-55mm lens', 24, 900, NULL, NULL, 2, 'Cameras'),
+('Speaker', 'Waterproof Bluetooth speaker', 12, 120, 90, '2026-04-25', 3, 'Audio'),
+('Watch', 'Smartwatch with heart rate monitor', 12, 250, NULL, NULL, 1, 'Wearables');
 
 -- VARIANTS
 INSERT INTO product_variants (product_id, size, color, stock) VALUES
@@ -110,9 +112,9 @@ INSERT INTO order_items (order_id, variant_id, quantity, item_status) VALUES
 
 -- ORDER CONFIRMATIONS
 INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status) VALUES
-(1, 1, 8, 'Confirmed'),
-(1, 3, 9, 'Confirmed'),
-(3, 4, 9, 'Confirmed');
+(1, 1, 1, 'Confirmed'),
+(1, 3, 2, 'Confirmed'),
+(3, 4, 2, 'Confirmed');
 
 -- REVIEWS
 INSERT INTO reviews (product_id, customer_id, rating, description, image, date) VALUES
@@ -137,14 +139,16 @@ VALUES
 ('Tablet Defective', 'Will not charge', 'Return', 'Pending', 3, 6, 8, 'img_tablet.jpg');
 
 -- CHATS
-INSERT INTO chats (sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp) VALUES
+INSERT INTO chats 
+(sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp) 
+VALUES
 (3, 3, NULL, 2, 1, 'My phone screen is cracked.', NULL, NOW()),
-(4, 4, 8, NULL, NULL, 'When will the monitor be back in stock?', NULL, NOW()),
-(5, 5, 9, NULL, NULL, 'I need help with my order.', NULL, NOW()),
+(4, 4, 1, NULL, NULL, 'When will the monitor be back in stock?', NULL, NOW()),
+(5, 5, 2, NULL, NULL, 'I need help with my order.', NULL, NOW()),
 (5, 5, NULL, 1, 4, 'My monitor arrived damaged.', NULL, NOW()),
 (5, 5, NULL, 1, 2, 'I need help with return process.', NULL, NOW()),
-(6, 6, 10, NULL, NULL, 'Is the tablet still in stock?', NULL, NOW()),
-(7, 7, 8, NULL, NULL, 'When will my order ship?', NULL, NOW());
+(6, 6, 3, NULL, NULL, 'Is the tablet still in stock?', NULL, NOW()),
+(7, 7, 1, NULL, NULL, 'When will my order ship?', NULL, NOW());
 
 -- Create wishlists for customers
 INSERT INTO wishlists (customer_id) VALUES (3), (4);
