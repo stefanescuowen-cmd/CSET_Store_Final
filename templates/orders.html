@@ -50,14 +50,14 @@
                                 {% if item.vendor_id|int == vendor_id|int %}
                                     {% if item.item_status == 'Pending' %}
                                         <div class="order-dropdown">
-                                            <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
+                                            <form action="{{ url_for('vendor.vendor_update_order_item_status') }}" method="POST">
                                                 <input type="hidden" name="order_id" value="{{ order.order_id }}">
                                                 <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                                                 <input type="hidden" name="status" value="Confirmed">
                                                 <button class="confirm-order" type="submit">Confirm Item</button>
                                             </form>
 
-                                            <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
+                                            <form action="{{ url_for('vendor.vendor_update_order_item_status') }}" method="POST">
                                                 <input type="hidden" name="order_id" value="{{ order.order_id }}">
                                                 <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                                                 <input type="hidden" name="status" value="Denied">
@@ -65,7 +65,7 @@
                                             </form>
                                         </div>
                                     {% elif item.item_status == 'Confirmed' %}
-                                        <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
+                                        <form action="{{ url_for('vendor.vendor_update_order_item_status') }}" method="POST">
                                             <input type="hidden" name="order_id" value="{{ order.order_id }}">
                                             <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                                             <input type="hidden" name="status" value="Shipped">

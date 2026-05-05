@@ -11,7 +11,7 @@ customer_bp = Blueprint('customer', __name__)
 def checkout():
     if not session.get("user_id"):
         flash("Please log in to checkout.", "error")
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
 
     customer_id = session["user_id"]
     sub_total = 0
@@ -80,26 +80,57 @@ def place_order():
             flash("Cart is empty.", "error")
             return redirect(url_for("cart"))
 
+        for item in cart_items:
+            if int(item["quantity"]) > int(item["stock"]):
+                flash(f"{item['title']} only has {item['stock']} left in stock. Please update your cart.", "error")
+                return redirect(url_for("cart"))
+
         total_price = 0
         for item in cart_items:
             price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
 
             total_price += float(price) * int(item["quantity"])
 
-        total_price *= 1.08
-        
-        print(f"Total Price with Tax: {total_price}")  # Add tax (8%)
+        total_price = round(total_price * 1.08, 2)
 
-        # Create order and clear cart...
-        order_id = db.create_order(conn, customer_id, total_price)
-        for item in cart_items:
-            db.add_order_item(conn, order_id, item["variant_id"], item["quantity"])
+        try:
+            result = conn.execute(text("""
+                INSERT INTO orders (customer_id, order_status, total_price)
+                VALUES (:customer_id, 'Pending', :total_price)
+            """), {"customer_id": customer_id, "total_price": total_price})
+            order_id = result.lastrowid or conn.execute(text("SELECT LAST_INSERT_ID()")).scalar()
 
-        conn.execute(text("""
-            DELETE FROM cart_items 
-            WHERE cart_id = (SELECT cart_id FROM carts WHERE customer_id = :cid)
-        """), {"cid": customer_id})
-        conn.commit()
+            for item in cart_items:
+                stock_update = conn.execute(text("""
+                    UPDATE product_variants
+                    SET stock = stock - :quantity
+                    WHERE variant_id = :variant_id AND stock >= :quantity
+                """), {
+                    "variant_id": item["variant_id"],
+                    "quantity": item["quantity"]
+                })
+
+                if stock_update.rowcount != 1:
+                    raise ValueError(f"Not enough stock for {item['title']}.")
+
+                conn.execute(text("""
+                    INSERT INTO order_items (order_id, variant_id, quantity, item_status)
+                    VALUES (:order_id, :variant_id, :quantity, 'Pending')
+                """), {
+                    "order_id": order_id,
+                    "variant_id": item["variant_id"],
+                    "quantity": item["quantity"]
+                })
+
+            conn.execute(text("""
+                DELETE FROM cart_items
+                WHERE cart_id = (SELECT cart_id FROM carts WHERE customer_id = :cid)
+            """), {"cid": customer_id})
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            flash(str(exc), "error")
+            return redirect(url_for("cart"))
 
     flash("Order placed successfully!", "success")
     return redirect(url_for("orders_page"))
@@ -108,7 +139,7 @@ def place_order():
 @customer_bp.route("/manage-addresses", methods=["GET", "POST"])
 def manage_addresses():
     if not session.get("user_id"):
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
     
     customer_id = session["user_id"]
     
@@ -137,7 +168,7 @@ def manage_addresses():
 @customer_bp.route("/edit-address/<int:id>", methods=["GET", "POST"])
 def edit_address(id):
     if not session.get("user_id"):
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
     
     customer_id = session["user_id"]
     
@@ -200,8 +231,6 @@ def delete_address(id):
         
     flash("Address deleted successfully.", "success")
     return redirect(url_for("customer.manage_addresses"))
-
-
 @customer_bp.route("/set-default-address/<int:id>", methods=["POST"])
 def set_default_address(id):
     customer_id = session["user_id"]
@@ -213,53 +242,3 @@ def set_default_address(id):
                      {"aid": id, "uid": customer_id})
         conn.commit()
     return redirect(url_for("customer.manage_addresses"))
-
-
-@customer_bp.route("/orders")
-def orders_page():
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
-    
-    customer_id = session["user_id"]
-    with engine.connect() as conn:
-        orders = []
-        for order in db.get_orders(conn, customer_id):
-            order_dict = dict(order)
-            order_dict["order_items_list"] = db.get_order_items(conn, order_dict["order_id"])
-            orders.append(order_dict)
-        return render_template("orders.html", orders=orders)
-    
-
-@customer_bp.route("/add-to-cart", methods=["POST"])
-def add_to_cart():
-    customer_id = session.get("user_id")
-    variant_id = request.form.get("variant_id") # Selected from a dropdown on details page
-    quantity = int(request.form.get("quantity", 1))
-
-    with engine.connect() as conn:
-        # 1. Check if this specific variant is already in the user's cart
-        check_query = text("""
-            SELECT quantity FROM cart_items ci
-            JOIN carts c ON ci.cart_id = c.cart_id
-            WHERE c.customer_id = :uid AND ci.variant_id = :vid
-        """)
-        existing_item = conn.execute(check_query, {"uid": customer_id, "vid": variant_id}).fetchone()
-
-        if existing_item:
-            # 2. If it exists, update the quantity
-            new_qty = existing_item[0] + quantity
-            conn.execute(text("""
-                UPDATE cart_items SET quantity = :qty 
-                WHERE variant_id = :vid AND cart_id = (SELECT cart_id FROM carts WHERE customer_id = :uid)
-            """), {"qty": new_qty, "vid": variant_id, "uid": customer_id})
-        else:
-            # 3. If it's a new color/size combo, insert a new row
-            conn.execute(text("""
-                INSERT INTO cart_items (cart_id, variant_id, quantity)
-                VALUES ((SELECT cart_id FROM carts WHERE customer_id = :uid), :vid, :qty)
-            """), {"uid": customer_id, "vid": variant_id, "qty": quantity})
-        
-        conn.commit()
-    
-    flash("Added to cart!", "success")
-    return redirect(url_for("cart"))

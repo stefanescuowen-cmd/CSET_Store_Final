@@ -16,7 +16,7 @@
             - ${{ product.price }}
         </p>
     {% endfor %}
-    <a href="{{ url_for('manage_products') }}">
+    <a href="{{ url_for('vendor.manage_products') }}">
         <button type="button">Manage Your Products</button>
     </a>
 {% else %}
@@ -57,14 +57,14 @@
                     </p>
 
                     {% if item.item_status == "Pending" %}
-                        <form method="POST" action="{{ url_for('vendor_update_order_item_status') }}">
+                        <form method="POST" action="{{ url_for('vendor.vendor_update_order_item_status') }}">
                             <input type="hidden" name="order_id" value="{{ order.order_id }}">
                             <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                             <input type="hidden" name="status" value="Confirmed">
                             <button type="submit">Confirm Item</button>
                         </form>
                     {% elif item.item_status == "Confirmed" %}
-                        <form method="POST" action="{{ url_for('vendor_update_order_item_status') }}">
+                        <form method="POST" action="{{ url_for('vendor.vendor_update_order_item_status') }}">
                             <input type="hidden" name="order_id" value="{{ order.order_id }}">
                             <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
                             <input type="hidden" name="status" value="Shipped">

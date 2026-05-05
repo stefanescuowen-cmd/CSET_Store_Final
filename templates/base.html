@@ -17,7 +17,7 @@
                     <h1><a>P</a>erfect <a>P</a>urchase</h1>
                 </div>
             </div>
-            <!-- <button id="NavToggle" aria-label="Toggle navigation" onclick="toggleNavMenu()">☰</button> -->
+            <button id="NavToggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="toggleNavMenu()">Menu</button>
             <div id="HeadLinks">
                 <ul>
                     <!-- Always visible -->
@@ -50,8 +50,8 @@
                         <!-- ADMIN AND VENDOR NAV -->
                         {% if session.get("role") in ["admin", "vendor"] %}
                             <li><a href="/shop">View Shop</a></li>
-                            <li><a href="{{ url_for('new_product') }}">Add Product</a></li>
-                            <li><a href="{{ url_for('manage_products') }}">Manage Products</a></li>
+                            <li><a href="{{ url_for('vendor.new_product') }}">Add Product</a></li>
+                            <li><a href="{{ url_for('vendor.manage_products') }}">Manage Products</a></li>
                             <li><a href="/orders">View Orders</a></li>
                         {% endif %}
 

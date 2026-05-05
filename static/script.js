@@ -233,5 +233,11 @@ function filterVariantsByOrder() {
 
 function toggleNavMenu() {
     const nav = document.getElementById('HeadLinks');
-    if (nav) nav.classList.toggle('open');
+    const toggle = document.getElementById('NavToggle');
+    if (!nav) return;
+
+    const isOpen = nav.classList.toggle('open');
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
 }
