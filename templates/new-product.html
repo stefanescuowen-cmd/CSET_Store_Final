@@ -12,7 +12,7 @@
             <select id="vendor-id" name="vendor-id" required>
                 <option value="">-- Select Vendor --</option>
                 {% for v in vendors %}
-                    <option value="{{ v.id }}" {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
+                    <option value="{{ v.variant_id }}" {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
                         {{ v.name }}
                     </option>
                 {% endfor %}
@@ -74,7 +74,7 @@
             {% if is_edit and variants %}
                 {% for v in variants %}
                 <div class="variant-group">
-                    <input type="hidden" name="variant_id[]" value="{{ v.id }}">
+                    <input type="hidden" name="variant_id[]" value="{{ v.variant_id }}">
                     <label>Color:</label> <input type="text" name="variant_color[]" value="{{ v.color }}" required>
                     <label>Size:</label> <input type="text" name="variant_size[]" value="{{ v.size }}" required>
                     <label>Stock:</label> <input type="number" name="variant_stock[]" value="{{ v.stock }}" min="0" required>

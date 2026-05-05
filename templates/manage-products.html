@@ -26,11 +26,7 @@
             <td><strong>{{ product.title }}</strong></td>
             <td>${{ product.price }}</td>
             <td>
-                {% set total_stock = 0 %}
-                {% for v in product.variants %}
-                    {% set total_stock = total_stock + v.stock|int %}
-                {% endfor %}
-                {{ total_stock }}
+                {{ product.variants | map(attribute="stock") | map("int") | sum }}
             </td>
             <td>
                 <a href="{{ url_for('edit_product', product_id=product.product_id) }}">
