@@ -114,6 +114,8 @@ function addVariant() {
     const variantGroup = document.createElement('div');
     variantGroup.className = 'variant-group';
     variantGroup.innerHTML = `
+        <input type="hidden" name="variant_id[]" value="">
+
         <label>Color:</label>
         <input type="text" name="variant_color[]" required>
 
@@ -231,5 +233,11 @@ function filterVariantsByOrder() {
 
 function toggleNavMenu() {
     const nav = document.getElementById('HeadLinks');
-    if (nav) nav.classList.toggle('open');
+    const toggle = document.getElementById('NavToggle');
+    if (!nav) return;
+
+    const isOpen = nav.classList.toggle('open');
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
 }

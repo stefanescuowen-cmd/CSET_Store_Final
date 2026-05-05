@@ -9,9 +9,9 @@
     <h1>Products</h1>
     <div class="dashboard-return">
         {% if session.get("role") == 'admin' %}
-            <button><a class="back-to-link" href="{{ url_for('admin_dashboard') }}">← Go Back to Admin Dashboard</a></button>
+            <button><a class="back-to-link" href="{{ url_for('admin.admin_dashboard') }}">← Go Back to Admin Dashboard</a></button>
         {% else %}
-            <button><a class="back-to-link" href="{{ url_for('vendor_dashboard') }}">← Go Back to Vendor Dashboard</a></button>
+            <button><a class="back-to-link" href="{{ url_for('vendor.vendor_dashboard') }}">← Go Back to Vendor Dashboard</a></button>
         {% endif %}
     </div>
 {% else %}

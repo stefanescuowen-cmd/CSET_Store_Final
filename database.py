@@ -2,6 +2,31 @@ from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
+def _rows_to_products(rows):
+    products = []
+    for row in rows:
+        item = dict(row)
+        item['avg_rating'] = float(item.get('avg_rating') or 0)
+        item['total_reviews'] = int(item.get('total_reviews') or 0)
+        item['variants'] = []
+
+        if item.get('v_ids'):
+            ids = str(item['v_ids']).split(',')
+            sizes = str(item.get('v_sizes') or '').split(',')
+            colors = str(item.get('v_colors') or '').split(',')
+            stocks = str(item.get('v_stocks') or '').split(',')
+
+            for i, variant_id in enumerate(ids):
+                item['variants'].append({
+                    "id": variant_id,
+                    "size": sizes[i] if i < len(sizes) else "N/A",
+                    "color": colors[i] if i < len(colors) else "N/A",
+                    "stock": int(stocks[i]) if i < len(stocks) and stocks[i] != '' else 0
+                })
+
+        products.append(item)
+    return products
+
 # =====
 # ADMIN
 # =====
@@ -18,6 +43,13 @@ def get_all_orders(connection):
             o.customer_id,
             o.order_status,
             o.ordered_at,
+            o.total_price,
+            GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at, o.total_price
             o.total_price
         FROM orders o
         ORDER BY o.ordered_at DESC
@@ -48,30 +80,6 @@ def update_user_details(connection, user_id, name=None, email=None, username=Non
 # ======
 # VENDOR
 # ======
-
-def get_vendor_orders(connection, vendor_id):
-    query = text("""
-        SELECT 
-            o.order_id,
-            o.customer_id,
-            o.order_status,
-            o.ordered_at,
-            oi.variant_id,
-            oi.quantity,
-            oi.item_status,
-            p.title,
-            pv.color,
-            pv.size
-        FROM order_items oi
-        JOIN orders o ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        WHERE p.vendor_id = :vendor_id
-        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
-    """)
-    result = connection.execute(query, {"vendor_id": vendor_id})
-    return result.mappings().all()
-
 
 def confirm_vendor_item(connection, order_id, variant_id):
     # Update the status of the specific item
@@ -381,6 +389,14 @@ FROM vendors v
 JOIN users u ON v.user_id = u.user_id
 """)).mappings().all()
 
+def get_vendor_by_user_id(connection, user_id):
+    query = text("""
+        SELECT vendor_id, user_id
+        FROM vendors
+        WHERE user_id = :user_id
+    """)
+    return connection.execute(query, {"user_id": user_id}).mappings().first()
+
 def get_all_admins(connection):
     return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()
 
@@ -497,6 +513,7 @@ def get_order_items(connection, order_id):
             p.vendor_id,
             pv.size, 
             pv.color,
+            COALESCE(p.discount_price, p.price) AS item_price
             pv.color,
             CASE
                 WHEN p.discount_price IS NOT NULL
@@ -572,10 +589,10 @@ def get_all_products(connection):
             p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
             COALESCE(sub_r.avg_rating, 0) as avg_rating,
             COALESCE(sub_r.total_reviews, 0) as total_reviews,  -- Ensure this alias matches HTML
-            GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
-            GROUP_CONCAT(DISTINCT v.size) as v_sizes,
-            GROUP_CONCAT(DISTINCT v.color) as v_colors,
-            GROUP_CONCAT(DISTINCT v.stock) as v_stocks
+            GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+            GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+            GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
         FROM products p
         LEFT JOIN product_variants v ON p.product_id = v.product_id
         LEFT JOIN (
@@ -588,31 +605,7 @@ def get_all_products(connection):
     
     result = connection.execute(query).mappings().all()
 
-    products = []
-    for row in result:
-        item = dict(row)
-        
-        # FIX: Ensure these exist and are numbers even if the DB returns None
-        item['avg_rating'] = float(item.get('avg_rating') or 0)
-        item['total_reviews'] = int(item.get('total_reviews') or 0)
-        
-        item['variants'] = []
-        if item.get('v_ids'):
-            ids = str(item['v_ids']).split(',')
-            sizes = str(item['v_sizes']).split(',')
-            colors = str(item['v_colors']).split(',')
-            stocks = str(item['v_stocks']).split(',')
-
-            for i in range(len(ids)):
-                item['variants'].append({
-                    "id": ids[i],
-                    "size": sizes[i] if i < len(sizes) else "N/A",
-                    "color": colors[i] if i < len(colors) else "N/A",
-                    "stock": int(stocks[i]) if i < len(stocks) else 0
-                })
-        
-        products.append(item)
-    return products
+    return _rows_to_products(result)
 
 def get_product_images(connection):
     query = text("SELECT * FROM product_images")
@@ -636,10 +629,10 @@ def search_products(connection, term):
     query = text("""
         SELECT 
             p.product_id, p.title, p.description, p.price, p.discount_price,
-            GROUP_CONCAT(v.variant_id) as v_ids,
-            GROUP_CONCAT(v.size) as v_sizes,
-            GROUP_CONCAT(v.color) as v_colors,
-            GROUP_CONCAT(v.stock) as v_stocks
+            GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+            GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+            GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
         FROM products p
         JOIN product_variants v ON p.product_id = v.product_id
         WHERE p.title LIKE :term OR p.description LIKE :term
@@ -647,24 +640,7 @@ def search_products(connection, term):
     """)
     result = connection.execute(query, {"term": f"%{term}%"}).mappings().all()
 
-    products = []
-    for row in result:
-        item = dict(row)
-        item['variants'] = []
-        ids = str(item['v_ids']).split(',')
-        sizes = str(item['v_sizes']).split(',')
-        colors = str(item['v_colors']).split(',')
-        stocks = str(item['v_stocks']).split(',')
-
-        for i in range(len(ids)):
-            item['variants'].append({
-                "id": ids[i],
-                "size": sizes[i],
-                "color": colors[i],
-                "stock": stocks[i]
-            })
-        products.append(item)
-    return products
+    return _rows_to_products(result)
 
 def get_filtered_products(connection, search="", color="", size="", availability="", category=""):
     sql = """
@@ -679,12 +655,13 @@ def get_filtered_products(connection, search="", color="", size="", availability
         u.name as vendor_name,
         COALESCE(sub_r.avg_rating, 0) as avg_rating,
         COALESCE(sub_r.total_reviews, 0) as total_reviews,
-        GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
-        GROUP_CONCAT(DISTINCT v.size) as v_sizes,
-        GROUP_CONCAT(DISTINCT v.color) as v_colors,
-        GROUP_CONCAT(DISTINCT v.stock) as v_stocks
+        GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+        GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+        GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+        GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
     FROM products p
-    JOIN users u ON p.vendor_id = u.user_id
+    JOIN vendors vend ON p.vendor_id = vend.vendor_id
+    JOIN users u ON vend.user_id = u.user_id
     LEFT JOIN product_variants v ON p.product_id = v.product_id
     LEFT JOIN (
         SELECT 
@@ -729,7 +706,7 @@ def get_filtered_products(connection, search="", color="", size="", availability
     sql += " GROUP BY p.product_id"
     
     raw_results = connection.execute(text(sql), params).mappings().all()
-    
+    return _rows_to_products(raw_results)
     products = []
     for row in raw_results:
         item = dict(row)
@@ -783,19 +760,27 @@ def update_product(connection, product_id, vendor_id, title, description, price,
 
     connection.commit()
 
-def update_variants(connection, variant_ids, colors, sizes, stocks):
-    for i in range(len(variant_ids)):
-        query = text("""
+def update_variants(connection, product_id, variant_ids, colors, sizes, stocks):
+    update_query = text("""
             UPDATE product_variants
             SET color = :color, size = :size, stock = :stock
             WHERE variant_id = :variant_id
         """)
-        connection.execute(query, {
+    insert_query = text("""
+        INSERT INTO product_variants (product_id, color, size, stock)
+        VALUES (:product_id, :color, :size, :stock)
+    """)
+
+    for i in range(len(colors)):
+        variant_id = variant_ids[i] if i < len(variant_ids) else ""
+        values = {
+            "product_id": product_id,
             "color": colors[i],
             "size": sizes[i],
             "stock": stocks[i],
-            "variant_id": variant_ids[i]
-        })
+            "variant_id": variant_id
+        }
+        connection.execute(update_query if variant_id else insert_query, values)
     connection.commit()
 
 def update_product_images(connection, product_id, image_urls):
@@ -966,6 +951,9 @@ def get_all_reviews(connection, product_id=None, sort_by='date_new', filter_rati
         params["rating"] = filter_rating
 
     # Sorting Logic
+    if sort_by == 'date_oldest':
+        sql += " ORDER BY date ASC"
+    if sort_by == 'date_newest':
     if sort_by == 'date_new':
         sql += " ORDER BY r.date DESC"
     elif sort_by == 'date_old':
@@ -1008,6 +996,13 @@ def get_vendor_orders(connection, vendor_id):
             o.customer_id,
             o.order_status,
             o.ordered_at,
+            SUM(COALESCE(p.discount_price, p.price) * oi.quantity) AS total_price
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        WHERE p.vendor_id = :vendor_id
+        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
             o.total_price
         FROM orders o
         WHERE EXISTS (
@@ -1036,15 +1031,24 @@ def get_products_by_vendor(connection, vendor_id):
             p.price, 
             p.discount_price,
             p.discount_deadline,
-            p.vendor_id
+            p.vendor_id,
+            0 as avg_rating,
+            0 as total_reviews,
+            GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+            GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+            GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
         FROM products p
+        LEFT JOIN product_variants v ON p.product_id = v.product_id
         WHERE p.vendor_id = :vendor_id
+        GROUP BY p.product_id
     """)
     
     # Executing the query with the vendor_id parameter for security
     result = connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
-    
-    return result
+    return _rows_to_products(result)
+
+get_user_orders = get_orders
 
 # ========
 # WISHLIST
@@ -1133,7 +1137,7 @@ def register_new_user(connection, name, email, username, password, role):
             connection.execute(text("INSERT INTO wishlists (customer_id) VALUES (:id)"), {"id": user_id})
         
         elif role == "vendor":
-            connection.execute(text("INSERT INTO vendors (vendor_id) VALUES (:id)"), {"id": user_id})
+            connection.execute(text("INSERT INTO vendors (user_id) VALUES (:id)"), {"id": user_id})
         
         connection.commit()
         return True

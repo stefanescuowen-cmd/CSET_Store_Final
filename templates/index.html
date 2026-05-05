@@ -1,18 +1,17 @@
 {% extends "base.html" %}
 {% block body %}
 <section class="hero-section">
-    <h1>Welcome to Perfect Purchase!!!</h1>
+    <h1>Perfect Purchase</h1>
     <p class="hero-subtitle">Discover the best products, read reviews, and connect with vendors all in one place. Start your perfect purchase journey today!</p>
     <div class="TextAlignCenter">
         <a href="/shop" class="basicButton">Shop Now</a>
-    <div class="category-highlights">
-            <a href="/shop?category=Computers" class="category-pill">Computers</a>
-            <a href="/shop?category=Accessories" class="category-pill">Accessories</a>
-            <a href="/shop?category=Audio" class="category-pill">Audio</a>
-            <a href="/shop?category=Phones" class="category-pill">Phones</a>
+        <div class="category-highlights">
+            {% for category in categories %}
+                <a href="{{ url_for('shop', category=category) }}" class="category-pill">{{ category }}</a>
+            {% endfor %}
         </div>
-    </section>
-</div>
+    </div>
+</section>
 {% if session.get("role") == "admin" %}
 <hr>
 <div class="dangerZone">
