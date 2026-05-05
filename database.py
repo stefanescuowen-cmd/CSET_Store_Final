@@ -44,18 +44,21 @@ def get_all_orders(connection):
             o.order_status,
             o.ordered_at,
             o.total_price,
-            GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
+            GROUP_CONCAT(p.title SEPARATOR ', ') AS product_titles
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
-        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at, o.total_price
+        GROUP BY 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
             o.total_price
-        FROM orders o
         ORDER BY o.ordered_at DESC
     """)
-    result = connection.execute(query)
-    return result.mappings().all()
+    
+    return connection.execute(query).mappings().all()
 
 
 # =======================
@@ -487,18 +490,24 @@ def add_order_item(connection, order_id, variant_id, quantity):
 
 def get_orders(connection, customer_id):
     query = text("""
-        SELECT o.order_id, 
-               o.total_price,
-               o.ordered_at,
-               o.order_status,
-               GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
-        FROM orders o
-        JOIN order_items oi ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        WHERE o.customer_id = :customer_id
-        GROUP BY o.order_id, o.total_price, o.ordered_at, o.order_status
-        ORDER BY o.ordered_at DESC;
+        SELECT 
+    o.order_id,
+    o.customer_id,
+    o.order_status,
+    o.ordered_at,
+    o.total_price,
+    GROUP_CONCAT(p.title SEPARATOR ', ') AS product_titles
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN product_variants pv ON oi.variant_id = pv.variant_id
+JOIN products p ON pv.product_id = p.product_id
+GROUP BY 
+    o.order_id, 
+    o.customer_id, 
+    o.order_status, 
+    o.ordered_at, 
+    o.total_price
+ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
     return result.mappings().all()
@@ -506,26 +515,25 @@ def get_orders(connection, customer_id):
 def get_order_items(connection, order_id):
     query = text("""
         SELECT 
-            oi.variant_id, 
-            oi.quantity, 
-            oi.item_status, 
-            p.title, 
-            p.vendor_id,
-            pv.size, 
-            pv.color,
-            COALESCE(p.discount_price, p.price) AS item_price
-            pv.color,
-            CASE
-                WHEN p.discount_price IS NOT NULL
-                 AND (p.discount_deadline IS NULL OR p.discount_deadline > NOW())
-                THEN p.discount_price
-                ELSE p.price
-            END AS price
-        FROM order_items oi
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        WHERE oi.order_id = :order_id
-    """)
+        oi.variant_id, 
+        oi.quantity, 
+        oi.item_status, 
+        p.title, 
+        p.vendor_id,
+        pv.size, 
+        pv.color,
+        COALESCE(p.discount_price, p.price) AS item_price,
+        CASE
+            WHEN p.discount_price IS NOT NULL
+             AND (p.discount_deadline IS NULL OR p.discount_deadline > NOW())
+            THEN p.discount_price
+            ELSE p.price
+        END AS price
+    FROM order_items oi
+    JOIN product_variants pv ON oi.variant_id = pv.variant_id
+    JOIN products p ON pv.product_id = p.product_id
+    WHERE oi.order_id = :order_id
+""")
     result = connection.execute(query, {"order_id": order_id})
     return result.mappings().all()
 
