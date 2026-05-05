@@ -664,7 +664,7 @@ def send_message():
     # 4. Save to Database
     with engine.connect() as conn:
         db.send_chat_message(
-            conn, 
+            conn,
             sender_id=user_id, 
             customer_id=final_cid, 
             text_content=text_msg, 
