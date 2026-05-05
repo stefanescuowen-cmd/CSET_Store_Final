@@ -38,30 +38,38 @@ def orders_page():
     user_id = session["user_id"]
     role = session.get("role")
 
+    vendor_id = None
+
     with engine.connect() as conn:
         if role == "admin":
             orders_raw = db.get_all_orders(conn)
+
         elif role == "vendor":
-            # You need this specific function to only show the vendor's items!
             vendor = db.get_vendor_by_user_id(conn, user_id)
             vendor_id = vendor["vendor_id"] if vendor else None
             orders_raw = db.get_vendor_orders(conn, vendor_id)
+
         else:
-            vendor_id = None
             orders_raw = db.get_orders(conn, user_id)
 
         seen_order_ids = set()
         orders = []
+
         for order in orders_raw:
             order_dict = dict(order)
+
             if order_dict['order_id'] in seen_order_ids:
                 continue
             seen_order_ids.add(order_dict['order_id'])
 
-            # Fetch the items for this specific order
             order_items = db.get_order_items(conn, order_dict['order_id'])
+
             if role == 'vendor':
-                order_items = [i for i in order_items if int(i['vendor_id']) == int(vendor_id)]
+                order_items = [
+                    i for i in order_items
+                    if int(i['vendor_id']) == int(vendor_id)
+                ]
+
             order_dict['order_items_list'] = order_items
             orders.append(order_dict)
 
