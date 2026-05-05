@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Flask, redirect, render_template, request, url_for, flash, session
+from flask import Flask, make_response, redirect, render_template, request, url_for, flash, session
 from extensions import engine
 from sqlalchemy import create_engine, text
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -47,7 +47,8 @@ def get_user_role(connection, user_id):
 @app.route("/")
 def index():
     is_admin = session.get("role") == "admin"
-    return render_template("index.html", is_admin=is_admin)
+    categories = db.get_unique_categories(conn)
+    return render_template("index.html", is_admin=is_admin, categories=categories)
 
 
 # ======
@@ -64,13 +65,13 @@ def signup():
         password = request.form.get("password")
 
         if db.user_exists(conn, email, username):
-            flash("An account with that email or username already exists. Please log in or use different credentials.", "error")
+            flash("That email or username is already registered. Try logging in, or choose a different one.", "error")
             return redirect(url_for("signup"))
 
         success = db.register_new_user(conn, name, email, username, password, role)
 
         if not success:
-            flash("Registration failed.", "error")
+            flash("We could not create that account. Please check your information and try again.", "error")
             return redirect(url_for("signup"))
 
         flash("Registration successful!", "success")
@@ -293,8 +294,7 @@ def edit_product(product_id):
         stocks = request.form.getlist("variant_stock[]")
         
         if hasattr(db, 'update_variants'):
-            for i in range(len(variant_ids)):
-                db.update_variants(conn, variant_ids[i], colors[i], sizes[i], stocks[i])
+            db.update_variants(conn, product_id, variant_ids, colors, sizes, stocks)
 
         #image updates
         images = request.form.getlist("image")
@@ -367,9 +367,14 @@ def orders_page():
             vendor_id = None
             orders_raw = db.get_orders(conn, user_id)
 
+        seen_order_ids = set()
         orders = []
         for order in orders_raw:
             order_dict = dict(order)
+            if order_dict['order_id'] in seen_order_ids:
+                continue
+            seen_order_ids.add(order_dict['order_id'])
+
             # Fetch the items for this specific order
             order_items = db.get_order_items(conn, order_dict['order_id'])
             if role == 'vendor':
@@ -377,7 +382,7 @@ def orders_page():
             order_dict['order_items_list'] = order_items
             orders.append(order_dict)
 
-    return render_template("orders.html", orders=orders)
+    return render_template("orders.html", orders=orders, vendor_id=vendor_id)
   
 
 # ==================
@@ -431,7 +436,10 @@ def vendor_dashboard():
         for order in orders_raw:
             order_dict = dict(order)
             
-            order_dict['items'] = db.get_order_items(conn, order_dict['order_id'])
+            order_dict['items'] = [
+                item for item in db.get_order_items(conn, order_dict['order_id'])
+                if int(item['vendor_id']) == int(vendor_id)
+            ]
             
             orders.append(order_dict)
 
@@ -572,7 +580,11 @@ def cart():
     grand_total = f"{grand_total:.2f}"
 
 
-    return render_template("cart.html", items=items, grand_total=grand_total, now=datetime.now())
+    response = make_response(render_template("cart.html", items=items, grand_total=grand_total, now=datetime.now()))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # ===========

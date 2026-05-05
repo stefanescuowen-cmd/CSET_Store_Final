@@ -78,7 +78,7 @@ def place_order():
         cart_items = db.get_cart_items(conn, customer_id)
         if not cart_items:
             flash("Cart is empty.", "error")
-            return redirect(url_for("customer.cart"))
+            return redirect(url_for("cart"))
 
         total_price = 0
         for item in cart_items:
@@ -102,7 +102,7 @@ def place_order():
         conn.commit()
 
     flash("Order placed successfully!", "success")
-    return redirect(url_for("customer.orders_page"))
+    return redirect(url_for("orders_page"))
 
 
 @customer_bp.route("/manage-addresses", methods=["GET", "POST"])
@@ -222,7 +222,11 @@ def orders_page():
     
     customer_id = session["user_id"]
     with engine.connect() as conn:
-        orders = db.get_user_orders(conn, customer_id)
+        orders = []
+        for order in db.get_orders(conn, customer_id):
+            order_dict = dict(order)
+            order_dict["order_items_list"] = db.get_order_items(conn, order_dict["order_id"])
+            orders.append(order_dict)
         return render_template("orders.html", orders=orders)
     
 
@@ -258,4 +262,4 @@ def add_to_cart():
         conn.commit()
     
     flash("Added to cart!", "success")
-    return redirect(url_for("customer.cart"))
+    return redirect(url_for("cart"))

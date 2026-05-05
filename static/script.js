@@ -114,6 +114,8 @@ function addVariant() {
     const variantGroup = document.createElement('div');
     variantGroup.className = 'variant-group';
     variantGroup.innerHTML = `
+        <input type="hidden" name="variant_id[]" value="">
+
         <label>Color:</label>
         <input type="text" name="variant_color[]" required>
 

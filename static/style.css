@@ -442,9 +442,12 @@ option:disabled{display: none;}
 .btn-approve { background-color: #59c9a5; color:#004341; }
 .btn-reject { background-color: #ff4d4d; color:#fff; }
 
-.category-highlights{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-top:2rem}
-.category-pill{padding:.4rem .8rem;border-radius:999px;background:#f2f2f2;color:#222;text-decoration:none;font-weight:600}
-.category-pill:hover{background:#222;color:#fff}
+.hero-section { max-width: 960px; margin: 0 auto; text-align: center; }
+.hero-section h1 { color: var(--accent-color); font-size: 42px; }
+.hero-subtitle { max-width: 680px; margin: 0 auto 24px; line-height: 1.6; }
+.category-highlights{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:2rem}
+.category-pill{padding:.55rem 1rem;border-radius:8px;background:var(--bg-color-light);border:2px solid var(--accent-color);color:var(--text-color);text-decoration:none;font-weight:600;transition:background-color .2s,color .2s,transform .2s}
+.category-pill:hover{background:var(--accent-color);color:var(--header-bg-dark);transform:translateY(-2px)}
 
 .checkout-container { max-width: 760px; margin: 0 auto; }
 .checkout-form { gap: 16px; }
@@ -455,4 +458,36 @@ option:disabled{display: none;}
 .site-footer { background: var(--header-bg-dark); border-top: 2px solid var(--accent-color); margin-top: 24px; }
 .footer-content { max-width: 1200px; margin: 0 auto; padding: 14px 20px; text-align: center; }
 .footer-content p { margin: 4px 0; }
+
+.form-container,
+.formContainerOut { max-width: 900px; margin: 0 auto; }
+.variant-group,
+.image-group { background: var(--bg-color-dark); border: 1px solid var(--header-bg-light); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+.admin-table,
+.cart-table,
+.orders-table { background: var(--bg-color-light); border-radius: 8px; overflow: hidden; }
+.admin-table th,
+.admin-table td,
+.cart-table th,
+.cart-table td,
+.orders-table th,
+.orders-table td { padding: 12px; vertical-align: top; }
+.admin-table th,
+.cart-table th,
+.orders-table th { background: var(--header-bg-dark); color: var(--accent-color); }
+.inline-form { display: inline-flex; }
+.full-width { width: 100%; }
+.spaced-bottom { margin-bottom: 18px; }
+.order-card,
+.product-card,
+.return-card,
+.order-container { border-radius: 8px; }
+
+@media (max-width: 900px) {
+    header { position: static; height: auto; padding: 10px 0; }
+    header #HeadLight,
+    header #HeadLinks { width: calc(100% - 20px); position: static; margin: 0 10px 10px; }
+    header #HeadLinks ul { height: auto; padding: 10px; }
+    article { margin: 20px 10px; }
+}
 

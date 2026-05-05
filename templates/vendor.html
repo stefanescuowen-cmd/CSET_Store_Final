@@ -39,6 +39,7 @@
             <p>
                 <strong>Order #{{ order.order_id }}</strong><br>
                 Customer ID: {{ order.customer_id }}<br>
+                Total: ${{ "%.2f"|format(order.total_price|float) }}<br>
                 Overall Status: {{ order.order_status }}<br>
                 Ordered At: {{ order.ordered_at }}
             </p>
@@ -51,6 +52,7 @@
                         {{ item.title }}<br>
                         Variant: {{ item.color }} / {{ item.size }}<br>
                         Qty: {{ item.quantity }}<br>
+                        Item Price: ${{ "%.2f"|format(item.item_price|float) }}<br>
                         Item Status: {{ item.item_status }}
                     </p>
 

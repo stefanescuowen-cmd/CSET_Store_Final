@@ -41,13 +41,13 @@
                         <td class="product-title"><strong>{{ item.title }}</strong></td>
                         <td>{{ item.color }} / {{ item.size }}</td>
                         <td>{{ item.quantity }}</td>
-                        <td>${{ item.price }}</td>
+                        <td>${{ "%.2f"|format(item.item_price|float) }}</td>
                         <td>{{ item.item_status }}</td>
                         <td>
                             {# VENDOR LOGIC #}
                             {% if session['role'] == 'vendor' %}
                                 {# Ensure comparison works by casting to int #}
-                                {% if item.vendor_id|int == session['user_id']|int %}
+                                {% if item.vendor_id|int == vendor_id|int %}
                                     {% if item.item_status == 'Pending' %}
                                         <div class="order-dropdown">
                                             <form action="{{ url_for('vendor_update_order_item_status') }}" method="POST">
