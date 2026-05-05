@@ -433,3 +433,22 @@ option:disabled{display: none;}
     background: #f8d7da;
     color: #721c24;
 }
+
+
+
+.returns-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 16px; }
+.returns-actions { text-align:center; }
+.returns-action-form { display:flex; flex-direction:row; gap:10px; justify-content:center; }
+.btn-approve { background-color: #59c9a5; color:#004341; }
+.btn-reject { background-color: #ff4d4d; color:#fff; }
+
+.checkout-container { max-width: 760px; margin: 0 auto; }
+.checkout-form { gap: 16px; }
+.payment-section label { display:block; margin-bottom: 10px; }
+.payment-details { margin-top: 12px; }
+.btn-primary-wide { width: 100%; }
+
+.site-footer { background: var(--header-bg-dark); border-top: 2px solid var(--accent-color); margin-top: 24px; }
+.footer-content { max-width: 1200px; margin: 0 auto; padding: 14px 20px; text-align: center; }
+.footer-content p { margin: 4px 0; }
+
