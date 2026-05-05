@@ -18,13 +18,8 @@ def get_all_orders(connection):
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            p.title,
-            oi.quantity,
-            oi.item_status
+            o.total_price
         FROM orders o
-        JOIN order_items oi ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
         ORDER BY o.ordered_at DESC
     """)
     result = connection.execute(query)
@@ -457,7 +452,7 @@ def add_order_item(connection, order_id, variant_id, quantity):
 def get_orders(connection, customer_id):
     query = text("""
         SELECT o.order_id, 
-               SUM(COALESCE(p.discount_price, p.price) * oi.quantity) as total_price,
+               o.total_price,
                o.ordered_at,
                o.order_status,
                GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
@@ -466,7 +461,7 @@ def get_orders(connection, customer_id):
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE o.customer_id = :customer_id
-        GROUP BY o.order_id, o.ordered_at, o.order_status
+        GROUP BY o.order_id, o.total_price, o.ordered_at, o.order_status
         ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
@@ -483,7 +478,12 @@ def get_order_items(connection, order_id):
             pv.size, 
             pv.color,
             pv.color,
-            COALESCE(p.discount_price, p.price) AS item_price
+            CASE
+                WHEN p.discount_price IS NOT NULL
+                 AND (p.discount_deadline IS NULL OR p.discount_deadline > NOW())
+                THEN p.discount_price
+                ELSE p.price
+            END AS price
         FROM order_items oi
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
@@ -967,22 +967,21 @@ def get_vendor_products(connection, vendor_id):
 
 def get_vendor_orders(connection, vendor_id):
     query = text("""
-        SELECT DISTINCT
+        SELECT
             o.order_id,
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            SUM(COALESCE(p2.discount_price, p2.price) * oi2.quantity) AS total_price
+            o.total_price
         FROM orders o
-        JOIN order_items oi ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        JOIN order_items oi2 ON o.order_id = oi2.order_id
-        JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
-        JOIN products p2 ON pv2.product_id = p2.product_id
-        WHERE p.vendor_id = :vendor_id
-        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
-        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
+        WHERE EXISTS (
+            SELECT 1
+            FROM order_items vendor_oi
+            JOIN product_variants vendor_pv ON vendor_oi.variant_id = vendor_pv.variant_id
+            JOIN products vendor_p ON vendor_pv.product_id = vendor_p.product_id
+            WHERE vendor_oi.order_id = o.order_id
+              AND vendor_p.vendor_id = :vendor_id
+        )
         ORDER BY o.ordered_at DESC, o.order_id DESC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
