@@ -459,7 +459,6 @@ def vendor_update_order_item_status():
 def shop():
     args = {
         "search": request.args.get("search", ""),
-        "vendor": request.args.get("vendor", ""),
         "color": request.args.get("color", ""),
         "size": request.args.get("size", ""), # This is now captured
         "availability": request.args.get("availability", ""),
@@ -485,7 +484,6 @@ def shop():
     # NEW: Fetch dynamic lists for the dropdowns
     colors = db.get_unique_colors(conn)
     categories = db.get_unique_categories(conn)
-    vendors = db.get_all_vendors(conn)
     sizes = db.get_unique_sizes(conn) # ADD THIS LINE
 
     image_map = {}
@@ -499,7 +497,6 @@ def shop():
         args=args,
         colors=colors,
         categories=categories,
-        vendors=vendors,
         sizes=sizes
     )
 
@@ -955,6 +952,10 @@ def add_review_route():
     if not product_id or not rating:
         flash("Invalid review data.", "error")
         return redirect(url_for("shop"))
+    
+    if db.review_exists(conn, product_id, session["user_id"]):
+        flash("You have already reviewed this product.", "error")
+        return redirect(url_for("reviews_page", product_id=product_id))
 
     with engine.connect() as connection:
         # Directly call add_review using product_id

@@ -195,6 +195,19 @@ def get_variant_stock(connection, variant_id):
     result = connection.execute(query, {"variant_id": variant_id}).fetchone()
     return result[0] if result else 0
 
+def reduce_variant_stock(connection, variant_id, quantity):
+    query = text("""
+        UPDATE product_variants
+        SET stock = stock - :quantity
+        WHERE variant_id = :variant_id
+          AND stock >= :quantity
+    """)
+    result = connection.execute(query, {
+        "variant_id": variant_id,
+        "quantity": quantity
+    })
+    return result.rowcount == 1
+
 def get_cart_items(connection, customer_id):
     query = text("""
         SELECT 
@@ -437,6 +450,9 @@ def create_order(connection, customer_id, total_price=None):
 
 
 def add_order_item(connection, order_id, variant_id, quantity):
+    if not reduce_variant_stock(connection, variant_id, quantity):
+        raise ValueError("Not enough stock for this item.")
+
     query = text("""
         INSERT INTO order_items (order_id, variant_id, quantity, item_status)
         VALUES (:order_id, :variant_id, :quantity, 'Pending')
@@ -646,7 +662,7 @@ def search_products(connection, term):
         products.append(item)
     return products
 
-def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
+def get_filtered_products(connection, search="", color="", size="", availability="", category=""):
     sql = """
     SELECT 
         p.product_id, 
@@ -680,16 +696,18 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     params = {}
 
     if search:
-        sql += " AND (p.title LIKE :search OR p.description LIKE :search)"
+        sql += """
+        AND (
+            p.title LIKE :search 
+            OR p.description LIKE :search 
+            OR u.name LIKE :search
+        )
+        """
         params['search'] = f"%{search}%"
 
     if category:
         sql += " AND p.category = :category"
         params['category'] = category
-
-    if vendor:
-        sql += " AND u.name LIKE :vendor"
-        params['vendor'] = f"%{vendor}%"
 
     if color:
         sql += " AND v.color = :color"
@@ -712,8 +730,6 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     for row in raw_results:
         item = dict(row)
         
-        # Ensure ratings are floats and review counts are integers
-        # This prevents the "NoneType" round error in Jinja
         item['avg_rating'] = float(item.get('avg_rating') or 0)
         item['total_reviews'] = int(item.get('total_reviews') or 0)
         
@@ -916,7 +932,7 @@ def get_reviews_for_product(connection, product_id):
     """)
     return connection.execute(query, {"product_id": product_id}).mappings().all()
 
-def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
+def get_all_reviews(connection, product_id=None, sort_by='date_new', filter_rating=None):
     """
     Fetches reviews with filtering and sorting for the main reviews page.
     """
@@ -946,14 +962,30 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
         params["rating"] = filter_rating
 
     # Sorting Logic
-    if sort_by == 'date':
+    if sort_by == 'date_new':
         sql += " ORDER BY r.date DESC"
+    elif sort_by == 'date_old':
+        sql += " ORDER BY r.date ASC"
     elif sort_by == 'rating_high':
         sql += " ORDER BY r.rating DESC"
     elif sort_by == 'rating_low':
         sql += " ORDER BY r.rating ASC"
+    else:
+        sql += " ORDER BY r.date DESC"  # Default sorting
     
     return connection.execute(text(sql), params).mappings().all()
+
+def review_exists(connection, product_id, customer_id):
+    query = text("""
+        SELECT review_id 
+        FROM reviews 
+        WHERE product_id = :product_id AND customer_id = :customer_id
+    """)
+    result = connection.execute(query, {
+        "product_id": product_id,
+        "customer_id": customer_id
+    }).fetchone()
+    return result is not None
 
 # ======
 # VENDOR
