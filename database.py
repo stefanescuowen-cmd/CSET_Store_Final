@@ -373,6 +373,14 @@ FROM vendors v
 JOIN users u ON v.user_id = u.user_id
 """)).mappings().all()
 
+def get_vendor_by_user_id(connection, user_id):
+    query = text("""
+        SELECT vendor_id, user_id
+        FROM vendors
+        WHERE user_id = :user_id
+    """)
+    return connection.execute(query, {"user_id": user_id}).mappings().first()
+
 def get_all_admins(connection):
     return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()
 
@@ -987,7 +995,6 @@ def get_vendor_orders(connection, vendor_id):
         JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
         JOIN products p2 ON pv2.product_id = p2.product_id
         WHERE p.vendor_id = :vendor_id
-        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
         GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
         ORDER BY o.ordered_at DESC, o.order_id DESC
     """)
@@ -1104,7 +1111,7 @@ def register_new_user(connection, name, email, username, password, role):
             connection.execute(text("INSERT INTO wishlists (customer_id) VALUES (:id)"), {"id": user_id})
         
         elif role == "vendor":
-            connection.execute(text("INSERT INTO vendors (vendor_id) VALUES (:id)"), {"id": user_id})
+            connection.execute(text("INSERT INTO vendors (user_id) VALUES (:id)"), {"id": user_id})
         
         connection.commit()
         return True

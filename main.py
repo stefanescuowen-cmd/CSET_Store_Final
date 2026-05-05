@@ -29,7 +29,7 @@ def get_user_role(connection, user_id):
         SELECT 
             CASE
                 WHEN EXISTS (SELECT 1 FROM admins WHERE admin_id = :id) THEN 'admin'
-                WHEN EXISTS (SELECT 1 FROM vendors WHERE vendor_id = :id) THEN 'vendor'
+                WHEN EXISTS (SELECT 1 FROM vendors WHERE user_id = :id) THEN 'vendor'
                 WHEN EXISTS (SELECT 1 FROM customers WHERE customer_id = :id) THEN 'customer'
                 ELSE NULL
             END AS role
@@ -249,7 +249,13 @@ def edit_product(product_id):
         return redirect(url_for('manage_products'))
         
     # Permission: Admin or the specific Vendor who owns the product
-    if role != "admin" and product.get('vendor_id') != user_id:
+    if role == "vendor":
+        vendor = db.get_vendor_by_user_id(conn, user_id)
+        vendor_id = vendor["vendor_id"] if vendor else None
+    else:
+        vendor_id = None
+
+    if role != "admin" and product.get('vendor_id') != vendor_id:
         flash("Access denied.", "error")
         return redirect(url_for('index'))
 
@@ -326,7 +332,10 @@ def delete_product(product_id):
     product = db.get_product_by_id(conn, product_id)
 
     # Permission: Admin or the owner can delete
-    if role == "admin" or (product and product.get('vendor_id') == user_id):
+    vendor = db.get_vendor_by_user_id(conn, user_id) if role == "vendor" else None
+    vendor_id = vendor["vendor_id"] if vendor else None
+
+    if role == "admin" or (product and product.get('vendor_id') == vendor_id):
         db.delete_product(conn, product_id)
         flash("Product deleted successfully!", "success")
     else:
@@ -351,8 +360,11 @@ def orders_page():
             orders_raw = db.get_all_orders(conn)
         elif role == "vendor":
             # You need this specific function to only show the vendor's items!
-            orders_raw = db.get_vendor_orders(conn, user_id)
+            vendor = db.get_vendor_by_user_id(conn, user_id)
+            vendor_id = vendor["vendor_id"] if vendor else None
+            orders_raw = db.get_vendor_orders(conn, vendor_id)
         else:
+            vendor_id = None
             orders_raw = db.get_orders(conn, user_id)
 
         orders = []
@@ -361,7 +373,7 @@ def orders_page():
             # Fetch the items for this specific order
             order_items = db.get_order_items(conn, order_dict['order_id'])
             if role == 'vendor':
-                order_items = [i for i in order_items if int(i['vendor_id']) == int(user_id)]
+                order_items = [i for i in order_items if int(i['vendor_id']) == int(vendor_id)]
             order_dict['order_items_list'] = order_items
             orders.append(order_dict)
 
@@ -405,7 +417,12 @@ def vendor_dashboard():
             flash('Only vendors can access this page!', 'error')
             return redirect(url_for('index'))
 
-        vendor_id = session["user_id"]
+        vendor = db.get_vendor_by_user_id(conn, session["user_id"])
+        if not vendor:
+            flash('Vendor profile not found.', 'error')
+            return redirect(url_for('index'))
+
+        vendor_id = vendor["vendor_id"]
 
         products = db.get_vendor_products(conn, vendor_id)
         orders_raw = db.get_vendor_orders(conn, vendor_id)
@@ -434,7 +451,12 @@ def vendor_update_order_item_status():
     if session.get("role") != "vendor":
         return "Unauthorized", 403
 
-    vendor_id = session.get("user_id")
+    vendor = db.get_vendor_by_user_id(conn, session.get("user_id"))
+    if not vendor:
+        flash("Vendor profile not found.", "danger")
+        return redirect(url_for("orders_page"))
+
+    vendor_id = vendor["vendor_id"]
     order_id = request.form.get("order_id")
     variant_id = request.form.get("variant_id")
     new_status = request.form.get("status")
@@ -448,7 +470,7 @@ def vendor_update_order_item_status():
             WHERE v.variant_id = :v_id
         """), {"v_id": variant_id}).fetchone()
 
-        if not check_ownership or check_ownership[0] != vendor_id:
+        if not check_ownership or int(check_ownership[0]) != int(vendor_id):
             flash("Error: You do not have permission to update this item.", "danger")
             return redirect(url_for("orders_page"))
 
@@ -734,7 +756,11 @@ def add_product():
         if role == "admin":
             vendor_id = request.form.get("vendor-id")
         elif role == "vendor":
-            vendor_id = session["user_id"]
+            vendor = db.get_vendor_by_user_id(conn, session["user_id"])
+            if not vendor:
+                flash("Vendor profile not found.", "error")
+                return redirect(url_for('index'))
+            vendor_id = vendor["vendor_id"]
 
         title = request.form.get("title")
 
