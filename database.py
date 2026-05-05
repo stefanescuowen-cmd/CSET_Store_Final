@@ -1,4 +1,5 @@
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 # =====
@@ -479,7 +480,9 @@ def get_order_items(connection, order_id):
             p.title, 
             p.vendor_id,
             pv.size, 
-            pv.color
+            pv.color,
+            pv.color,
+            COALESCE(p.discount_price, p.price) AS item_price
         FROM order_items oi
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
@@ -963,23 +966,23 @@ def get_vendor_products(connection, vendor_id):
 
 def get_vendor_orders(connection, vendor_id):
     query = text("""
-        SELECT 
+        SELECT DISTINCT
             o.order_id,
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            oi.variant_id,
-            oi.quantity,
-            oi.item_status,
-            p.title,
-            pv.color,
-            pv.size
-        FROM order_items oi
-        JOIN orders o ON oi.order_id = o.order_id
+            SUM(COALESCE(p2.discount_price, p2.price) * oi2.quantity) AS total_price
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
+        JOIN order_items oi2 ON o.order_id = oi2.order_id
+        JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
+        JOIN products p2 ON pv2.product_id = p2.product_id
         WHERE p.vendor_id = :vendor_id
         ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
+        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
+        ORDER BY o.ordered_at DESC, o.order_id DESC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
 
@@ -1083,7 +1086,7 @@ def register_new_user(connection, name, email, username, password, role):
             "name": name, 
             "email": email, 
             "username": username, 
-            "password": password
+            "password": generate_password_hash(password)
         })
 
         user_id = connection.execute(text("SELECT LAST_INSERT_ID()")).scalar()
@@ -1111,14 +1114,37 @@ def is_admin(connection, user_id):
 
 
 def verify_user(connection, username_or_email, password):
-    """Checks credentials and returns the user row if valid."""
+    """Checks credentials and returns the user row if valid.
+    Supports legacy plaintext seed passwords and transparently upgrades them.
+    """
     query = text("""
-        SELECT user_id, name, username 
+        SELECT user_id, name, username, password 
         FROM users 
-        WHERE (username = :val OR email = :val) AND password = :pw
+        WHERE (username = :val OR email = :val)
     """)
-    result = connection.execute(query, {"val": username_or_email, "pw": password}).fetchone()
-    return result # Returns a row or None
+    result = connection.execute(query, {"val": username_or_email}).mappings().first()
+    if not result:
+        return None
+
+    stored_password = result["password"] or ""
+
+    # New hashed accounts
+    if stored_password.startswith("pbkdf2:") or stored_password.startswith("scrypt:"):
+        if check_password_hash(stored_password, password):
+            return result
+        return None
+
+    # Legacy plaintext accounts (seed data compatibility)
+    if stored_password == password:
+        # Upgrade plaintext password to hashed format on successful login
+        connection.execute(
+            text("UPDATE users SET password = :pw WHERE user_id = :uid"),
+            {"pw": generate_password_hash(password), "uid": result["user_id"]}
+        )
+        connection.commit()
+        return result
+
+    return None
 
 
 

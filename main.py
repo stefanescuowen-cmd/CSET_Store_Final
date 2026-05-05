@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, redirect, render_template, request, url_for, flash, session
 from extensions import engine
 from sqlalchemy import create_engine, text
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # IMPORT MODELS
 import database as db
@@ -62,10 +63,8 @@ def signup():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        user = db.verify_user(conn, email, password)
-
-        if user:
-            flash("User already exists.", "error")
+        if db.user_exists(conn, email, username):
+            flash("An account with that email or username already exists. Please log in or use different credentials.", "error")
             return redirect(url_for("signup"))
 
         success = db.register_new_user(conn, name, email, username, password, role)
@@ -343,7 +342,10 @@ def orders_page():
         for order in orders_raw:
             order_dict = dict(order)
             # Fetch the items for this specific order
-            order_dict['order_items_list'] = db.get_order_items(conn, order_dict['order_id'])
+            order_items = db.get_order_items(conn, order_dict['order_id'])
+            if role == 'vendor':
+                order_items = [i for i in order_items if int(i['vendor_id']) == int(user_id)]
+            order_dict['order_items_list'] = order_items
             orders.append(order_dict)
 
     return render_template("orders.html", orders=orders)
@@ -790,7 +792,10 @@ def update_password():
 
     user = db.get_user_by_id(conn, user_id)
 
-    if user['password'] != current_pw:
+    stored_pw = user['password'] or ''
+    current_ok = (check_password_hash(stored_pw, current_pw) if (stored_pw.startswith('pbkdf2:') or stored_pw.startswith('scrypt:')) else stored_pw == current_pw)
+
+    if not current_ok:
         flash("Current password is incorrect.", "error")
         return redirect(url_for("account"))
     
@@ -802,7 +807,7 @@ def update_password():
         flash("New password cannot be the same as the current password.", "error")
         return redirect(url_for("account"))
     
-    db.update_user_password(conn, user_id, new_pw)
+    db.update_user_password(conn, user_id, generate_password_hash(new_pw))
 
     flash("Password updated successfully!", "success")
     return redirect(url_for("account"))
