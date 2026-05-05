@@ -23,8 +23,9 @@ CREATE TABLE customers (
 );
 
 CREATE TABLE vendors (
-    vendor_id INT PRIMARY KEY,
-    FOREIGN KEY (vendor_id) REFERENCES users(user_id) ON DELETE CASCADE
+    vendor_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT UNIQUE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- PRODUCTS

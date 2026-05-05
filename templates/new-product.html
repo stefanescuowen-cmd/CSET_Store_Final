@@ -9,10 +9,11 @@
         
         {% if role == "admin" %}
             <label for="vendor-id">Select Vendor:</label><br>
-            <select id="vendor-id" name="vendor-id" required>
-                <option value="">-- Select Vendor --</option>
+            <select name="vendor_id" required>
+                <option value="">Select Vendor</option>
                 {% for v in vendors %}
-                    <option value="{{ v.variant_id }}" {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
+                    <option value="{{ v.id }}"
+                        {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
                         {{ v.name }}
                     </option>
                 {% endfor %}

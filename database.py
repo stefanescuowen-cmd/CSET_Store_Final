@@ -366,7 +366,11 @@ def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=
                 
 
 def get_all_vendors(connection):
-    return connection.execute(text("SELECT vendor_id as id, name FROM vendors JOIN users ON vendor_id = user_id")).mappings().all()
+    return connection.execute(text("""
+SELECT v.vendor_id AS id, u.name 
+FROM vendors v 
+JOIN users u ON v.user_id = u.user_id
+""")).mappings().all()
 
 def get_all_admins(connection):
     return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()

@@ -171,7 +171,10 @@ def manage_products():
         products = db.get_all_products(conn)
     else:
         # We use a filtered function to protect vendor privacy
-        products = db.get_products_by_vendor(conn, user_id) 
+        vendor = db.get_vendor_by_user_id(conn, user_id)
+        vendor_id = vendor["vendor_id"]
+
+        products = db.get_products_by_vendor(conn, vendor_id)
         
     return render_template("manage-products.html", products=products, role=role)
 
@@ -194,8 +197,12 @@ def new_product():
         discount_end = request.form.get("discount_end") or None
         
         # Admin picks vendor from dropdown; Vendor is assigned to self
-        selected_vendor = request.form.get("vendor-id")
-        vendor_id = int(selected_vendor) if (role == "admin" and selected_vendor) else user_id
+        selected_vendor = request.form.get("vendor_id")
+        if role == "admin":
+            vendor_id = int(selected_vendor)
+        else:
+            vendor = db.get_vendor_by_user_id(conn, user_id)
+            vendor_id = vendor["vendor_id"]
 
         # Capture lists
         images = request.form.getlist("image") 
@@ -256,8 +263,14 @@ def edit_product(product_id):
         warranty = request.form.get("warranty")
         
         # Admins can reassign vendor via dropdown
-        selected_vendor = request.form.get("vendor-id")
-        vendor_id = int(selected_vendor) if role == "admin" else product.get('vendor_id')
+        selected_vendor = request.form.get("vendor_id")
+        if role == "admin":
+            if not selected_vendor:
+                flash("Please select a vendor.", "error")
+                return redirect(request.url)
+            vendor_id = int(selected_vendor)
+        else:
+            vendor_id = product.get('vendor_id')
 
         db.update_product(
             conn, product_id, vendor_id, title, description, price, 
