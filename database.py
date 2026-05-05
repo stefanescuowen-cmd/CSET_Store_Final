@@ -18,13 +18,8 @@ def get_all_orders(connection):
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            p.title,
-            oi.quantity,
-            oi.item_status
+            o.total_price
         FROM orders o
-        JOIN order_items oi ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
         ORDER BY o.ordered_at DESC
     """)
     result = connection.execute(query)
@@ -199,6 +194,19 @@ def get_variant_stock(connection, variant_id):
     query = text("SELECT stock FROM product_variants WHERE variant_id = :variant_id")
     result = connection.execute(query, {"variant_id": variant_id}).fetchone()
     return result[0] if result else 0
+
+def reduce_variant_stock(connection, variant_id, quantity):
+    query = text("""
+        UPDATE product_variants
+        SET stock = stock - :quantity
+        WHERE variant_id = :variant_id
+          AND stock >= :quantity
+    """)
+    result = connection.execute(query, {
+        "variant_id": variant_id,
+        "quantity": quantity
+    })
+    return result.rowcount == 1
 
 def get_cart_items(connection, customer_id):
     query = text("""
@@ -446,6 +454,9 @@ def create_order(connection, customer_id, total_price=None):
 
 
 def add_order_item(connection, order_id, variant_id, quantity):
+    if not reduce_variant_stock(connection, variant_id, quantity):
+        raise ValueError("Not enough stock for this item.")
+
     query = text("""
         INSERT INTO order_items (order_id, variant_id, quantity, item_status)
         VALUES (:order_id, :variant_id, :quantity, 'Pending')
@@ -461,7 +472,7 @@ def add_order_item(connection, order_id, variant_id, quantity):
 def get_orders(connection, customer_id):
     query = text("""
         SELECT o.order_id, 
-               SUM(COALESCE(p.discount_price, p.price) * oi.quantity) as total_price,
+               o.total_price,
                o.ordered_at,
                o.order_status,
                GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
@@ -470,7 +481,7 @@ def get_orders(connection, customer_id):
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE o.customer_id = :customer_id
-        GROUP BY o.order_id, o.ordered_at, o.order_status
+        GROUP BY o.order_id, o.total_price, o.ordered_at, o.order_status
         ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
@@ -487,7 +498,12 @@ def get_order_items(connection, order_id):
             pv.size, 
             pv.color,
             pv.color,
-            COALESCE(p.discount_price, p.price) AS item_price
+            CASE
+                WHEN p.discount_price IS NOT NULL
+                 AND (p.discount_deadline IS NULL OR p.discount_deadline > NOW())
+                THEN p.discount_price
+                ELSE p.price
+            END AS price
         FROM order_items oi
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
@@ -650,7 +666,7 @@ def search_products(connection, term):
         products.append(item)
     return products
 
-def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
+def get_filtered_products(connection, search="", color="", size="", availability="", category=""):
     sql = """
     SELECT 
         p.product_id, 
@@ -684,16 +700,18 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     params = {}
 
     if search:
-        sql += " AND (p.title LIKE :search OR p.description LIKE :search)"
+        sql += """
+        AND (
+            p.title LIKE :search 
+            OR p.description LIKE :search 
+            OR u.name LIKE :search
+        )
+        """
         params['search'] = f"%{search}%"
 
     if category:
         sql += " AND p.category = :category"
         params['category'] = category
-
-    if vendor:
-        sql += " AND u.name LIKE :vendor"
-        params['vendor'] = f"%{vendor}%"
 
     if color:
         sql += " AND v.color = :color"
@@ -716,8 +734,6 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     for row in raw_results:
         item = dict(row)
         
-        # Ensure ratings are floats and review counts are integers
-        # This prevents the "NoneType" round error in Jinja
         item['avg_rating'] = float(item.get('avg_rating') or 0)
         item['total_reviews'] = int(item.get('total_reviews') or 0)
         
@@ -920,7 +936,7 @@ def get_reviews_for_product(connection, product_id):
     """)
     return connection.execute(query, {"product_id": product_id}).mappings().all()
 
-def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
+def get_all_reviews(connection, product_id=None, sort_by='date_new', filter_rating=None):
     """
     Fetches reviews with filtering and sorting for the main reviews page.
     """
@@ -950,14 +966,30 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
         params["rating"] = filter_rating
 
     # Sorting Logic
-    if sort_by == 'date':
+    if sort_by == 'date_new':
         sql += " ORDER BY r.date DESC"
+    elif sort_by == 'date_old':
+        sql += " ORDER BY r.date ASC"
     elif sort_by == 'rating_high':
         sql += " ORDER BY r.rating DESC"
     elif sort_by == 'rating_low':
         sql += " ORDER BY r.rating ASC"
+    else:
+        sql += " ORDER BY r.date DESC"  # Default sorting
     
     return connection.execute(text(sql), params).mappings().all()
+
+def review_exists(connection, product_id, customer_id):
+    query = text("""
+        SELECT review_id 
+        FROM reviews 
+        WHERE product_id = :product_id AND customer_id = :customer_id
+    """)
+    result = connection.execute(query, {
+        "product_id": product_id,
+        "customer_id": customer_id
+    }).fetchone()
+    return result is not None
 
 # ======
 # VENDOR
@@ -971,22 +1003,21 @@ def get_vendor_products(connection, vendor_id):
 
 def get_vendor_orders(connection, vendor_id):
     query = text("""
-        SELECT DISTINCT
+        SELECT
             o.order_id,
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            SUM(COALESCE(p2.discount_price, p2.price) * oi2.quantity) AS total_price
+            o.total_price
         FROM orders o
-        JOIN order_items oi ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        JOIN order_items oi2 ON o.order_id = oi2.order_id
-        JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
-        JOIN products p2 ON pv2.product_id = p2.product_id
-        WHERE p.vendor_id = :vendor_id
-        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
-        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
+        WHERE EXISTS (
+            SELECT 1
+            FROM order_items vendor_oi
+            JOIN product_variants vendor_pv ON vendor_oi.variant_id = vendor_pv.variant_id
+            JOIN products vendor_p ON vendor_pv.product_id = vendor_p.product_id
+            WHERE vendor_oi.order_id = o.order_id
+              AND vendor_p.vendor_id = :vendor_id
+        )
         ORDER BY o.ordered_at DESC, o.order_id DESC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()

@@ -80,6 +80,11 @@ def place_order():
             flash("Cart is empty.", "error")
             return redirect(url_for("customer.cart"))
 
+        for item in cart_items:
+            if int(item["quantity"]) > int(item["stock"]):
+                flash(f"Not enough stock for {item['title']}.", "error")
+                return redirect(url_for("customer.checkout"))
+
         total_price = 0
         for item in cart_items:
             price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']

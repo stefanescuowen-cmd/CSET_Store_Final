@@ -21,14 +21,14 @@
 <form method="GET" action="/shop" class="filter-bar">
     <input type="text" name="search" placeholder="Search products..." value="{{ args.search or '' }}">
     
-    <select name="vendor">
+    <!-- <select name="vendor">
         <option value="">All Vendors</option>
         {% for v in vendors %}
             <option value="{{ v.name }}" {% if args.vendor == v.name %}selected{% endif %}>
                 {{ v.name }}
             </option>
         {% endfor %}
-    </select>
+    </select> -->
     
     <select name="color">
         <option value="">All Colors</option>
@@ -105,7 +105,7 @@
         </div>
 
         <div class="review-summary">
-            <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}">
+            <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}#review-section">
                 <span class="star-color">
                     {# The math now works because avg_rating is always at least 0.0 #}
                     {% set rating = (product.avg_rating or 0)|round|int %}
