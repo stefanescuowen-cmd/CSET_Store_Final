@@ -950,7 +950,9 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
         params["rating"] = filter_rating
 
     # Sorting Logic
-    if sort_by == 'date':
+    if sort_by == 'date_oldest':
+        sql += " ORDER BY date ASC"
+    if sort_by == 'date_newest':
         sql += " ORDER BY r.date DESC"
     elif sort_by == 'rating_high':
         sql += " ORDER BY r.rating DESC"

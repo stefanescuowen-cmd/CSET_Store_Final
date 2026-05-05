@@ -36,11 +36,23 @@
     </select>
 
     <label for="sort">Sort by:</label>
-    <select name="sort" id="sort">
-        <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Newest First</option>
-        <option value="rating_high" {% if current_sort == 'rating_high' %}selected{% endif %}>Highest Rating</option>
-        <option value="rating_low" {% if current_sort == 'rating_low' %}selected{% endif %}>Lowest Rating</option>
-    </select>
+<select name="sort" id="sort">
+    <option value="date_newest" {% if current_sort == 'date_newest' %}selected{% endif %}>
+        Newest First
+    </option>
+
+    <option value="date_oldest" {% if current_sort == 'date_oldest' %}selected{% endif %}>
+        Oldest First
+    </option>
+
+    <option value="rating_high" {% if current_sort == 'rating_high' %}selected{% endif %}>
+        Highest Rating
+    </option>
+
+    <option value="rating_low" {% if current_sort == 'rating_low' %}selected{% endif %}>
+        Lowest Rating
+    </option>
+</select>
 
     <button type="submit">Apply</button>
     <a href="{{ url_for('reviews_page') }}">
