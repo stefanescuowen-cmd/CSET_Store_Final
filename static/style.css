@@ -346,3 +346,90 @@ option:disabled{display: none;}
 
     .order-container{width: calc(100% - 52px);}
 }
+
+/* Layout Utility Classes */
+.spaced-bottom {
+    margin-bottom: 20px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.collapsed-borders {
+    border-collapse: collapse;
+}
+
+.hidden {
+    display: none;
+}
+
+.inline-form {
+    display: inline;
+}
+
+/* Table + Admin Styling */
+.admin-table-header {
+    background-color: #f4f4f4;
+    color: #000;
+    text-align: left;
+}
+
+.admin-table-row {
+    border-bottom: 1px solid #ddd;
+}
+
+.btn-danger {
+    background-color: #ff4d4d;
+    color: #fff;
+}
+
+/* Login */
+.password-field-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input {
+    width: 100%;
+    padding-right: 30px;
+}
+
+.password-toggle {
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+}
+
+/* Returns Status */
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.confirmed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.processing {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.complete {
+    background: #d4edda;
+    color: #155724;
+}
+
+.rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
