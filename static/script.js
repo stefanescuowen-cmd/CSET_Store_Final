@@ -228,3 +228,8 @@ function filterVariantsByOrder() {
         }
     });
 }
+
+function toggleNavMenu() {
+    const nav = document.getElementById('HeadLinks');
+    if (nav) nav.classList.toggle('open');
+}
