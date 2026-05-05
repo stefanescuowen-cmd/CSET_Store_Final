@@ -85,6 +85,11 @@ def place_order():
                 flash(f"{item['title']} only has {item['stock']} left in stock. Please update your cart.", "error")
                 return redirect(url_for("cart"))
 
+        for item in cart_items:
+            if int(item["quantity"]) > int(item["stock"]):
+                flash(f"Not enough stock for {item['title']}.", "error")
+                return redirect(url_for("customer.checkout"))
+
         total_price = 0
         for item in cart_items:
             price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
@@ -242,3 +247,49 @@ def set_default_address(id):
                      {"aid": id, "uid": customer_id})
         conn.commit()
     return redirect(url_for("customer.manage_addresses"))
+
+
+@customer_bp.route("/orders")
+def orders_page():
+    if not session.get("user_id"):
+        return redirect(url_for("auth.login"))
+    
+    customer_id = session["user_id"]
+    with engine.connect() as conn:
+        orders = db.get_user_orders(conn, customer_id)
+        return render_template("orders.html", orders=orders)
+    
+
+@customer_bp.route("/add-to-cart", methods=["POST"])
+def add_to_cart():
+    customer_id = session.get("user_id")
+    variant_id = request.form.get("variant_id") # Selected from a dropdown on details page
+    quantity = int(request.form.get("quantity", 1))
+
+    with engine.connect() as conn:
+        # 1. Check if this specific variant is already in the user's cart
+        check_query = text("""
+            SELECT quantity FROM cart_items ci
+            JOIN carts c ON ci.cart_id = c.cart_id
+            WHERE c.customer_id = :uid AND ci.variant_id = :vid
+        """)
+        existing_item = conn.execute(check_query, {"uid": customer_id, "vid": variant_id}).fetchone()
+
+        if existing_item:
+            # 2. If it exists, update the quantity
+            new_qty = existing_item[0] + quantity
+            conn.execute(text("""
+                UPDATE cart_items SET quantity = :qty 
+                WHERE variant_id = :vid AND cart_id = (SELECT cart_id FROM carts WHERE customer_id = :uid)
+            """), {"qty": new_qty, "vid": variant_id, "uid": customer_id})
+        else:
+            # 3. If it's a new color/size combo, insert a new row
+            conn.execute(text("""
+                INSERT INTO cart_items (cart_id, variant_id, quantity)
+                VALUES ((SELECT cart_id FROM carts WHERE customer_id = :uid), :vid, :qty)
+            """), {"uid": customer_id, "vid": variant_id, "qty": quantity})
+        
+        conn.commit()
+    
+    flash("Added to cart!", "success")
+    return redirect(url_for("customer.cart"))
