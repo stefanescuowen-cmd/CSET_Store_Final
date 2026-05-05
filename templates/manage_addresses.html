@@ -3,6 +3,7 @@
 {% block body %}
 <div class="manage-addresses-container">
     <h1>Your Saved Addresses</h1>
+    <button><a class="back-to-link" href="{{ url_for('customer.checkout') }}">← Return to Checkout</a></button>
     
     <section class="address-list">
         {% if addresses %}
