@@ -90,11 +90,22 @@ def place_order():
                 flash(f"Not enough stock for {item['title']}.", "error")
                 return redirect(url_for("customer.checkout"))
 
+        
         total_price = 0
-        for item in cart_items:
-            price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
+        final_cart_data = [] # Create a list to hold items with their final price
 
-            total_price += float(price) * int(item["quantity"])
+        for item in cart_items:
+            current_price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
+
+            temp_item = {
+                "variant_id": item["variant_id"],
+                "quantity": item["quantity"],
+                "title": item["title"],
+                "price_paid": current_price
+            }
+
+            total_price += float(current_price) * int(item["quantity"])
+            final_cart_data.append(temp_item) # Keep track of these for the DB insert later
 
         total_price = round(total_price * 1.08, 2)
 
@@ -105,7 +116,7 @@ def place_order():
             """), {"customer_id": customer_id, "total_price": total_price})
             order_id = result.lastrowid or conn.execute(text("SELECT LAST_INSERT_ID()")).scalar()
 
-            for item in cart_items:
+            for item in final_cart_data:
                 stock_update = conn.execute(text("""
                     UPDATE product_variants
                     SET stock = stock - :quantity
@@ -119,12 +130,13 @@ def place_order():
                     raise ValueError(f"Not enough stock for {item['title']}.")
 
                 conn.execute(text("""
-                    INSERT INTO order_items (order_id, variant_id, quantity, item_status)
-                    VALUES (:order_id, :variant_id, :quantity, 'Pending')
+                    INSERT INTO order_items (order_id, variant_id, quantity, price_paid, item_status)
+                    VALUES (:order_id, :variant_id, :quantity, :price_paid, 'Pending')
                 """), {
                     "order_id": order_id,
                     "variant_id": item["variant_id"],
-                    "quantity": item["quantity"]
+                    "quantity": item["quantity"],
+                    "price_paid": item["price_paid"]
                 })
 
             conn.execute(text("""

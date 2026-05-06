@@ -41,7 +41,7 @@
                         <td class="product-title"><strong>{{ item.title }}</strong></td>
                         <td>{{ item.color }} / {{ item.size }}</td>
                         <td>{{ item.quantity }}</td>
-                        <td>${{ "%.2f"|format(item.item_price|float) }}</td>
+                        <td>${{ "%.2f"|format(item.price_paid|float) }}</td>
                         <td>{{ item.item_status }}</td>
                         <td>
                             {# VENDOR LOGIC #}
