@@ -106,15 +106,20 @@
 
         <div class="review-summary">
             <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}#review-section">
-                <span class="star-color">
-                    {# The math now works because avg_rating is always at least 0.0 #}
-                    {% set rating = (product.avg_rating or 0)|round|int %}
-                    
-                    {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
-                </span>
-                <span class="review-count">
-                    ({{ product.total_reviews }})
-                </span>
+                {% if product.total_reviews > 0 %}
+                    <span class="star-color">
+                        {# The math now works because avg_rating is always at least 0.0 #}
+                        {% set rating = (product.avg_rating or 0)|round|int %}
+                        
+                        {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
+                    </span>
+                    <span class="review-count">
+                        ({{ product.total_reviews }})
+                    </span>
+                {% else %}
+                    No ratings yet
+                {% endif %}
+                
             </a>
         </div>
 

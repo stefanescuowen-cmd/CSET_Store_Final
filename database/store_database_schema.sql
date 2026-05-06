@@ -91,6 +91,7 @@ CREATE TABLE order_items (
     order_id INT NOT NULL,
     variant_id INT NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
+    price_paid DECIMAL(10, 2) NOT NULL,
     item_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled', 'Denied') NOT NULL,
     PRIMARY KEY (order_id, variant_id),
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,

@@ -94,21 +94,21 @@ INSERT INTO orders (customer_id, order_status, total_price, ordered_at, delivere
 (3, 'Cancelled', 55.00, NOW(), NULL);
 
 -- ORDER ITEMS
-INSERT INTO order_items (order_id, variant_id, quantity, item_status) VALUES
-(1, 1, 1, 'Confirmed'),
-(1, 3, 1, 'Confirmed'),
-(2, 2, 2, 'Shipped'),
-(3, 4, 1, 'Delivered'),
-(3, 5, 1, 'Delivered'),
-(5, 6, 1, 'Handed to delivery partner'),
-(6, 7, 1, 'Delivered'),
-(7, 1, 1, 'Pending'),
-(7, 4, 2, 'Pending'),
-(8, 2, 1, 'Shipped'),
-(8, 3, 1, 'Shipped'),
-(9, 5, 2, 'Shipped'),
-(9, 3, 1, 'Shipped'),
-(10, 1, 1, 'Cancelled');
+INSERT INTO order_items (order_id, variant_id, quantity, price_paid, item_status) VALUES
+(1, 1, 1, 120.50, 'Confirmed'),
+(1, 3, 1, 100.00, 'Confirmed'),
+(2, 2, 2, 50.00, 'Shipped'),
+(3, 4, 1, 400.00, 'Delivered'),
+(3, 5, 1, 800.00, 'Delivered'),
+(5, 6, 1, 200.00, 'Handed to delivery partner'),
+(6, 7, 1, 300.00, 'Delivered'),
+(7, 1, 1, 120.50, 'Pending'),
+(7, 4, 2, 400.00, 'Pending'),
+(8, 2, 1, 50.00, 'Shipped'),
+(8, 3, 1, 100.00, 'Shipped'),
+(9, 5, 2, 800.00, 'Shipped'),
+(9, 3, 1, 100.00, 'Shipped'),
+(10, 1, 1, 120.50, 'Cancelled');
 
 -- ORDER CONFIRMATIONS
 INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status) VALUES

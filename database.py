@@ -493,23 +493,23 @@ def add_order_item(connection, order_id, variant_id, quantity):
 def get_orders(connection, customer_id):
     query = text("""
         SELECT 
-    o.order_id,
-    o.customer_id,
-    o.order_status,
-    o.ordered_at,
-    o.total_price,
-    GROUP_CONCAT(p.title SEPARATOR ', ') AS product_titles
-FROM orders o
-JOIN order_items oi ON o.order_id = oi.order_id
-JOIN product_variants pv ON oi.variant_id = pv.variant_id
-JOIN products p ON pv.product_id = p.product_id
-GROUP BY 
-    o.order_id, 
-    o.customer_id, 
-    o.order_status, 
-    o.ordered_at, 
-    o.total_price
-ORDER BY o.ordered_at DESC;
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            o.total_price,
+            GROUP_CONCAT(p.title SEPARATOR ', ') AS product_titles
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
+        GROUP BY 
+            o.order_id, 
+            o.customer_id, 
+            o.order_status, 
+            o.ordered_at, 
+            o.total_price
+        ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
     return result.mappings().all()
@@ -520,6 +520,7 @@ def get_order_items(connection, order_id):
         oi.variant_id, 
         oi.quantity, 
         oi.item_status, 
+        oi.price_paid,
         p.title, 
         p.vendor_id,
         pv.size, 
