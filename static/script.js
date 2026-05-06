@@ -67,7 +67,11 @@ function updateVariant(selectElement) {
 
     const stockEl = document.getElementById('stock-' + productId);
     if (stockEl) {
-        stockEl.innerText = stock;
+        if (parseInt(stock) <= 0) {
+            stockEl.innerText = 'Out of Stock';
+        } else {
+            stockEl.innerText = stock;
+        }
     }
 
     const vidEl = document.getElementById('vid-' + productId);
@@ -86,6 +90,23 @@ function updateVariant(selectElement) {
 
         if (parseInt(qtyInput.value) > parseInt(stock)) {
             qtyInput.value = stock;
+        }
+
+        if (parseInt(stock) <= 0) {
+            qtyInput.style.display = 'none';
+        } else {
+            qtyInput.style.display = 'block';
+        }
+    }
+
+    const addBtn = document.getElementById('add-btn-' + productId);
+    if (addBtn) {
+        if (parseInt(stock) <= 0) {
+            addBtn.disabled = true;
+            addBtn.innerText = 'Out of Stock';
+        } else {
+            addBtn.disabled = false;
+            addBtn.innerText = 'Add to Cart';
         }
     }
 }
