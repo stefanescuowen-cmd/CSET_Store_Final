@@ -1,90 +1,93 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div class="container mt-5">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-arrow-left-right"></i> Manage Returns</h1>
-        <span class="badge bg-secondary">{{ returns|length }} Total Requests</span>
-    </div>
+<h1>Manage Returns</h1>
 
-    <!-- Main Table Card -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Customer</th>
-                        <th>Product Info</th>
-                        <th>Issue Details</th>
-                        <th>Demand</th>
-                        <th>Status</th>
-                        <th class="text-end px-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in returns %}
-                    <tr>
-                        <td class="align-middle">
-                            <span class="fw-bold">{{ r.customer_name }}</span>
-                        </td>
-                        <td class="align-middle">
-                            <span class="text-primary fw-semibold">{{ r.product_title }}</span>
-                        </td>
-                        <td class="align-middle">
-                            <!-- Displaying the Issue Title and Description -->
-                            <div class="fw-bold text-dark">{{ r.return_issue_title }}</div>
-                            <small class="text-muted">{{ r.return_desc }}</small>
-                        </td>
-                        <td class="align-middle">
-                            <span class="badge border text-dark bg-light">{{ r.demand }}</span>
-                        </td>
-                        <td class="align-middle">
-                            {% if r.status == 'Pending' %}
-                                <span class="badge bg-warning text-dark">Pending Review</span>
-                            {% elif r.status == 'Confirmed' %}
-                                <span class="badge bg-success">Confirmed</span>
-                            {% elif r.status == 'Processing' %}
-                                <span class="badge bg-info text-dark">Processing</span>
-                            {% elif r.status == 'Complete' %}
-                                <span class="badge bg-secondary">Closed</span>
-                            {% else %}
-                                <span class="badge bg-danger">{{ r.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="align-middle text-end px-4">
-                            <form action="{{ url_for('admin.admin_update_return', return_id=r.return_id) }}" method="POST" class="d-inline">
-                                {% if r.status == 'Pending' %}
-                                    <button name="status" value="Confirmed" class="btn btn-outline-success btn-sm me-1">Approve</button>
-                                    <button name="status" value="Rejected" class="btn btn-outline-danger btn-sm">Reject</button>
-                                
-                                {% elif r.status == 'Confirmed' %}
-                                    <button name="status" value="Processing" class="btn btn-info btn-sm">Start Logistics</button>
-                                
-                                {% elif r.status == 'Processing' %}
-                                    <button name="status" value="Complete" class="btn btn-primary btn-sm">Mark Resolved</button>
-                                
-                                {% else %}
-                                    <small class="text-muted italic">No further actions</small>
-                                {% endif %}
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                            No return requests found in the system.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <div class="mt-4">
-        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">← Back to Admin Panel</a>
-    </div>
+<div class="admin-actions spaced-bottom">
+    <span class="badge">{{ returns|length }} Total Requests</span>
 </div>
+
+<table class="admin-table full-width collapsed-borders">
+    <thead>
+        <tr class="admin-table-header">
+            <th>Customer</th>
+            <th>Product Info</th>
+            <th>Issue Details</th>
+            <th>Demand</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in returns %}
+        <tr class="admin-table-row">
+            <td>
+                <strong>{{ r.customer_name }}</strong>
+            </td>
+
+            <td>
+                <span class="text-primary">{{ r.product_title }}</span>
+            </td>
+
+            <td>
+                <div><strong>{{ r.return_issue_title }}</strong></div>
+                <small class="text-muted">{{ r.return_desc }}</small>
+            </td>
+
+            <td>
+                <span class="badge-light">{{ r.demand }}</span>
+            </td>
+
+            <td>
+                {% if r.status == 'Pending' %}
+                    <span class="badge-warning">Pending Review</span>
+                {% elif r.status == 'Confirmed' %}
+                    <span class="badge-success">Confirmed</span>
+                {% elif r.status == 'Processing' %}
+                    <span class="badge-info">Processing</span>
+                {% elif r.status == 'Complete' %}
+                    <span class="badge-secondary">Closed</span>
+                {% else %}
+                    <span class="badge-danger">{{ r.status }}</span>
+                {% endif %}
+            </td>
+
+            <td class="text-right">
+                <form action="{{ url_for('admin.admin_update_return', return_id=r.return_id) }}"
+                      method="POST"
+                      class="inline-form">
+
+                    {% if r.status == 'Pending' %}
+                        <button name="status" value="Confirmed" class="btn-success">Approve</button>
+                        <button name="status" value="Rejected" class="btn-danger">Reject</button>
+
+                    {% elif r.status == 'Confirmed' %}
+                        <button name="status" value="Processing" class="btn-info">Start Logistics</button>
+
+                    {% elif r.status == 'Processing' %}
+                        <button name="status" value="Complete" class="btn-primary">Mark Resolved</button>
+
+                    {% else %}
+                        <small class="text-muted">No further actions</small>
+                    {% endif %}
+                </form>
+            </td>
+        </tr>
+
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center">
+                No return requests found in the system.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="spaced-top">
+    <a href="{{ url_for('admin.admin_dashboard') }}">
+        <button class="btn-secondary">← Back to Admin Panel</button>
+    </a>
+</div>
+
 {% endblock %}

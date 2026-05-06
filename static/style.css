@@ -270,12 +270,6 @@ a{
 .cart-table tr{border-bottom: 1px solid #ccc;}
 .cart-alignment{margin-top: 20px; text-align: right;}
 .cart-btn{padding: 10px 20px; background-color: green; color: white; border: none; cursor: pointer;}
-.chat-page{display: flex; height: 80vh;}
-.chat-border{width: 25%; border-right: 1px solid #ddd; padding: 10px;}
-.chat-btn{width: 100%; text-align: left; margin-bottom: 5px;}
-.chat-box{width: 75%; padding: 20px; display: flex; flex-direction: column;}
-.message-box{overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;}
-.msg-timestamp{font-size: 0.7em; color: gray;}
 .reviews-header{margin-bottom: 20px;}
 .review-card{border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;}
 .star-color{color:#f39c12;}
@@ -438,6 +432,182 @@ option:disabled{display: none;}
     color: #721c24;
 }
 
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background-color: var(--bg-color-light);
+    color: var(--text-color);
+    font-size: 0.8rem;
+}
+
+/* Variants (now using your color system where it makes sense) */
+.badge-light {
+    background: var(--bg-color-dark);
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.badge-success {
+    background: var(--accent-color);
+    color: #000;
+}
+
+.badge-danger {
+    background: #dc3545;
+    color: #fff;
+}
+
+.badge-info {
+    background: var(--header-bg-light);
+    color: #fff;
+}
+
+.badge-secondary {
+    background: var(--bg-color-dark);
+    color: var(--text-color);
+}
+
+/* Spacing */
+.spaced-top {
+    margin-top: 20px;
+}
+
+
+.chat-page {
+    display: flex;
+    height: 80vh;
+    background-color: var(--bg-color-base);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.chat-border {
+    width: 25%;
+    background-color: var(--bg-color-light);
+    border-right: 1px solid var(--bg-color-dark);
+    padding: 15px;
+}
+
+.chat-border h3 {
+    margin-bottom: 10px;
+}
+
+.chat-border hr {
+    border-color: var(--bg-color-dark);
+}
+
+/* Chat list buttons */
+.chat-btn {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--bg-color-dark);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.chat-btn:hover {
+    background-color: var(--accent-color);
+    color: #000;
+}
+
+/* Main chat area */
+.chat-box {
+    width: 75%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-color-base);
+}
+
+/* Messages container */
+.message-box {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid var(--bg-color-dark);
+    background-color: var(--bg-color-light);
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+/* Individual messages */
+.message-box > div {
+    margin-bottom: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background-color: var(--bg-color-dark);
+}
+
+/* Timestamp */
+.msg-timestamp {
+    font-size: 0.7em;
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+/* Input area */
+.chat-box form {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-box input[type="text"],
+.chat-box textarea {
+    flex-grow: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--bg-color-dark);
+    background-color: var(--bg-color-light);
+    color: var(--text-color);
+}
+
+/* Buttons */
+.chat-box button {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--accent-color);
+    color: #000;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.chat-box button:hover {
+    background-color: var(--accent-hover);
+}
+
+.chat-border ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: left; /* THIS centers everything */
+}
+
+.chat-border li {
+    width: 100%;
+    max-width: 220px; /* controls how wide the buttons feel */
+}
 
 
 .returns-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 16px; }
