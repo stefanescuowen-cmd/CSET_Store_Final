@@ -311,6 +311,8 @@ a{
 .button{width: calc(100% - 16px); margin: 8px;}
 .ProductsDIv *{text-align: center;}
 .SpecficVendorButton{position: relative; left: 50%; transform: translate(-50%);}
+.back-to-link{color: #004341; text-decoration: none;}
+.review-count {font-size: 0.85em; color: var(--text-color); opacity: 0.8; margin-left: 5px;}
 
 
 
