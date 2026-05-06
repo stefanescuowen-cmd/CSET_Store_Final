@@ -130,22 +130,18 @@ function closeLightbox() {
 }
 
 // Add product
+// Product Image/Variant Management (Required for new-product.html)
+
 function addVariant() {
     const container = document.getElementById('variants-container');
+    if (!container) return;
     const variantGroup = document.createElement('div');
     variantGroup.className = 'variant-group';
     variantGroup.innerHTML = `
         <input type="hidden" name="variant_id[]" value="">
-
-        <label>Color:</label>
-        <input type="text" name="variant_color[]" required>
-
-        <label>Size:</label>
-        <input type="text" name="variant_size[]" required>
-
-        <label>Stock:</label>
-        <input type="number" name="variant_stock[]" min="0" required>
-
+        <label>Color:</label> <input type="text" name="variant_color[]" required>
+        <label>Size:</label> <input type="text" name="variant_size[]" required>
+        <label>Stock:</label> <input type="number" name="variant_stock[]" min="0" required>
         <button type="button" onclick="removeVariant(this)">Remove</button>
     `;
     container.appendChild(variantGroup);
@@ -157,15 +153,15 @@ function removeVariant(btn) {
 
 function addImage() {
     const container = document.getElementById('images-container');
+    if (!container) return;
     const imageGroup = document.createElement('div');
     imageGroup.className = 'image-group';
     imageGroup.innerHTML = `
         <br>
         <label for="image">Image URL:</label>
-        <input type="text" id="image" name="image" required>
+        <input type="text" name="image" required>
         <button type="button" onclick="removeImage(this)">Remove</button>
     `;
-
     container.appendChild(imageGroup);
 }
 
@@ -173,29 +169,27 @@ function removeImage(btn) {
     btn.parentElement.remove();
 }
 
-// Cart
+// UI Utilities
 
-function checkStock(input) {
+function updateVariant(selectElement) {
+    const productId = selectElement.getAttribute('data-product-id');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const stock = selectedOption.getAttribute('data-stock');
     
-    const maxStock = parseInt(input.dataset.stock);
-    const variantId = input.id.split('-')[1];
-    const updateBtn = document.getElementById('btn-' + variantId);
-    const val = parseInt(input.value);
+    const stockEl = document.getElementById('stock-' + productId);
+    if (stockEl) stockEl.innerText = stock;
 
-    if (val > maxStock) {
-        input.style.borderColor = "red";
-        input.style.backgroundColor = "#ffcccc";
-        updateBtn.disabled = true;
-        updateBtn.innerText = "Too High";
-    } else if (val < 1 || isNaN(val)) {
-        updateBtn.disabled = true;
-        input.style.borderColor = "red";
-    } else {
-        input.style.borderColor = "";
-        input.style.backgroundColor = "white";
-        updateBtn.disabled = false;
-        updateBtn.innerText = "Update";
+    const qtyInput = document.getElementById('qty-' + productId);
+    if (qtyInput) {
+        qtyInput.max = stock;
+        if (parseInt(qtyInput.value) > parseInt(stock)) qtyInput.value = stock;
     }
+}
+
+function toggleNavMenu() {
+    const nav = document.getElementById('HeadLinks');
+    if (!nav) return;
+    nav.classList.toggle('open');
 }
 
 // Checkout
