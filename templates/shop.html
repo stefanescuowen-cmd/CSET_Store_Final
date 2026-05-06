@@ -9,9 +9,9 @@
     <h1>Products</h1>
     <div class="dashboard-return">
         {% if session.get("role") == 'admin' %}
-            <button><a class="back-to-link" href="{{ url_for('admin_dashboard') }}">← Go Back to Admin Dashboard</a></button>
+            <button><a class="back-to-link" href="{{ url_for('admin.admin_dashboard') }}">← Go Back to Admin Dashboard</a></button>
         {% else %}
-            <button><a class="back-to-link" href="{{ url_for('vendor_dashboard') }}">← Go Back to Vendor Dashboard</a></button>
+            <button><a class="back-to-link" href="{{ url_for('vendor.vendor_dashboard') }}">← Go Back to Vendor Dashboard</a></button>
         {% endif %}
     </div>
 {% else %}
@@ -19,16 +19,16 @@
 {% endif %}
 
 <form method="GET" action="/shop" class="filter-bar">
-    <input type="text" name="search" placeholder="Search products..." value="{{ args.search or '' }}">
+    <input type="text" name="search" placeholder="Search products or vendor..." value="{{ args.search or '' }}">
     
-    <select name="vendor">
+    <!-- <select name="vendor">
         <option value="">All Vendors</option>
         {% for v in vendors %}
             <option value="{{ v.name }}" {% if args.vendor == v.name %}selected{% endif %}>
                 {{ v.name }}
             </option>
         {% endfor %}
-    </select>
+    </select> -->
     
     <select name="color">
         <option value="">All Colors</option>
@@ -105,16 +105,21 @@
         </div>
 
         <div class="review-summary">
-            <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}">
-                <span class="star-color">
-                    {# The math now works because avg_rating is always at least 0.0 #}
-                    {% set rating = (product.avg_rating or 0)|round|int %}
-                    
-                    {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
-                </span>
-                <span class="review-count">
-                    ({{ product.total_reviews }})
-                </span>
+            <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}#review-section">
+                {% if product.total_reviews > 0 %}
+                    <span class="star-color">
+                        {# The math now works because avg_rating is always at least 0.0 #}
+                        {% set rating = (product.avg_rating or 0)|round|int %}
+                        
+                        {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
+                    </span>
+                    <span class="review-count">
+                        ({{ product.total_reviews }})
+                    </span>
+                {% else %}
+                    No ratings yet
+                {% endif %}
+                
             </a>
         </div>
 
@@ -147,7 +152,7 @@
 
         <p>Stock: 
             <span id="stock-{{ product.product_id }}">
-                {% if product.variants and product.variants|length > 0 %}
+                {% if product.variants and product.variants|length > 0 and product.variants[0].stock > 0 %}
                     {{ product.variants[0].stock }}
                 {% else %}
                     Out of Stock
@@ -158,11 +163,15 @@
         {# User Role Logic #}
         {% if session.get("user_id") %}
             {% if session.get("role") == 'customer' %}
-                <form action="/add-to-cart" method="POST">
-                    <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
-                    <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}">
-                    <button type="submit">Add to Cart</button>
-                </form>
+                {% if product.variants and product.variants|length > 0 %}
+                    <form action="/add-to-cart" method="POST">
+                        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
+                        <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}" {% if product.variants[0].stock <= 0 %}style="display: none;"{% endif %}>
+                        <button type="submit" id="add-btn-{{ product.product_id }}" {% if product.variants[0].stock <= 0 %}disabled{% endif %}>
+                            {% if product.variants[0].stock > 0 %}Add to Cart{% else %}Out of Stock{% endif %}
+                        </button>
+                    </form>
+                {% endif %}
 
                 <form action="/add-to-wishlist" method="POST">
                     <input type="hidden" name="variant_id" id="wvid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">

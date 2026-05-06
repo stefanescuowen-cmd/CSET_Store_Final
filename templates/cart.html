@@ -17,7 +17,9 @@
         </thead>
         <tbody>
             {% for item in items %}
-                {% set active_price = item.discount_price if item.discount_price else item.price %}
+                {% set is_sale_active = item.discount_price and (not item.discount_deadline or item.discount_deadline > now) %}
+
+                {% set active_price = item.discount_price if is_sale_active else item.price %}
                 <tr>
                     <td>
                         <strong>{{ item.title }}</strong><br>

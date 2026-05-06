@@ -2,8 +2,14 @@
 
 {% block body %}
 <div class="manage-addresses-container">
-    <h1>Your Saved Addresses</h1>
-    
+    <div class="address-page-header">
+        <div>
+            <h1>Your Saved Addresses</h1>
+            <p>Choose where your order should be shipped, or add a new destination.</p>
+        </div>
+        <a class="back-to-link address-back-link" href="{{ url_for('customer.checkout') }}">Return to Checkout</a>
+    </div>
+
     <section class="address-list">
         {% if addresses %}
             <div class="address-grid">
@@ -15,10 +21,10 @@
                             <span class="status-badge">Default</span>
                         {% endif %}
                     </div>
-                    
+
                     <div class="address-details">
                         <p><strong>{{ addr.receiver_name }}</strong></p>
-                        <p>{{ addr.contact_number }}</p>
+                        <p class="address-phone">{{ addr.contact_number }}</p>
                         <p>{{ addr.address_line1 }}</p>
                         {% if addr.address_line2 %}
                             <p>{{ addr.address_line2 }}</p>
@@ -28,7 +34,7 @@
 
                     <div class="address-actions">
                         <a href="{{ url_for('customer.edit_address', id=addr.address_id) }}" class="btn-edit">Edit</a>
-                        
+
                         <form action="{{ url_for('customer.delete_address', id=addr.address_id) }}" method="POST" onsubmit="return confirm('Delete this address?');">
                             <button type="submit" class="btn-delete">Delete</button>
                         </form>
@@ -52,8 +58,7 @@
     <section class="add-address-section">
         <h2>Add a New Address</h2>
         <div class="form-container">
-            <form action="{{ url_for('customer.manage_addresses') }}" method="POST">
-                
+            <form action="{{ url_for('customer.manage_addresses') }}" method="POST" class="address-form">
                 <div class="form-group">
                     <label for="receiver_name">Receiver Name</label>
                     <input type="text" id="receiver_name" name="receiver_name" required placeholder="Full Name">
@@ -61,7 +66,7 @@
 
                 <div class="form-group">
                     <label for="contact_number">Contact Number</label>
-                    <input type="tel" id="contact_number" name="contact_number" required placeholder="555-555-5555">
+                    <input type="tel" id="contact_number" name="contact_number" required placeholder="555-555-5555" autocomplete="tel">
                 </div>
 
                 <div class="form-group">

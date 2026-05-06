@@ -1,5 +1,31 @@
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
+
+def _rows_to_products(rows):
+    products = []
+    for row in rows:
+        item = dict(row)
+        item['avg_rating'] = float(item.get('avg_rating') or 0)
+        item['total_reviews'] = int(item.get('total_reviews') or 0)
+        item['variants'] = []
+
+        if item.get('v_ids'):
+            ids = str(item['v_ids']).split(',')
+            sizes = str(item.get('v_sizes') or '').split(',')
+            colors = str(item.get('v_colors') or '').split(',')
+            stocks = str(item.get('v_stocks') or '').split(',')
+
+            for i, variant_id in enumerate(ids):
+                item['variants'].append({
+                    "id": variant_id,
+                    "size": sizes[i] if i < len(sizes) else "N/A",
+                    "color": colors[i] if i < len(colors) else "N/A",
+                    "stock": int(stocks[i]) if i < len(stocks) and stocks[i] != '' else 0
+                })
+
+        products.append(item)
+    return products
 
 # =====
 # ADMIN
@@ -17,17 +43,22 @@ def get_all_orders(connection):
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            p.title,
-            oi.quantity,
-            oi.item_status
+            o.total_price,
+            GROUP_CONCAT(p.title SEPARATOR ', ') AS product_titles
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
+        GROUP BY 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            o.total_price
         ORDER BY o.ordered_at DESC
     """)
-    result = connection.execute(query)
-    return result.mappings().all()
+    
+    return connection.execute(query).mappings().all()
 
 
 # =======================
@@ -52,30 +83,6 @@ def update_user_details(connection, user_id, name=None, email=None, username=Non
 # ======
 # VENDOR
 # ======
-
-def get_vendor_orders(connection, vendor_id):
-    query = text("""
-        SELECT 
-            o.order_id,
-            o.customer_id,
-            o.order_status,
-            o.ordered_at,
-            oi.variant_id,
-            oi.quantity,
-            oi.item_status,
-            p.title,
-            pv.color,
-            pv.size
-        FROM order_items oi
-        JOIN orders o ON o.order_id = oi.order_id
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        WHERE p.vendor_id = :vendor_id
-        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
-    """)
-    result = connection.execute(query, {"vendor_id": vendor_id})
-    return result.mappings().all()
-
 
 def confirm_vendor_item(connection, order_id, variant_id):
     # Update the status of the specific item
@@ -199,12 +206,26 @@ def get_variant_stock(connection, variant_id):
     result = connection.execute(query, {"variant_id": variant_id}).fetchone()
     return result[0] if result else 0
 
+def reduce_variant_stock(connection, variant_id, quantity):
+    query = text("""
+        UPDATE product_variants
+        SET stock = stock - :quantity
+        WHERE variant_id = :variant_id
+          AND stock >= :quantity
+    """)
+    result = connection.execute(query, {
+        "variant_id": variant_id,
+        "quantity": quantity
+    })
+    return result.rowcount == 1
+
 def get_cart_items(connection, customer_id):
     query = text("""
         SELECT 
             p.title, 
             p.price, 
             p.discount_price, 
+            p.discount_deadline,
             v.color,
             v.size,
             v.stock,
@@ -323,7 +344,8 @@ def get_chat_list(connection, user_id, role):
             MAX(c.return_id) as return_id
         FROM chats c
         JOIN users cu ON c.customer_id = cu.user_id
-        LEFT JOIN users vu ON c.vendor_id = vu.user_id
+        LEFT JOIN vendors v ON c.vendor_id = v.vendor_id
+        LEFT JOIN users vu ON v.vendor_id = vu.user_id
         LEFT JOIN users au ON c.admin_id = au.user_id
     """
 
@@ -365,7 +387,19 @@ def get_specific_chat_history(connection, customer_id, vendor_id=None, admin_id=
                 
 
 def get_all_vendors(connection):
-    return connection.execute(text("SELECT vendor_id as id, name FROM vendors JOIN users ON vendor_id = user_id")).mappings().all()
+    return connection.execute(text("""
+SELECT v.vendor_id AS id, u.name 
+FROM vendors v 
+JOIN users u ON v.vendor_id = u.user_id
+""")).mappings().all()
+
+def get_vendor_by_id(connection, vendor_id):
+    query = text("""
+        SELECT vendor_id
+        FROM vendors
+        WHERE vendor_id = :vendor_id
+    """)
+    return connection.execute(query, {"vendor_id": vendor_id}).mappings().first()
 
 def get_all_admins(connection):
     return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()
@@ -377,7 +411,8 @@ def get_vendor_customers(connection, vendor_id):
     query = text("""
         SELECT DISTINCT o.customer_id as id, u.name
         FROM order_items oi
-        JOIN products p ON oi.variant_id = (SELECT variant_id FROM product_variants pv WHERE pv.product_id = p.product_id LIMIT 1)
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
         JOIN orders o ON oi.order_id = o.order_id
         JOIN users u ON o.customer_id = u.user_id
         WHERE p.vendor_id = :vid
@@ -431,15 +466,18 @@ def delete_address(connection, address_id, user_id):
 
 def create_order(connection, customer_id, total_price=None):
     query = text("""
-        INSERT INTO orders (customer_id, order_status)
-        VALUES (:customer_id, 'Pending')
+        INSERT INTO orders (customer_id, order_status, total_price)
+        VALUES (:customer_id, 'Pending', :total_price)
     """)
-    result = connection.execute(query, {"customer_id": customer_id})
+    result = connection.execute(query, {"customer_id": customer_id, "total_price": total_price})
     connection.commit()
     return result.lastrowid
 
 
 def add_order_item(connection, order_id, variant_id, quantity):
+    if not reduce_variant_stock(connection, variant_id, quantity):
+        raise ValueError("Not enough stock for this item.")
+
     query = text("""
         INSERT INTO order_items (order_id, variant_id, quantity, item_status)
         VALUES (:order_id, :variant_id, :quantity, 'Pending')
@@ -454,17 +492,23 @@ def add_order_item(connection, order_id, variant_id, quantity):
 
 def get_orders(connection, customer_id):
     query = text("""
-        SELECT o.order_id, 
-               SUM(COALESCE(p.discount_price, p.price) * oi.quantity) as total_price,
-               o.ordered_at,
-               o.order_status,
-               GROUP_CONCAT(p.title SEPARATOR ', ') as product_titles
+        SELECT 
+            o.order_id,
+            o.customer_id,
+            o.order_status,
+            o.ordered_at,
+            o.total_price,
+            GROUP_CONCAT(p.title SEPARATOR ', ') AS product_titles
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
-        WHERE o.customer_id = :customer_id
-        GROUP BY o.order_id, o.ordered_at, o.order_status
+        GROUP BY 
+            o.order_id, 
+            o.customer_id, 
+            o.order_status, 
+            o.ordered_at, 
+            o.total_price
         ORDER BY o.ordered_at DESC;
     """)
     result = connection.execute(query, {"customer_id": customer_id})
@@ -473,18 +517,26 @@ def get_orders(connection, customer_id):
 def get_order_items(connection, order_id):
     query = text("""
         SELECT 
-            oi.variant_id, 
-            oi.quantity, 
-            oi.item_status, 
-            p.title, 
-            p.vendor_id,
-            pv.size, 
-            pv.color
-        FROM order_items oi
-        JOIN product_variants pv ON oi.variant_id = pv.variant_id
-        JOIN products p ON pv.product_id = p.product_id
-        WHERE oi.order_id = :order_id
-    """)
+        oi.variant_id, 
+        oi.quantity, 
+        oi.item_status, 
+        oi.price_paid,
+        p.title, 
+        p.vendor_id,
+        pv.size, 
+        pv.color,
+        COALESCE(p.discount_price, p.price) AS item_price,
+        CASE
+            WHEN p.discount_price IS NOT NULL
+             AND (p.discount_deadline IS NULL OR p.discount_deadline > NOW())
+            THEN p.discount_price
+            ELSE p.price
+        END AS price
+    FROM order_items oi
+    JOIN product_variants pv ON oi.variant_id = pv.variant_id
+    JOIN products p ON pv.product_id = p.product_id
+    WHERE oi.order_id = :order_id
+""")
     result = connection.execute(query, {"order_id": order_id})
     return result.mappings().all()
 
@@ -548,10 +600,10 @@ def get_all_products(connection):
             p.product_id, p.title, p.description, p.price, p.discount_price, p.discount_deadline,
             COALESCE(sub_r.avg_rating, 0) as avg_rating,
             COALESCE(sub_r.total_reviews, 0) as total_reviews,  -- Ensure this alias matches HTML
-            GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
-            GROUP_CONCAT(DISTINCT v.size) as v_sizes,
-            GROUP_CONCAT(DISTINCT v.color) as v_colors,
-            GROUP_CONCAT(DISTINCT v.stock) as v_stocks
+            GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+            GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+            GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
         FROM products p
         LEFT JOIN product_variants v ON p.product_id = v.product_id
         LEFT JOIN (
@@ -564,31 +616,7 @@ def get_all_products(connection):
     
     result = connection.execute(query).mappings().all()
 
-    products = []
-    for row in result:
-        item = dict(row)
-        
-        # FIX: Ensure these exist and are numbers even if the DB returns None
-        item['avg_rating'] = float(item.get('avg_rating') or 0)
-        item['total_reviews'] = int(item.get('total_reviews') or 0)
-        
-        item['variants'] = []
-        if item.get('v_ids'):
-            ids = str(item['v_ids']).split(',')
-            sizes = str(item['v_sizes']).split(',')
-            colors = str(item['v_colors']).split(',')
-            stocks = str(item['v_stocks']).split(',')
-
-            for i in range(len(ids)):
-                item['variants'].append({
-                    "id": ids[i],
-                    "size": sizes[i] if i < len(sizes) else "N/A",
-                    "color": colors[i] if i < len(colors) else "N/A",
-                    "stock": int(stocks[i]) if i < len(stocks) else 0
-                })
-        
-        products.append(item)
-    return products
+    return _rows_to_products(result)
 
 def get_product_images(connection):
     query = text("SELECT * FROM product_images")
@@ -612,10 +640,10 @@ def search_products(connection, term):
     query = text("""
         SELECT 
             p.product_id, p.title, p.description, p.price, p.discount_price,
-            GROUP_CONCAT(v.variant_id) as v_ids,
-            GROUP_CONCAT(v.size) as v_sizes,
-            GROUP_CONCAT(v.color) as v_colors,
-            GROUP_CONCAT(v.stock) as v_stocks
+            GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+            GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+            GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
         FROM products p
         JOIN product_variants v ON p.product_id = v.product_id
         WHERE p.title LIKE :term OR p.description LIKE :term
@@ -623,26 +651,9 @@ def search_products(connection, term):
     """)
     result = connection.execute(query, {"term": f"%{term}%"}).mappings().all()
 
-    products = []
-    for row in result:
-        item = dict(row)
-        item['variants'] = []
-        ids = str(item['v_ids']).split(',')
-        sizes = str(item['v_sizes']).split(',')
-        colors = str(item['v_colors']).split(',')
-        stocks = str(item['v_stocks']).split(',')
+    return _rows_to_products(result)
 
-        for i in range(len(ids)):
-            item['variants'].append({
-                "id": ids[i],
-                "size": sizes[i],
-                "color": colors[i],
-                "stock": stocks[i]
-            })
-        products.append(item)
-    return products
-
-def get_filtered_products(connection, search="", vendor="", color="", size="", availability="", category=""):
+def get_filtered_products(connection, search="", color="", size="", availability="", category=""):
     sql = """
     SELECT 
         p.product_id, 
@@ -655,12 +666,13 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
         u.name as vendor_name,
         COALESCE(sub_r.avg_rating, 0) as avg_rating,
         COALESCE(sub_r.total_reviews, 0) as total_reviews,
-        GROUP_CONCAT(DISTINCT v.variant_id) as v_ids,
-        GROUP_CONCAT(DISTINCT v.size) as v_sizes,
-        GROUP_CONCAT(DISTINCT v.color) as v_colors,
-        GROUP_CONCAT(DISTINCT v.stock) as v_stocks
+        GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+        GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+        GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+        GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
     FROM products p
-    JOIN users u ON p.vendor_id = u.user_id
+    JOIN vendors vend ON p.vendor_id = vend.vendor_id
+    JOIN users u ON vend.vendor_id = u.user_id
     LEFT JOIN product_variants v ON p.product_id = v.product_id
     LEFT JOIN (
         SELECT 
@@ -676,16 +688,18 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     params = {}
 
     if search:
-        sql += " AND (p.title LIKE :search OR p.description LIKE :search)"
+        sql += """
+        AND (
+            p.title LIKE :search 
+            OR p.description LIKE :search 
+            OR u.name LIKE :search
+        )
+        """
         params['search'] = f"%{search}%"
 
     if category:
         sql += " AND p.category = :category"
         params['category'] = category
-
-    if vendor:
-        sql += " AND u.name LIKE :vendor"
-        params['vendor'] = f"%{vendor}%"
 
     if color:
         sql += " AND v.color = :color"
@@ -703,13 +717,11 @@ def get_filtered_products(connection, search="", vendor="", color="", size="", a
     sql += " GROUP BY p.product_id"
     
     raw_results = connection.execute(text(sql), params).mappings().all()
-    
+    return _rows_to_products(raw_results)
     products = []
     for row in raw_results:
         item = dict(row)
         
-        # Ensure ratings are floats and review counts are integers
-        # This prevents the "NoneType" round error in Jinja
         item['avg_rating'] = float(item.get('avg_rating') or 0)
         item['total_reviews'] = int(item.get('total_reviews') or 0)
         
@@ -759,19 +771,27 @@ def update_product(connection, product_id, vendor_id, title, description, price,
 
     connection.commit()
 
-def update_variants(connection, variant_ids, colors, sizes, stocks):
-    for i in range(len(variant_ids)):
-        query = text("""
+def update_variants(connection, product_id, variant_ids, colors, sizes, stocks):
+    update_query = text("""
             UPDATE product_variants
             SET color = :color, size = :size, stock = :stock
             WHERE variant_id = :variant_id
         """)
-        connection.execute(query, {
+    insert_query = text("""
+        INSERT INTO product_variants (product_id, color, size, stock)
+        VALUES (:product_id, :color, :size, :stock)
+    """)
+
+    for i in range(len(colors)):
+        variant_id = variant_ids[i] if i < len(variant_ids) else ""
+        values = {
+            "product_id": product_id,
             "color": colors[i],
             "size": sizes[i],
             "stock": stocks[i],
-            "variant_id": variant_ids[i]
-        })
+            "variant_id": variant_id
+        }
+        connection.execute(update_query if variant_id else insert_query, values)
     connection.commit()
 
 def update_product_images(connection, product_id, image_urls):
@@ -912,7 +932,7 @@ def get_reviews_for_product(connection, product_id):
     """)
     return connection.execute(query, {"product_id": product_id}).mappings().all()
 
-def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=None):
+def get_all_reviews(connection, product_id=None, sort_by='date_new', filter_rating=None):
     """
     Fetches reviews with filtering and sorting for the main reviews page.
     """
@@ -942,14 +962,30 @@ def get_all_reviews(connection, product_id=None, sort_by='date', filter_rating=N
         params["rating"] = filter_rating
 
     # Sorting Logic
-    if sort_by == 'date':
+    if sort_by == 'date_oldest':
+        sql += " ORDER BY r.date ASC"
+    elif sort_by == 'date_newest':
         sql += " ORDER BY r.date DESC"
     elif sort_by == 'rating_high':
         sql += " ORDER BY r.rating DESC"
     elif sort_by == 'rating_low':
         sql += " ORDER BY r.rating ASC"
+    else:
+        sql += " ORDER BY r.date DESC"  # Default sorting
     
     return connection.execute(text(sql), params).mappings().all()
+
+def review_exists(connection, product_id, customer_id):
+    query = text("""
+        SELECT review_id 
+        FROM reviews 
+        WHERE product_id = :product_id AND customer_id = :customer_id
+    """)
+    result = connection.execute(query, {
+        "product_id": product_id,
+        "customer_id": customer_id
+    }).fetchone()
+    return result is not None
 
 # ======
 # VENDOR
@@ -963,23 +999,19 @@ def get_vendor_products(connection, vendor_id):
 
 def get_vendor_orders(connection, vendor_id):
     query = text("""
-        SELECT 
+        SELECT
             o.order_id,
             o.customer_id,
             o.order_status,
             o.ordered_at,
-            oi.variant_id,
-            oi.quantity,
-            oi.item_status,
-            p.title,
-            pv.color,
-            pv.size
-        FROM order_items oi
-        JOIN orders o ON oi.order_id = o.order_id
+            SUM(COALESCE(p.discount_price, p.price) * oi.quantity) AS total_price
+        FROM orders o
+        JOIN order_items oi ON o.order_id = oi.order_id
         JOIN product_variants pv ON oi.variant_id = pv.variant_id
         JOIN products p ON pv.product_id = p.product_id
         WHERE p.vendor_id = :vendor_id
-        ORDER BY o.ordered_at DESC, o.order_id DESC, p.title ASC
+        GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
+        ORDER BY o.ordered_at DESC, o.order_id DESC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
 
@@ -997,15 +1029,24 @@ def get_products_by_vendor(connection, vendor_id):
             p.price, 
             p.discount_price,
             p.discount_deadline,
-            p.vendor_id
+            p.vendor_id,
+            0 as avg_rating,
+            0 as total_reviews,
+            GROUP_CONCAT(v.variant_id ORDER BY v.variant_id) as v_ids,
+            GROUP_CONCAT(v.size ORDER BY v.variant_id) as v_sizes,
+            GROUP_CONCAT(v.color ORDER BY v.variant_id) as v_colors,
+            GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
         FROM products p
+        LEFT JOIN product_variants v ON p.product_id = v.product_id
         WHERE p.vendor_id = :vendor_id
+        GROUP BY p.product_id
     """)
     
     # Executing the query with the vendor_id parameter for security
     result = connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
-    
-    return result
+    return _rows_to_products(result)
+
+get_user_orders = get_orders
 
 # ========
 # WISHLIST
@@ -1083,7 +1124,7 @@ def register_new_user(connection, name, email, username, password, role):
             "name": name, 
             "email": email, 
             "username": username, 
-            "password": password
+            "password": generate_password_hash(password)
         })
 
         user_id = connection.execute(text("SELECT LAST_INSERT_ID()")).scalar()
@@ -1111,14 +1152,37 @@ def is_admin(connection, user_id):
 
 
 def verify_user(connection, username_or_email, password):
-    """Checks credentials and returns the user row if valid."""
+    """Checks credentials and returns the user row if valid.
+    Supports legacy plaintext seed passwords and transparently upgrades them.
+    """
     query = text("""
-        SELECT user_id, name, username 
+        SELECT user_id, name, username, password 
         FROM users 
-        WHERE (username = :val OR email = :val) AND password = :pw
+        WHERE (username = :val OR email = :val)
     """)
-    result = connection.execute(query, {"val": username_or_email, "pw": password}).fetchone()
-    return result # Returns a row or None
+    result = connection.execute(query, {"val": username_or_email}).mappings().first()
+    if not result:
+        return None
+
+    stored_password = result["password"] or ""
+
+    # New hashed accounts
+    if stored_password.startswith("pbkdf2:") or stored_password.startswith("scrypt:"):
+        if check_password_hash(stored_password, password):
+            return result
+        return None
+
+    # Legacy plaintext accounts (seed data compatibility)
+    if stored_password == password:
+        # Upgrade plaintext password to hashed format on successful login
+        connection.execute(
+            text("UPDATE users SET password = :pw WHERE user_id = :uid"),
+            {"pw": generate_password_hash(password), "uid": result["user_id"]}
+        )
+        connection.commit()
+        return result
+
+    return None
 
 
 
@@ -1134,29 +1198,110 @@ def user_exists(connection, email, username):
 # ==============
 
 def reset_database(connection, schema_file, seed_file):
+    """Reset database by dropping and recreating every table in store_db."""
+    foreign_key_checks_disabled = False
+
     try:
-        connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-        
-        tables = connection.execute(text("SHOW TABLES;"))
-        for (table_name,) in tables:
-            connection.execute(text(f"DROP TABLE IF EXISTS {table_name};"))
-        
-        connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        if connection.in_transaction():
+            connection.rollback()
 
-        def run_sql_file(filename):
-            if os.path.exists(filename):
-                with open(filename, 'r') as f:
-                    commands = f.read().split(';')
-                    for command in commands:
-                        if command.strip():
-                            connection.execute(text(command))
-
-        run_sql_file(schema_file)
-        run_sql_file(seed_file)
-        
+        connection.execute(text("SET SESSION lock_wait_timeout = 5;"))
         connection.commit()
+
+        print("Disabling foreign key checks...")
+        connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+        connection.commit()
+        foreign_key_checks_disabled = True
+        
+        print("Dropping existing tables...")
+        tables = connection.execute(text("SHOW TABLES;")).fetchall()
+        for (table_name,) in tables:
+            safe_table_name = str(table_name).replace("`", "``")
+            connection.execute(text(f"DROP TABLE IF EXISTS `{safe_table_name}`;"))
+            print(f"  ✓ Dropped {table_name}")
+        connection.commit()
+
+        # Helper function to parse and execute SQL files properly
+        def run_sql_file(filename):
+            if not os.path.exists(filename):
+                print(f"Warning: {filename} not found")
+                return
+            
+            with open(filename, 'r') as f:
+                content = f.read()
+                
+            # Split by semicolon but preserve statements within SQL
+            statements = []
+            current = []
+            in_string = False
+            string_char = None
+            
+            for char in content:
+                if char in ('"', "'") and (not current or current[-1] != '\\'):
+                    in_string = not in_string
+                    string_char = char if in_string else None
+                    current.append(char)
+                elif char == ';' and not in_string:
+                    current.append(char)
+                    statement = ''.join(current).strip()
+                    if statement:
+                        statements.append(statement)
+                    current = []
+                else:
+                    current.append(char)
+            
+            # Add any remaining statement
+            if current:
+                statement = ''.join(current).strip()
+                if statement:
+                    statements.append(statement)
+            
+            print(f"Running {filename} ({len(statements)} statements)")
+            for i, statement in enumerate(statements, 1):
+                # Skip comments and empty lines
+                lines = [line.strip() for line in statement.split('\n') if line.strip() and not line.strip().startswith('--')]
+                if lines:
+                    statement = "\n".join(lines)
+                    statement_type = statement.split(None, 1)[0].upper()
+                    if statement_type in {"DROP", "CREATE"} and "DATABASE" in statement.upper():
+                        print(f"  - Skipped statement {i}/{len(statements)} (keeping store_db)")
+                        continue
+                    if statement_type == "USE":
+                        print(f"  - Skipped statement {i}/{len(statements)} (database already selected)")
+                        continue
+
+                    try:
+                        connection.execute(text(statement))
+                        connection.commit()
+                        print(f"  ✓ Statement {i}/{len(statements)}")
+                    except Exception as e:
+                        print(f"  ✗ Statement {i} error: {e}")
+                        raise
+
+        print("\nLoading schema...")
+        run_sql_file(schema_file)
+        
+        print("\nLoading seed data...")
+        run_sql_file(seed_file)
+
+        print("Re-enabling foreign key checks...")
+        connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        connection.commit()
+        foreign_key_checks_disabled = False
+        
+        print("\n✓ Database reset successfully!")
         return True
+        
     except Exception as e:
-        print(f"Reset Error: {e}")
+        print(f"\n✗ Reset Error: {e}")
+        import traceback
+        traceback.print_exc()
         connection.rollback()
         return False
+    finally:
+        if foreign_key_checks_disabled:
+            try:
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+                connection.commit()
+            except Exception as e:
+                print(f"Warning: could not re-enable foreign key checks: {e}")

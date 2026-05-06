@@ -5,14 +5,15 @@
 <h1>{% if is_edit %}Edit Product{% else %}Add New Product{% endif %}</h1>
 
 <div class="form-container">
-    <form method="POST" action="{% if is_edit %}{{ url_for('edit_product', product_id=product.product_id) }}{% else %}{{ url_for('new_product') }}{% endif %}">
+    <form method="POST" action="{% if is_edit %}{{ url_for('vendor.edit_product', product_id=product.product_id) }}{% else %}{{ url_for('vendor.new_product') }}{% endif %}">
         
         {% if role == "admin" %}
             <label for="vendor-id">Select Vendor:</label><br>
-            <select id="vendor-id" name="vendor-id" required>
-                <option value="">-- Select Vendor --</option>
+            <select name="vendor_id" required>
+                <option value="">Select Vendor</option>
                 {% for v in vendors %}
-                    <option value="{{ v.id }}" {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
+                    <option value="{{ v.id }}"
+                        {% if is_edit and v.id == product.vendor_id %}selected{% endif %}>
                         {{ v.name }}
                     </option>
                 {% endfor %}
@@ -74,7 +75,7 @@
             {% if is_edit and variants %}
                 {% for v in variants %}
                 <div class="variant-group">
-                    <input type="hidden" name="variant_id[]" value="{{ v.id }}">
+                    <input type="hidden" name="variant_id[]" value="{{ v.variant_id }}">
                     <label>Color:</label> <input type="text" name="variant_color[]" value="{{ v.color }}" required>
                     <label>Size:</label> <input type="text" name="variant_size[]" value="{{ v.size }}" required>
                     <label>Stock:</label> <input type="number" name="variant_stock[]" value="{{ v.stock }}" min="0" required>
@@ -83,6 +84,7 @@
                 {% endfor %}
             {% else %}
                 <div class="variant-group">
+                    <input type="hidden" name="variant_id[]" value="">
                     <label>Color:</label> <input type="text" name="variant_color[]" required>
                     <label>Size:</label> <input type="text" name="variant_size[]" required>
                     <label>Stock:</label> <input type="number" name="variant_stock[]" min="0" required>

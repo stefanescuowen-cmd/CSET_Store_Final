@@ -23,7 +23,9 @@ INSERT INTO customers VALUES (3), (4), (5), (6), (7);
 INSERT INTO vendors VALUES (8), (9), (10);
 
 -- PRODUCTS
-INSERT INTO products (title, description, warranty_period, price, discount_price, discount_deadline, vendor_id, category) VALUES
+INSERT INTO products 
+(title, description, warranty_period, price, discount_price, discount_deadline, vendor_id, category) 
+VALUES
 ('Laptop', 'Gaming laptop with high-performance specs', 24, 1200, 1000, NULL, 8, 'Computers'),
 ('Mouse', 'Wireless ergonomic mouse', 12, 50, 40, '2026-05-01', 8, 'Accessories'),
 ('Keyboard', 'Mechanical RGB keyboard', 12, 100, NULL, NULL, 9, 'Accessories'),
@@ -92,27 +94,27 @@ INSERT INTO orders (customer_id, order_status, total_price, ordered_at, delivere
 (3, 'Cancelled', 55.00, NOW(), NULL);
 
 -- ORDER ITEMS
-INSERT INTO order_items (order_id, variant_id, quantity, item_status) VALUES
-(1, 1, 1, 'Confirmed'),
-(1, 3, 1, 'Confirmed'),
-(2, 2, 2, 'Shipped'),
-(3, 4, 1, 'Delivered'),
-(3, 5, 1, 'Delivered'),
-(5, 6, 1, 'Handed to delivery partner'),
-(6, 7, 1, 'Delivered'),
-(7, 1, 1, 'Pending'),
-(7, 4, 2, 'Pending'),
-(8, 2, 1, 'Shipped'),
-(8, 3, 1, 'Shipped'),
-(9, 5, 2, 'Shipped'),
-(9, 3, 1, 'Shipped'),
-(10, 1, 1, 'Cancelled');
+INSERT INTO order_items (order_id, variant_id, quantity, price_paid, item_status) VALUES
+(1, 1, 1, 120.50, 'Confirmed'),
+(1, 3, 1, 100.00, 'Confirmed'),
+(2, 2, 2, 50.00, 'Shipped'),
+(3, 4, 1, 400.00, 'Delivered'),
+(3, 5, 1, 800.00, 'Delivered'),
+(5, 6, 1, 200.00, 'Handed to delivery partner'),
+(6, 7, 1, 300.00, 'Delivered'),
+(7, 1, 1, 120.50, 'Pending'),
+(7, 4, 2, 400.00, 'Pending'),
+(8, 2, 1, 50.00, 'Shipped'),
+(8, 3, 1, 100.00, 'Shipped'),
+(9, 5, 2, 800.00, 'Shipped'),
+(9, 3, 1, 100.00, 'Shipped'),
+(10, 1, 1, 120.50, 'Cancelled');
 
 -- ORDER CONFIRMATIONS
 INSERT INTO order_confirmations (order_id, variant_id, vendor_id, status) VALUES
 (1, 1, 8, 'Confirmed'),
 (1, 3, 9, 'Confirmed'),
-(3, 4, 9, 'Confirmed');
+(3, 4, 10, 'Confirmed');
 
 -- REVIEWS
 INSERT INTO reviews (product_id, customer_id, rating, description, image, date) VALUES
@@ -137,7 +139,9 @@ VALUES
 ('Tablet Defective', 'Will not charge', 'Return', 'Pending', 3, 6, 8, 'img_tablet.jpg');
 
 -- CHATS
-INSERT INTO chats (sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp) VALUES
+INSERT INTO chats 
+(sender_id, customer_id, vendor_id, admin_id, return_id, text, image, timestamp) 
+VALUES
 (3, 3, NULL, 2, 1, 'My phone screen is cracked.', NULL, NOW()),
 (4, 4, 8, NULL, NULL, 'When will the monitor be back in stock?', NULL, NOW()),
 (5, 5, 9, NULL, NULL, 'I need help with my order.', NULL, NOW()),

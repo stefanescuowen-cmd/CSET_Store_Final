@@ -23,7 +23,7 @@ CREATE TABLE customers (
 );
 
 CREATE TABLE vendors (
-    vendor_id INT PRIMARY KEY,
+    vendor_id INT PRIMARY KEY AUTO_INCREMENT,
     FOREIGN KEY (vendor_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
@@ -91,6 +91,7 @@ CREATE TABLE order_items (
     order_id INT NOT NULL,
     variant_id INT NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
+    price_paid DECIMAL(10, 2) NOT NULL,
     item_status ENUM('Pending','Confirmed','Handed to delivery partner','Shipped','Delivered','Cancelled', 'Denied') NOT NULL,
     PRIMARY KEY (order_id, variant_id),
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,

@@ -2,82 +2,55 @@
 
 {% block body %}
 
-<h1>Checkout</h1>
+<section class="checkout-container">
+    <h1>Checkout</h1>
 
-<h2>Total: ${{ total }}</h2>
+    <h4>Subtotal: ${{ sub_total }}</h4>
+    <h4>Tax: ${{ tax }}</h4>
+    <h3>Grand Total: ${{ grand_total }}</h3>
+    <hr>
 
-<form method="POST" action="/place-order">
+    <form method="POST" action="/place-order" class="checkout-form">
+        <div class="address-section formContainerOut">
+            <h3>Shipping Address</h3>
+            <label for="address_id">Select a saved address:</label>
+            <select name="address_id" id="address_id" required>
+                {% for addr in addresses %}
+                    <option value="{{ addr.address_id }}" {% if addr.is_default %}selected{% endif %}>
+                        [{{ addr.address_type }}] {{ addr.receiver_name }} - {{ addr.address_line1 }}, {{ addr.city }}
+                    </option>
+                {% endfor %}
+            </select>
+            <p><a href="{{ url_for('customer.manage_addresses') }}">+ Add or edit addresses</a></p>
+        </div>
 
-    <div class="address-section">
-        <h3>Shipping Address</h3>
-        
-        <label for="address_id">Select a saved address:</label><br>
-        <select name="address_id" id="address_id" required">
-            {% for addr in addresses %}
-                <option value="{{ addr.address_id }}" {% if addr.is_default %}selected{% endif %}>
-                    [{{ addr.address_type }}] {{ addr.receiver_name }} - {{ addr.address_line1 }}, {{ addr.city }}
-                </option>
-            {% endfor %}
-        </select>
-        
-        <p>
-            <a href="{{ url_for('customer.manage_addresses') }}">+ Add or edit addresses</a>
-        </p>
-    </div>
+        <div class="payment-section formContainerOut">
+            <h3>Payment Method</h3>
+            <label><input type="radio" name="payment_method" value="card" onclick="showPayment('card')" required> Card</label>
+            <label><input type="radio" name="payment_method" value="paypal" onclick="showPayment('paypal')"> PayPal</label>
+            <label><input type="radio" name="payment_method" value="cod" onclick="showPayment('cod')"> Cash on Delivery</label>
 
-<form method="POST" action="/place-order">
+            <div id="card-form" class="payment-details hidden">
+                <h3>Card Details</h3>
+                <input type="text" name="card_name" placeholder="Name on Card">
+                <input type="text" name="card_number" placeholder="Card Number">
+                <input type="text" name="expiry" placeholder="MM/YY">
+                <input type="text" name="cvv" placeholder="CVV">
+            </div>
 
-    <!-- PAYMENT -->
-    <h3>Payment Method</h3>
+            <div id="paypal-form" class="payment-details hidden">
+                <h3>PayPal Email</h3>
+                <input type="email" name="paypal_email" placeholder="Enter PayPal Email">
+                <p>You'll be redirected after placing order.</p>
+            </div>
 
-    <label>
-        <input type="radio" name="payment_method" value="card" onclick="showPayment('card')" required>
-        Card
-    </label><br>
+            <div id="cod-form" class="payment-details hidden">
+                <h3>Cash on Delivery</h3>
+                <p>You will pay when your order arrives.</p>
+            </div>
+        </div>
 
-    <label>
-        <input type="radio" name="payment_method" value="paypal" onclick="showPayment('paypal')">
-        PayPal
-    </label><br>
-
-    <label>
-        <input type="radio" name="payment_method" value="cod" onclick="showPayment('cod')">
-        Cash on Delivery
-    </label>
-
-    <br><br>
-
-
-    <!-- CARD FORM -->
-
-    <div id="card-form">
-        <h3>Card Details</h3>
-
-        <input type="text" name="card_name" placeholder="Name on Card"><br><br>
-        <input type="text" name="card_number" placeholder="Card Number"><br><br>
-        <input type="text" name="expiry" placeholder="MM/YY"><br><br>
-        <input type="text" name="cvv" placeholder="CVV"><br><br>
-    </div>
-
-    <!-- PAYPAL FORM -->
-
-    <div id="paypal-form">
-        <h3>PayPal Email</h3>
-        <input type="email" name="paypal_email" placeholder="Enter PayPal Email">
-        <p>You'll be redirected after placing order.</p>
-    </div>
-
-
-    <!-- COD INFO -->
-
-    <div id="cod-form">
-        <h3>Cash on Delivery</h3>
-        <p>You will pay when your order arrives.</p>
-    </div>
-
-    <br>
-
-    <button type="submit">Confirm Order</button>
-</form>
-
+        <button type="submit" class="btn-primary-wide">Confirm Order</button>
+    </form>
+</section>
 {% endblock %}
