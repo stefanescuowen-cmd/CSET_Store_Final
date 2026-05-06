@@ -25,42 +25,32 @@
                 <p>Price: ${{ product.price }}</p>
                 <p>Stock: {{ product.stock }}</p>
                 
-                <button class="ProductButton" type="button" onclick="toggleEdit('{{ product.product_id }}')">Edit</button>
+                <!-- Link to the dedicated edit page instead of JS toggle -->
+                <a href="{{ url_for('vendor.edit_product', product_id=product.product_id) }}">
+                    <button class="ProductButton" type="button">Edit Product Details</button>
+                </a>
                 
-                <form action="/admin/product/{{ product.product_id }}/delete" method="POST">
-                    <button class="WarningButton ProductButton" type="submit" onclick="return confirm('Delete this item?')">Delete</button>
+                <form action="/admin/product/{{ product.product_id }}/delete" method="POST" style="display:inline;">
+                    <button class="WarningButton ProductButton" type="submit" onclick="return confirm('Are you sure you want to delete this item?')">Delete</button>
                 </form>
             </div>
-
-            <form class="formEdit" id="edit-form-{{ product.product_id }}" 
-                action="/admin/product/{{ product.product_id }}/edit" 
-                method="POST" 
-                >
-                
-                <input placeholder="Product Name" type="text" name="title" value="{{ product.title }}" required><br>
-                <textarea placeholder="Description" name="description">{{ product.description }}</textarea><br>
-                <input type="number" step="0.01" name="price" placeholder="Price" value="{{ product.price }}" required><br>
-                <input type="number" step="0.01" name="discount-price" placeholder="Discount" value="{{ product.discount_price }}"><br>
-                <input type="number" name="stock" value="{{ product.stock }}" placeholder="Stock" required><br>
-                
-                <button class="ProductButton" type="submit">Save Changes</button>
-                <button class="ProductButton" class="Cancel" type="button" onclick="toggleEdit('{{ product.product_id }}')">Cancel</button>
-            </form>
-
         </div>
     </div>
 {% endfor %}
 </div>
 
-<a href="/admin/manage-products">
-    <button type="button">Manage Products</button>
-</a>
-<a href="/new-product">
-    <button type="button">Add New Product</button>
-</a>
+<div class="admin-actions" style="margin-top: 20px;">
+    <a href="/admin/manage-products">
+        <button type="button">Manage All Products</button>
+    </a>
+    <a href="/new-product">
+        <button type="button">Add New Product</button>
+    </a>
+</div>
+
+<hr>
 
 <h2>Returns Management</h2>
-
 
 {% if returns|length == 0 %}
     <p>No pending returns.</p>
@@ -82,12 +72,13 @@
 </a>
 {% endif %}
 
+<hr>
+
 <h2>Orders Management</h2>
 
 <div class="return-grid">
 {% for order in orders %}
     <div class="return-card" id="order-card-{{ order.order_id }}">
-
         <p>
             <strong>Order #{{ order.order_id }}</strong><br>
             Customer ID: {{ order.customer_id }}<br>
@@ -95,7 +86,6 @@
             Qty: {{ order.quantity }}<br>
             Status: <span class="order-status">{{ order.order_status }}</span>
         </p>
-
     </div>
 {% endfor %}
 </div>
