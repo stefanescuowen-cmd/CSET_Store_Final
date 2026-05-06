@@ -26,9 +26,9 @@
                 <p>Stock: {{ product.stock }}</p>
                 
                 <button class="ProductButton" type="button" onclick="toggleEdit('{{ product.product_id }}')">Edit</button>
-                
-                <form action="/admin/product/{{ product.product_id }}/delete" method="POST">
-                    <button class="WarningButton ProductButton" type="submit" onclick="return confirm('Delete this item?')">Delete</button>
+
+                <form action="/admin/product/{{ product.product_id }}/delete" method="POST" style="align-items: center;">
+                    <button class="ProductButton WarningButton" type="submit" onclick="return confirm('Delete this item?')">Delete</button>
                 </form>
             </div>
 
@@ -43,8 +43,10 @@
                 <input type="number" step="0.01" name="discount-price" placeholder="Discount" value="{{ product.discount_price }}"><br>
                 <input type="number" name="stock" value="{{ product.stock }}" placeholder="Stock" required><br>
                 
-                <button class="ProductButton" type="submit">Save Changes</button>
-                <button class="ProductButton" class="Cancel" type="button" onclick="toggleEdit('{{ product.product_id }}')">Cancel</button>
+                <div style="align-items: center;">
+                    <button class="ProductButton" type="submit">Save Changes</button>
+                    <button class="ProductButton" class="Cancel" type="button" onclick="toggleEdit('{{ product.product_id }}')">Cancel</button>
+                </div>
             </form>
 
         </div>

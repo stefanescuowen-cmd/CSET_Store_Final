@@ -296,6 +296,21 @@ a{
 .checkmark{color: #28a745; font-weight: bold;}
 .other-items{color: #999;}
 .OrderFlexBox{display: flex; flex-wrap: wrap;}
+.table{position: relative; left: 50%; transform: translate(-50%); overflow-x: scroll;}
+.table form{display: flex; flex-wrap: wrap; width: 200px; justify-content: space-evenly; flex-direction: row;}
+.table tr, .table th, .table td{padding: 5px; border: 5px var(--bg-color-dark) solid; background-color: var(--bg-color-light); width: 100px; max-height: 25px;}
+.Return{color: #008CBA;}
+.Pending{color: black;}
+.Warranty{color: #f39c12;}
+.Refund{color: #4CAF50;}
+.Rejected{color: #dc3545;}
+.Confirmed{color: #4CAF50;}
+.Complete{color: var(--text-color);}
+.Processing{color: #f39c12;}
+.smallbutton{width: calc(50% - 10px); margin: 2px;}
+.button{width: calc(100% - 16px); margin: 8px;}
+.ProductsDIv *{text-align: center;}
+.SpecficVendorButton{position: relative; left: 50%; transform: translate(-50%);}
 
 
 
