@@ -10,6 +10,7 @@
 <h2>Your Products</h2>
 
 {% if products %}
+<div class="ProductsDIv">
     {% for product in products %}
         <p>
             <strong>{{ product.title }}</strong>
@@ -18,9 +19,12 @@
     {% endfor %}
     <a href="{{ url_for('vendor.manage_products') }}">
         <button type="button">Manage Your Products</button>
+    <a href="{{ url_for('manage_products') }}">
+        <button class="SpecficVendorButton" type="button">Manage Your Products</button>
     </a>
+</div>
 {% else %}
-    <p>No products yet.</p>
+    <p style="text-align: center;">No products yet.</p>
 {% endif %}
 
 
