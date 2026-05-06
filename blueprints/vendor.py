@@ -12,7 +12,7 @@ def _current_vendor(connection):
     user_id = session.get("user_id")
     if not user_id or get_user_role(connection, user_id) != "vendor":
         return None
-    return db.get_vendor_by_user_id(connection, user_id)
+    return db.get_vendor_by_id(connection, user_id)
 
 
 @vendor_bp.route("/vendor")
@@ -56,7 +56,7 @@ def manage_products():
         if role == "admin":
             products = db.get_all_products(conn)
         else:
-            vendor = db.get_vendor_by_user_id(conn, user_id)
+            vendor = db.get_vendor_by_id(conn, user_id)
             vendor_id = vendor["vendor_id"]
             products = db.get_products_by_vendor(conn, vendor_id)
 
@@ -86,7 +86,7 @@ def new_product():
             if role == "admin":
                 vendor_id = int(selected_vendor)
             else:
-                vendor = db.get_vendor_by_user_id(conn, user_id)
+                vendor = db.get_vendor_by_id(conn, user_id)
                 vendor_id = vendor["vendor_id"]
 
             images = request.form.getlist("image")
@@ -138,7 +138,7 @@ def add_product():
             if role == "admin":
                 vendor_id = request.form.get("vendor-id")
             else:
-                vendor = db.get_vendor_by_user_id(conn, user_id)
+                vendor = db.get_vendor_by_id(conn, user_id)
                 if not vendor:
                     flash("Vendor profile not found.", "error")
                     return redirect(url_for("index"))
@@ -191,7 +191,7 @@ def edit_product(product_id):
             return redirect(url_for("vendor.manage_products"))
 
         if role == "vendor":
-            vendor = db.get_vendor_by_user_id(conn, user_id)
+            vendor = db.get_vendor_by_id(conn, user_id)
             vendor_id = vendor["vendor_id"] if vendor else None
         else:
             vendor_id = None
@@ -262,7 +262,7 @@ def delete_product(product_id):
     with engine.connect() as conn:
         role = get_user_role(conn, user_id)
         product = db.get_product_by_id(conn, product_id)
-        vendor = db.get_vendor_by_user_id(conn, user_id) if role == "vendor" else None
+        vendor = db.get_vendor_by_id(conn, user_id) if role == "vendor" else None
         vendor_id = vendor["vendor_id"] if vendor else None
 
         if role == "admin" or (product and product.get("vendor_id") == vendor_id):
@@ -280,7 +280,7 @@ def vendor_update_order_item_status():
         return "Unauthorized", 403
 
     with engine.connect() as conn:
-        vendor = db.get_vendor_by_user_id(conn, session.get("user_id"))
+        vendor = db.get_vendor_by_id(conn, session.get("user_id"))
         if not vendor:
             flash("Vendor profile not found.", "danger")
             return redirect(url_for("orders_page"))

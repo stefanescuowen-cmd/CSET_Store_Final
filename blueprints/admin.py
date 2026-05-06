@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from app_utils import get_user_role
-from extensions import engine
+from extensions import engine, rollback_app_connection
 import database as db
 
 admin_bp = Blueprint("admin", __name__)
@@ -49,10 +49,14 @@ def admin_update_return(return_id):
 
 @admin_bp.route("/danger", methods=["POST"])
 def danger():
+    rollback_app_connection()
+
     with engine.connect() as conn:
         if get_user_role(conn, session.get("user_id")) != "admin":
             flash("Access denied.", "error")
             return redirect(url_for("index"))
+
+        rollback_app_connection()
 
         if db.reset_database(conn, "database/store_database_schema.sql", "database/seed_data.sql"):
             flash("Database reset successfully.", "success")

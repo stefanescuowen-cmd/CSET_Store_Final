@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask import Flask, make_response, redirect, render_template, request, url_for, flash, session
 from app_utils import get_user_role
-from extensions import engine
+from extensions import app_conn, engine, rollback_app_connection
 from sqlalchemy import text
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -12,7 +12,13 @@ import database as db
 app = Flask(__name__)
 app.secret_key = "school_project_key"
 
-conn = engine.connect()
+conn = app_conn
+
+
+@app.after_request
+def release_global_connection_locks(response):
+    rollback_app_connection()
+    return response
 
 
 # ====
@@ -45,7 +51,7 @@ def orders_page():
             orders_raw = db.get_all_orders(conn)
 
         elif role == "vendor":
-            vendor = db.get_vendor_by_user_id(conn, user_id)
+            vendor = db.get_vendor_by_id(conn, user_id)
             vendor_id = vendor["vendor_id"] if vendor else None
             orders_raw = db.get_vendor_orders(conn, vendor_id)
 
@@ -568,8 +574,15 @@ def chat():
     rid = to_int(request.args.get('rid'))
 
     with engine.connect() as conn:
+        vendor_id = user_id
+        if role == 'vendor':
+            vendor = db.get_vendor_by_id(conn, user_id)
+            if not vendor:
+                flash("Vendor profile not found.", "error")
+                return redirect(url_for("index"))
+            vendor_id = vendor["vendor_id"]
 
-        sidebar_chats = db.get_chat_list(conn, user_id, role)
+        sidebar_chats = db.get_chat_list(conn, vendor_id if role == 'vendor' else user_id, role)
 
         #for new chat stuff
         recipients = []
@@ -581,7 +594,7 @@ def chat():
                 admins = db.get_all_admins(conn)
                 returns = db.get_customer_returns(conn, user_id)
             elif role == 'vendor':
-                recipients = db.get_vendor_customers(conn, user_id)
+                recipients = db.get_vendor_customers(conn, vendor_id)
             elif role == 'admin':
                 recipients = db.get_all_customers(conn)
 
@@ -611,6 +624,7 @@ def chat():
                                 curr_vid=vid,
                                 curr_aid=aid,
                                 curr_rid=rid,
+                                current_vendor_id=vendor_id if role == 'vendor' else None,
                                 cname=cname,
                                 vname=vname,
                                 aname=aname,
@@ -657,12 +671,19 @@ def send_message():
         rid = clean_id(request.form.get("rid"))
 
     # 3. Ensure Sender's ID is correctly assigned to their role column
-    final_vid = user_id if role == 'vendor' else vid
+    final_vid = vid
     final_aid = user_id if role == 'admin' else aid
     final_cid = user_id if role == 'customer' else cid
 
     # 4. Save to Database
     with engine.connect() as conn:
+        if role == 'vendor':
+            vendor = db.get_vendor_by_id(conn, user_id)
+            if not vendor:
+                flash("Vendor profile not found.", "error")
+                return redirect(url_for("chat"))
+            final_vid = vendor["vendor_id"]
+
         db.send_chat_message(
             conn,
             sender_id=user_id, 

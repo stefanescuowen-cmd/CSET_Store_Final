@@ -344,7 +344,8 @@ def get_chat_list(connection, user_id, role):
             MAX(c.return_id) as return_id
         FROM chats c
         JOIN users cu ON c.customer_id = cu.user_id
-        LEFT JOIN users vu ON c.vendor_id = vu.user_id
+        LEFT JOIN vendors v ON c.vendor_id = v.vendor_id
+        LEFT JOIN users vu ON v.vendor_id = vu.user_id
         LEFT JOIN users au ON c.admin_id = au.user_id
     """
 
@@ -389,16 +390,16 @@ def get_all_vendors(connection):
     return connection.execute(text("""
 SELECT v.vendor_id AS id, u.name 
 FROM vendors v 
-JOIN users u ON v.user_id = u.user_id
+JOIN users u ON v.vendor_id = u.user_id
 """)).mappings().all()
 
-def get_vendor_by_user_id(connection, user_id):
+def get_vendor_by_id(connection, vendor_id):
     query = text("""
-        SELECT vendor_id, user_id
+        SELECT vendor_id
         FROM vendors
-        WHERE user_id = :user_id
+        WHERE vendor_id = :vendor_id
     """)
-    return connection.execute(query, {"user_id": user_id}).mappings().first()
+    return connection.execute(query, {"vendor_id": vendor_id}).mappings().first()
 
 def get_all_admins(connection):
     return connection.execute(text("SELECT admin_id as id, name FROM admins JOIN users ON admin_id = user_id")).mappings().all()
@@ -410,7 +411,8 @@ def get_vendor_customers(connection, vendor_id):
     query = text("""
         SELECT DISTINCT o.customer_id as id, u.name
         FROM order_items oi
-        JOIN products p ON oi.variant_id = (SELECT variant_id FROM product_variants pv WHERE pv.product_id = p.product_id LIMIT 1)
+        JOIN product_variants pv ON oi.variant_id = pv.variant_id
+        JOIN products p ON pv.product_id = p.product_id
         JOIN orders o ON oi.order_id = o.order_id
         JOIN users u ON o.customer_id = u.user_id
         WHERE p.vendor_id = :vid
@@ -669,7 +671,7 @@ def get_filtered_products(connection, search="", color="", size="", availability
         GROUP_CONCAT(v.stock ORDER BY v.variant_id) as v_stocks
     FROM products p
     JOIN vendors vend ON p.vendor_id = vend.vendor_id
-    JOIN users u ON vend.user_id = u.user_id
+    JOIN users u ON vend.vendor_id = u.user_id
     LEFT JOIN product_variants v ON p.product_id = v.product_id
     LEFT JOIN (
         SELECT 
@@ -1010,16 +1012,6 @@ def get_vendor_orders(connection, vendor_id):
         JOIN products p ON pv.product_id = p.product_id
         WHERE p.vendor_id = :vendor_id
         GROUP BY o.order_id, o.customer_id, o.order_status, o.ordered_at
-            o.total_price
-        FROM orders o
-        WHERE EXISTS (
-            SELECT 1
-            FROM order_items vendor_oi
-            JOIN product_variants vendor_pv ON vendor_oi.variant_id = vendor_pv.variant_id
-            JOIN products vendor_p ON vendor_pv.product_id = vendor_p.product_id
-            WHERE vendor_oi.order_id = o.order_id
-              AND vendor_p.vendor_id = :vendor_id
-        )
         ORDER BY o.ordered_at DESC, o.order_id DESC
     """)
     return connection.execute(query, {"vendor_id": vendor_id}).mappings().all()
@@ -1144,7 +1136,7 @@ def register_new_user(connection, name, email, username, password, role):
             connection.execute(text("INSERT INTO wishlists (customer_id) VALUES (:id)"), {"id": user_id})
         
         elif role == "vendor":
-            connection.execute(text("INSERT INTO vendors (user_id) VALUES (:id)"), {"id": user_id})
+            connection.execute(text("INSERT INTO vendors (vendor_id) VALUES (:id)"), {"id": user_id})
         
         connection.commit()
         return True
@@ -1207,29 +1199,110 @@ def user_exists(connection, email, username):
 # ==============
 
 def reset_database(connection, schema_file, seed_file):
+    """Reset database by dropping and recreating every table in store_db."""
+    foreign_key_checks_disabled = False
+
     try:
-        connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-        
-        tables = connection.execute(text("SHOW TABLES;"))
-        for (table_name,) in tables:
-            connection.execute(text(f"DROP TABLE IF EXISTS {table_name};"))
-        
-        connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        if connection.in_transaction():
+            connection.rollback()
 
-        def run_sql_file(filename):
-            if os.path.exists(filename):
-                with open(filename, 'r') as f:
-                    commands = f.read().split(';')
-                    for command in commands:
-                        if command.strip():
-                            connection.execute(text(command))
-
-        run_sql_file(schema_file)
-        run_sql_file(seed_file)
-        
+        connection.execute(text("SET SESSION lock_wait_timeout = 5;"))
         connection.commit()
+
+        print("Disabling foreign key checks...")
+        connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+        connection.commit()
+        foreign_key_checks_disabled = True
+        
+        print("Dropping existing tables...")
+        tables = connection.execute(text("SHOW TABLES;")).fetchall()
+        for (table_name,) in tables:
+            safe_table_name = str(table_name).replace("`", "``")
+            connection.execute(text(f"DROP TABLE IF EXISTS `{safe_table_name}`;"))
+            print(f"  ✓ Dropped {table_name}")
+        connection.commit()
+
+        # Helper function to parse and execute SQL files properly
+        def run_sql_file(filename):
+            if not os.path.exists(filename):
+                print(f"Warning: {filename} not found")
+                return
+            
+            with open(filename, 'r') as f:
+                content = f.read()
+                
+            # Split by semicolon but preserve statements within SQL
+            statements = []
+            current = []
+            in_string = False
+            string_char = None
+            
+            for char in content:
+                if char in ('"', "'") and (not current or current[-1] != '\\'):
+                    in_string = not in_string
+                    string_char = char if in_string else None
+                    current.append(char)
+                elif char == ';' and not in_string:
+                    current.append(char)
+                    statement = ''.join(current).strip()
+                    if statement:
+                        statements.append(statement)
+                    current = []
+                else:
+                    current.append(char)
+            
+            # Add any remaining statement
+            if current:
+                statement = ''.join(current).strip()
+                if statement:
+                    statements.append(statement)
+            
+            print(f"Running {filename} ({len(statements)} statements)")
+            for i, statement in enumerate(statements, 1):
+                # Skip comments and empty lines
+                lines = [line.strip() for line in statement.split('\n') if line.strip() and not line.strip().startswith('--')]
+                if lines:
+                    statement = "\n".join(lines)
+                    statement_type = statement.split(None, 1)[0].upper()
+                    if statement_type in {"DROP", "CREATE"} and "DATABASE" in statement.upper():
+                        print(f"  - Skipped statement {i}/{len(statements)} (keeping store_db)")
+                        continue
+                    if statement_type == "USE":
+                        print(f"  - Skipped statement {i}/{len(statements)} (database already selected)")
+                        continue
+
+                    try:
+                        connection.execute(text(statement))
+                        connection.commit()
+                        print(f"  ✓ Statement {i}/{len(statements)}")
+                    except Exception as e:
+                        print(f"  ✗ Statement {i} error: {e}")
+                        raise
+
+        print("\nLoading schema...")
+        run_sql_file(schema_file)
+        
+        print("\nLoading seed data...")
+        run_sql_file(seed_file)
+
+        print("Re-enabling foreign key checks...")
+        connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        connection.commit()
+        foreign_key_checks_disabled = False
+        
+        print("\n✓ Database reset successfully!")
         return True
+        
     except Exception as e:
-        print(f"Reset Error: {e}")
+        print(f"\n✗ Reset Error: {e}")
+        import traceback
+        traceback.print_exc()
         connection.rollback()
         return False
+    finally:
+        if foreign_key_checks_disabled:
+            try:
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+                connection.commit()
+            except Exception as e:
+                print(f"Warning: could not re-enable foreign key checks: {e}")
