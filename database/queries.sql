@@ -26,7 +26,8 @@ WHERE email = 'alice@mail.com' AND password = 'pass';
 -- View products with vendor names
 SELECT p.title, u.name AS vendor
 FROM products p
-JOIN users u ON p.vendor_id = u.user_id;
+JOIN vendors v ON p.vendor_id = v.vendor_id
+JOIN users u ON v.vendor_id = u.user_id;
 
 -- Search by name or description
 SELECT * FROM products WHERE title LIKE '%phone%';

@@ -14,7 +14,7 @@ def get_user_role(connection, user_id):
 
         SELECT 'vendor'
         FROM vendors
-        WHERE user_id = :id
+        WHERE vendor_id = :id
 
         UNION ALL
 

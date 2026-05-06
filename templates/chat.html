@@ -54,7 +54,7 @@
                             <option value="{{ r.id }}">{{ r.name }} (ID {{ r.id }})</option>
                         {% endfor %}
                     </select>
-                    <input type="hidden" name="vid" value="{{ session['user_id'] if session['role'] == 'vendor' else '' }}">
+                    <input type="hidden" name="vid" value="{{ current_vendor_id if session['role'] == 'vendor' else '' }}">
                     <input type="hidden" name="aid" value="{{ session['user_id'] if session['role'] == 'admin' else '' }}">
                 {% else %}
                     <label>Reason for contact:</label>
