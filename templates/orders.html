@@ -24,7 +24,7 @@
             </div>
 
             {# ITEMS TABLE #}
-            <table class="orders-table">
+            <table class="orders-table2">
                 <thead>
                     <tr>
                         <th>Product</th>
@@ -42,7 +42,7 @@
                         <td>{{ item.color }} / {{ item.size }}</td>
                         <td>{{ item.quantity }}</td>
                         <td>${{ "%.2f"|format(item.price_paid|float) }}</td>
-                        <td>{{ item.item_status }}</td>
+                        <td class="{{ item.item_status }}">{{ item.item_status }}</td>
                         <td>
                             {# VENDOR LOGIC #}
                             {% if session['role'] == 'vendor' %}

@@ -219,6 +219,7 @@ a{
     gap:6px; 
     margin-top:8px; 
     flex-wrap:wrap;
+    justify-content: center;
 }
 
 .product-card .img-thumbs img {
@@ -227,6 +228,7 @@ a{
     object-fit:cover; 
     cursor:pointer; 
     border:1px solid #ccc;
+    border-radius: 8px;
 }
 
 #lightbox {
@@ -293,6 +295,20 @@ a{
 .back-to-link{color: #004341; text-decoration: none;}
 .review-count {font-size: 0.85em; color: var(--text-color); opacity: 0.8; margin-left: 5px;}
 .hero-subtitle{text-align: center; margin: 30px 0;}
+
+.orders-table2{width: 100%; margin-top: 10px;}
+.orders-table2 thead tr th{background-color: var(--accent-active); height: 50px; font-size: large; color: var(--header-bg-light);}
+.orders-table2 thead tr th:first-child{border-radius: 25px 0px 0px 25px;}
+.orders-table2 thead tr th:last-child{border-radius: 0px 25px 25px 0px;}
+.orders-table2 tbody{background-color: var(--bg-color-light);}
+.orders-table2 tbody tr td{padding: 10px;}
+.orders-table2 tbody tr:first-child td:first-child{border-radius: 25px 0px 0px 0px;}
+.orders-table2 tbody tr:first-child td:last-child{border-radius: 0px 25px 0px 0px;}
+.orders-table2 tbody tr:last-child td:first-child{border-radius: 0px 0px 0px 25px;}
+.orders-table2 tbody tr:last-child td:last-child{border-radius: 0px 0px 25px 0px;}
+.orders-table2 tbody tr:last-child:first-child td:first-child{border-radius: 25px 0px 0px 25px;}
+.orders-table2 tbody tr:last-child:first-child td:last-child{border-radius: 0px 25px 25px 0px;}
+
 
 
 /* ID */
