@@ -864,7 +864,8 @@ option:disabled{display: none;}
     .address-page-header { flex-direction: column; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
     .product-card .main-image img {
-    height: 160px;
+    width: 50%;
+    height: auto;
     object-fit: contain;
     border-radius: 8px;
 
