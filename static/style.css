@@ -219,6 +219,7 @@ a{
     gap:6px; 
     margin-top:8px; 
     flex-wrap:wrap;
+    justify-content: center;
 }
 
 .product-card .img-thumbs img {
@@ -227,6 +228,7 @@ a{
     object-fit:cover; 
     cursor:pointer; 
     border:1px solid #ccc;
+    border-radius: 8px;
 }
 
 #lightbox {
