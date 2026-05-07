@@ -440,7 +440,10 @@ option:disabled{display: none;}
     text-align: center;
 }
 
-/* Badges */
+/* =========================
+   BADGES
+========================= */
+
 .badge {
     padding: 4px 8px;
     border-radius: 6px;
@@ -449,7 +452,7 @@ option:disabled{display: none;}
     font-size: 0.8rem;
 }
 
-/* Variants (now using your color system where it makes sense) */
+/* Variants */
 .badge-light {
     background: var(--bg-color-dark);
 }
@@ -479,11 +482,19 @@ option:disabled{display: none;}
     color: var(--text-color);
 }
 
-/* Spacing */
+
+/* =========================
+   SPACING
+========================= */
+
 .spaced-top {
     margin-top: 20px;
 }
 
+
+/* =========================
+   CHAT LAYOUT
+========================= */
 
 .chat-page {
     display: flex;
@@ -493,12 +504,22 @@ option:disabled{display: none;}
     overflow: hidden;
 }
 
-/* Sidebar */
+
+/* =========================
+   SIDEBAR
+========================= */
+
 .chat-border {
     width: 25%;
     background-color: var(--bg-color-light);
     border-right: 1px solid var(--bg-color-dark);
     padding: 15px;
+
+    /* Scroll sidebar chats */
+    overflow-y: auto;
+
+    /* Prevent flex overflow issues */
+    min-height: 0;
 }
 
 .chat-border h3 {
@@ -509,18 +530,45 @@ option:disabled{display: none;}
     border-color: var(--bg-color-dark);
 }
 
-/* Chat list buttons */
+/* Remove bullets + spacing */
+.chat-border ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    /* Align properly */
+    align-items: flex-start;
+}
+
+.chat-border li {
+    width: 100%;
+    max-width: 220px;
+}
+
+
+/* =========================
+   CHAT LIST BUTTONS
+========================= */
+
 .chat-btn {
     width: 100%;
     text-align: left;
     margin-bottom: 6px;
     padding: 8px 10px;
+
     border: none;
     border-radius: 6px;
+
     background-color: var(--bg-color-dark);
     color: var(--text-color);
+
     cursor: pointer;
     transition: 0.2s ease;
+
+    word-wrap: break-word;
 }
 
 .chat-btn:hover {
@@ -528,42 +576,77 @@ option:disabled{display: none;}
     color: #000;
 }
 
-/* Main chat area */
+
+/* =========================
+   MAIN CHAT AREA
+========================= */
+
 .chat-box {
     width: 75%;
     padding: 20px;
+
     display: flex;
     flex-direction: column;
+
     background-color: var(--bg-color-base);
+
+    /* Prevent flex overflow issues */
+    min-height: 0;
 }
 
-/* Messages container */
+
+/* =========================
+   MESSAGE CONTAINER
+========================= */
+
 .message-box {
     flex-grow: 1;
+
     overflow-y: auto;
+
     border: 1px solid var(--bg-color-dark);
     background-color: var(--bg-color-light);
+
     padding: 12px;
     margin-bottom: 10px;
+
     border-radius: 8px;
+
+    min-height: 0;
 }
 
-/* Individual messages */
+
+/* =========================
+   INDIVIDUAL MESSAGES
+========================= */
+
 .message-box > div {
     margin-bottom: 10px;
     padding: 6px 8px;
+
     border-radius: 6px;
+
     background-color: var(--bg-color-dark);
+
+    word-wrap: break-word;
 }
 
-/* Timestamp */
+
+/* =========================
+   TIMESTAMP
+========================= */
+
 .msg-timestamp {
     font-size: 0.7em;
     opacity: 0.7;
     margin-top: 2px;
 }
 
-/* Input area */
+
+/* =========================
+   INPUT AREA
+========================= */
+
 .chat-box form {
     display: flex;
     gap: 8px;
@@ -572,20 +655,30 @@ option:disabled{display: none;}
 .chat-box input[type="text"],
 .chat-box textarea {
     flex-grow: 1;
+
     padding: 8px;
+
     border-radius: 6px;
     border: 1px solid var(--bg-color-dark);
+
     background-color: var(--bg-color-light);
     color: var(--text-color);
 }
 
-/* Buttons */
+
+/* =========================
+   BUTTONS
+========================= */
+
 .chat-box button {
     padding: 8px 12px;
+
     border-radius: 6px;
     border: none;
+
     background-color: var(--accent-color);
     color: #000;
+
     cursor: pointer;
     transition: 0.2s ease;
 }
@@ -594,19 +687,60 @@ option:disabled{display: none;}
     background-color: var(--accent-hover);
 }
 
-.chat-border ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
 
-    display: flex;
-    flex-direction: column;
-    align-items: left; /* THIS centers everything */
-}
+/* =========================
+   MOBILE RESPONSIVENESS
+========================= */
 
-.chat-border li {
-    width: 100%;
-    max-width: 220px; /* controls how wide the buttons feel */
+@media (max-width: 768px) {
+
+    /* Stack layout vertically */
+    .chat-page {
+        flex-direction: column;
+        height: auto;
+    }
+
+    /* Full width sections */
+    .chat-border,
+    .chat-box {
+        width: 100%;
+    }
+
+    /* Sidebar sizing */
+    .chat-border {
+        border-right: none;
+        border-bottom: 1px solid var(--bg-color-dark);
+
+        max-height: 250px;
+    }
+
+    /* Better mobile spacing */
+    .chat-box {
+        padding: 15px;
+    }
+
+    /* Easier tap targets */
+    .chat-btn {
+        padding: 12px;
+        font-size: 0.95rem;
+    }
+
+    /* Stack form elements */
+    .chat-box form {
+        flex-direction: column;
+    }
+
+    /* Full-width inputs/buttons */
+    .chat-box input[type="text"],
+    .chat-box textarea,
+    .chat-box button {
+        width: 100%;
+    }
+
+    /* Slightly tighter message spacing */
+    .message-box {
+        padding: 10px;
+    }
 }
 
 
