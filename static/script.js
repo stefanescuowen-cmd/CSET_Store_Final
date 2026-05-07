@@ -171,21 +171,6 @@ function removeImage(btn) {
 
 // UI Utilities
 
-function updateVariant(selectElement) {
-    const productId = selectElement.getAttribute('data-product-id');
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    const stock = selectedOption.getAttribute('data-stock');
-    
-    const stockEl = document.getElementById('stock-' + productId);
-    if (stockEl) stockEl.innerText = stock;
-
-    const qtyInput = document.getElementById('qty-' + productId);
-    if (qtyInput) {
-        qtyInput.max = stock;
-        if (parseInt(qtyInput.value) > parseInt(stock)) qtyInput.value = stock;
-    }
-}
-
 function toggleNavMenu() {
     const nav = document.getElementById('HeadLinks');
     if (!nav) return;
