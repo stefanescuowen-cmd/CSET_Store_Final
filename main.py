@@ -356,6 +356,11 @@ def wishlist():
         return redirect(url_for("auth.login"))
 
     items = db.get_wishlist(conn, session["user_id"])
+    for item in items:
+        if 'current_price' not in item or item['current_price'] is None:
+            price = item['discount_price'] if item['discount_price'] is not None and (not item['discount_deadline'] or item['discount_deadline'] > datetime.now()) else item['price']
+            item['current_price'] = price
+    
     return render_template("wishlist.html", items=items)
 
 # =============
