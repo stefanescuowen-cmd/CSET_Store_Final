@@ -1057,9 +1057,17 @@ def get_wishlist(connection, customer_id):
         SELECT 
             p.title,
             p.price,
+            p.discount_price,
+            p.discount_deadline,
             pv.variant_id,
             pv.color,
-            pv.size
+            pv.size,
+            CASE
+                WHEN p.discount_price IS NOT NULL
+                 AND (p.discount_deadline IS NULL OR p.discount_deadline > NOW())
+                THEN p.discount_price
+                ELSE p.price
+            END AS current_price
         FROM wishlists w
         JOIN wishlist_items wi ON w.wishlist_id = wi.wishlist_id
         JOIN product_variants pv ON wi.variant_id = pv.variant_id
