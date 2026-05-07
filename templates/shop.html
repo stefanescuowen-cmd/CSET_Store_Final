@@ -21,39 +21,24 @@
 <form method="GET" action="/shop" class="filter-bar">
     <input type="text" name="search" placeholder="Search products or vendor..." value="{{ args.search or '' }}">
     
-    <!-- <select name="vendor">
-        <option value="">All Vendors</option>
-        {% for v in vendors %}
-            <option value="{{ v.name }}" {% if args.vendor == v.name %}selected{% endif %}>
-                {{ v.name }}
-            </option>
-        {% endfor %}
-    </select> -->
-    
     <select name="color">
         <option value="">All Colors</option>
         {% for color in colors %}
-            <option value="{{ color }}" {% if args.color == color %}selected{% endif %}>
-                {{ color }}
-            </option>
+            <option value="{{ color }}" {% if args.color == color %}selected{% endif %}>{{ color }}</option>
         {% endfor %}
     </select>
 
     <select name="size">
         <option value="">All Sizes</option>
         {% for size in sizes %}
-            <option value="{{ size }}" {% if args.size == size %}selected{% endif %}>
-                {{ size }}
-            </option>
+            <option value="{{ size }}" {% if args.size == size %}selected{% endif %}>{{ size }}</option>
         {% endfor %}
     </select>
 
     <select name="category">
         <option value="">All Categories</option>
         {% for cat in categories %}
-            <option value="{{ cat }}" {% if args.category == cat %}selected{% endif %}>
-                {{ cat }}
-            </option>
+            <option value="{{ cat }}" {% if args.category == cat %}selected{% endif %}>{{ cat }}</option>
         {% endfor %}
     </select>
     
@@ -66,9 +51,7 @@
     <button type="submit">Apply Search & Filters</button>
     
     {% if args.search or args.vendor or args.color or args.size or args.availability or args.category %}
-        <a href="/shop">
-            <button type="button">Clear All</button>
-        </a>
+        <a href="/shop"><button type="button">Clear All</button></a>
     {% endif %}
 </form>
 
@@ -81,10 +64,7 @@
 
         <div class="main-image">
             {% if images %}
-                <img 
-                    id="main-img-{{ product.product_id }}"
-                    src="{{ images[0] }}"
-                    onclick="openLightbox(this.src)">
+                <img id="main-img-{{ product.product_id }}" src="{{ images[0] }}" onclick="openLightbox(this.src)">
             {% else %}
                 <div class="no-image">No image</div>
             {% endif %}
@@ -92,9 +72,7 @@
 
         <div class="img-thumbs">
             {% for img in images %}
-                <img 
-                    src="{{ img }}"
-                    onclick="setMainImage('{{ product.product_id }}', '{{ img }}')">
+                <img src="{{ img }}" onclick="setMainImage('{{ product.product_id }}', '{{ img }}')">
             {% endfor %}
         </div>
 
@@ -108,27 +86,18 @@
             <a class="reviews-link" href="{{ url_for('reviews_page', product_id=product.product_id) }}#review-section">
                 {% if product.total_reviews > 0 %}
                     <span class="star-color">
-                        {# The math now works because avg_rating is always at least 0.0 #}
                         {% set rating = (product.avg_rating or 0)|round|int %}
-                        
                         {% for i in range(rating) %}★{% endfor %}{% for i in range(5 - rating) %}☆{% endfor %}
                     </span>
-                    <span class="review-count">
-                        ({{ product.total_reviews }})
-                    </span>
+                    <span class="review-count">({{ product.total_reviews }})</span>
                 {% else %}
                     No ratings yet
                 {% endif %}
-                
             </a>
         </div>
 
         {% if product.discount_price %}
-            <p>
-                <del>${{ product.price }}</del> 
-                <strong class="discount-price">${{ product.discount_price }}</strong>
-            </p>
-            
+            <p><del>${{ product.price }}</del> <strong class="discount-price">${{ product.discount_price }}</strong></p>
             {% if product.days_left is defined %}
                 <div class="countdown-timer">
                     ⏳ Sale ends in: 
@@ -152,10 +121,15 @@
 
         <p>Stock: 
             <span id="stock-{{ product.product_id }}">
-                {% if product.variants and product.variants|length > 0 and product.variants[0].stock > 0 %}
-                    {{ product.variants[0].stock }}
+                {# Sets the initial stock based on the first variant in the list #}
+                {% if product.variants and product.variants|length > 0 %}
+                    {% if product.variants[0].stock > 0 %}
+                        {{ product.variants[0].stock }}
+                    {% else %}
+                        Out of Stock
+                    {% endif %}
                 {% else %}
-                    Out of Stock
+                    Not Available
                 {% endif %}
             </span>
         </p>
@@ -164,11 +138,22 @@
         {% if session.get("user_id") %}
             {% if session.get("role") == 'customer' %}
                 {% if product.variants and product.variants|length > 0 %}
+                    {% set first_v = product.variants[0] %}
                     <form action="/add-to-cart" method="POST">
-                        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ product.variants[0].id if product.variants else '' }}">
-                        <input id="qty-{{ product.product_id }}" type="number" name="quantity" value="1" min="1" max="{{ product.variants[0].stock if product.variants else 1 }}" {% if product.variants[0].stock <= 0 %}style="display: none;"{% endif %}>
-                        <button type="submit" id="add-btn-{{ product.product_id }}" {% if product.variants[0].stock <= 0 %}disabled{% endif %}>
-                            {% if product.variants[0].stock > 0 %}Add to Cart{% else %}Out of Stock{% endif %}
+                        <input type="hidden" name="variant_id" id="vid-{{ product.product_id }}" value="{{ first_v.id }}">
+                        
+                        <input id="qty-{{ product.product_id }}" 
+                               type="number" 
+                               name="quantity" 
+                               value="1" 
+                               min="1" 
+                               max="{{ first_v.stock }}" 
+                               {% if first_v.stock <= 0 %}style="display: none;"{% endif %}>
+                        
+                        <button type="submit" 
+                                id="add-btn-{{ product.product_id }}" 
+                                {% if first_v.stock <= 0 %}disabled{% endif %}>
+                            {% if first_v.stock > 0 %}Add to Cart{% else %}Out of Stock{% endif %}
                         </button>
                     </form>
                 {% endif %}
