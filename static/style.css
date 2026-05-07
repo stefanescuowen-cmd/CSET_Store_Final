@@ -169,19 +169,12 @@ a{
     transition: color 0.3s ease;
 }
 
-.product-grid{
+.product-grid, .return-grid, .order-grid{
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     margin-top: 30px;
 }   
-
-.return-grid, .order-grid{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-top: 30px;
-}
 
 .product-card, .return-card, .order-card {
     background-color: var(--bg-color-light);
